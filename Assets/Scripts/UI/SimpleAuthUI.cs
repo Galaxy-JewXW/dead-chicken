@@ -241,17 +241,16 @@ namespace UserAuthUI
         /// </summary>
         private void OnRegisterButtonClicked()
         {
-            if (usernameField == null || passwordField == null || emailField == null || confirmPasswordField == null) return;
+            if (usernameField == null || passwordField == null || confirmPasswordField == null) return;
             
             string username = usernameField.value;
             string password = passwordField.value;
-            string email = emailField.value;
             string confirmPassword = confirmPasswordField.value;
             
             // 基本验证
-            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
+            if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                ShowMessage("请填写所有必填字段", MessageType.Error);
+                ShowMessage("请填写用户名和密码", MessageType.Error);
                 return;
             }
             
@@ -262,7 +261,7 @@ namespace UserAuthUI
             }
             
             // 调用认证系统注册
-            bool success = authSystem.RegisterUser(username, password, email);
+            bool success = authSystem.RegisterUser(username, password);
             
             if (success)
             {
@@ -285,12 +284,12 @@ namespace UserAuthUI
         /// </summary>
         private void OnUserLoggedIn(UserData user)
         {
-            ShowUserInfoPanel();
+            // 不自动显示用户信息面板，让主界面管理器处理界面切换
+            // ShowUserInfoPanel();
             
             if (userInfoLabel != null)
             {
                 userInfoLabel.text = $"欢迎，{user.Username}！\n" +
-                                   $"邮箱：{user.Email}\n" +
                                    $"注册时间：{user.CreatedAt:yyyy-MM-dd HH:mm}\n" +
                                    $"登录次数：{user.LoginCount}";
             }
@@ -303,7 +302,8 @@ namespace UserAuthUI
         /// </summary>
         private void OnUserLoggedOut()
         {
-            ShowLoginPanel();
+            // 不自动显示登录面板，让主界面管理器处理界面切换
+            // ShowLoginPanel();
             ShowMessage("已成功登出", MessageType.Info);
         }
         

@@ -35,14 +35,19 @@ namespace UserAuth
         /// </summary>
         private void InitializeAuthSystem()
         {
-            // 设置用户数据文件路径
-            userDataPath = Path.Combine(Application.persistentDataPath, "users.json");
+            // 设置用户数据文件路径 - 改为项目目录
+            // 在编辑器中使用项目目录，在构建后使用persistentDataPath
+            #if UNITY_EDITOR
+                userDataPath = Path.Combine(Application.dataPath, "..", "UserData", "users.json");
+            #else
+                userDataPath = Path.Combine(Application.persistentDataPath, "users.json");
+            #endif
             
             // 确保数据目录存在
             Directory.CreateDirectory(Path.GetDirectoryName(userDataPath));
             
             if (enableDebugLog)
-                Debug.Log("[SimpleUserAuth] 用户认证系统已初始化");
+                Debug.Log($"[SimpleUserAuth] 用户认证系统已初始化，数据文件路径: {userDataPath}");
         }
         
         /// <summary>
@@ -50,9 +55,8 @@ namespace UserAuth
         /// </summary>
         /// <param name="username">用户名</param>
         /// <param name="password">密码</param>
-        /// <param name="email">邮箱</param>
         /// <returns>是否注册成功</returns>
-        public bool RegisterUser(string username, string password, string email)
+        public bool RegisterUser(string username, string password)
         {
             try
             {
@@ -87,7 +91,7 @@ namespace UserAuth
                 {
                     Id = Guid.NewGuid().ToString(),
                     Username = username,
-                    Email = email,
+                    Email = "", // 邮箱字段保留但设为空字符串
                     Password = password, // 注意：实际项目中应该加密存储
                     CreatedAt = DateTime.Now,
                     IsActive = true

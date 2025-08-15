@@ -994,6 +994,7 @@ class PowerLineExtractor:
 
         # 计算全局平移向量（只平移x,y坐标，z坐标保持不变）
         global_translation_vector = np.array([global_reference_point[0], global_reference_point[1], 0])
+        self.last_translation_vector = global_translation_vector
 
         print(
             f"全局参考点: ({global_reference_point[0]:.2f}, {global_reference_point[1]:.2f}, {global_reference_point[2]:.2f})")

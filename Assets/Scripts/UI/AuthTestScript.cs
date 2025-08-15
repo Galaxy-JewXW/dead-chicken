@@ -64,11 +64,9 @@ namespace UserAuthTest
             
             string testUsername = "testuser_" + System.DateTime.Now.ToString("HHmmss");
             string testPassword = "testpass123";
-            string testEmail = $"{testUsername}@test.com";
-            
             Debug.Log($"[AuthTestScript] 测试注册用户: {testUsername}");
             
-            bool success = authSystem.RegisterUser(testUsername, testPassword, testEmail);
+            bool success = authSystem.RegisterUser(testUsername, testPassword);
             
             if (success)
             {
@@ -130,7 +128,7 @@ namespace UserAuthTest
             
             foreach (var user in users)
             {
-                Debug.Log($"  - {user.Username} ({user.Email}) - 创建时间: {user.CreatedAt:yyyy-MM-dd HH:mm}");
+                Debug.Log($"  - {user.Username} - 创建时间: {user.CreatedAt:yyyy-MM-dd HH:mm}");
             }
         }
         
@@ -148,7 +146,7 @@ namespace UserAuthTest
             if (isLoggedIn)
             {
                 var currentUser = authSystem.GetCurrentUser();
-                Debug.Log($"  当前用户: {currentUser.Username} ({currentUser.Email})");
+                Debug.Log($"  当前用户: {currentUser.Username}");
                 Debug.Log($"  登录次数: {currentUser.LoginCount}");
                 Debug.Log($"  最后登录: {currentUser.LastLoginAt:yyyy-MM-dd HH:mm}");
             }
