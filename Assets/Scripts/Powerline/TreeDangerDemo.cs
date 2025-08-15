@@ -1,51 +1,52 @@
 using UnityEngine;
 using System.Collections;
-using System.Linq;
 
 /// <summary>
-/// 树木危险监测系统演示脚本
-/// 展示如何使用和配置树木危险监测功能
+/// 树木危险监测系统启动器
+/// 负责初始化、配置和启动树木危险监测系统
 /// </summary>
 public class TreeDangerDemo : MonoBehaviour
 {
-    [Header("演示设置")]
-    public bool enableDemo = true;
-    public bool createSampleTrees = true;
-    public bool createSamplePowerlines = true;
+    [Header("系统配置")]
+    public bool autoStartSystem = true;
+    public bool enableDebugMode = false;
     
-    [Header("示例树木设置")]
-    public GameObject treePrefab;
-    public int sampleTreeCount = 10;
-    public float treeAreaRadius = 50f;
-    public float minTreeHeight = 5f;
-    public float maxTreeHeight = 25f;
+    [Header("危险评估参数")]
+    public float criticalDistance = 10f;  // 危险距离
+    public float warningDistance = 30f;   // 警告距离
+    public float safeDistance = 50f;      // 安全距离
     
-    [Header("示例电力线设置")]
-    public GameObject powerlinePrefab;
-    public int samplePowerlineCount = 3;
-    public float powerlineAreaRadius = 30f;
+    [Header("监测配置")]
+    public float monitoringInterval = 5f;
+    public float maxDetectionDistance = 100f;
+    
+    [Header("树木生长参数")]
+    public float baseGrowthRate = 0.1f;
+    public float maxTreeHeight = 50f;
+    public float seasonalGrowthFactor = 0.2f;
+    
+    [Header("电力线安全参数")]
     public float powerlineHeight = 20f;
-    
-    [Header("演示控制")]
-    public bool autoStartMonitoring = true;
-    public float demoUpdateInterval = 10f;
+    public float powerlineSag = 2f;
+    public float windSwayFactor = 1.5f;
     
     private TreeDangerMonitor treeDangerMonitor;
-    private bool demoInitialized = false;
+    private bool systemInitialized = false;
     
     void Start()
     {
-        if (!enableDemo) return;
-        
-        StartCoroutine(InitializeDemo());
+        if (autoStartSystem)
+        {
+            StartCoroutine(InitializeSystem());
+        }
     }
     
     /// <summary>
-    /// 初始化演示
+    /// 初始化监测系统
     /// </summary>
-    IEnumerator InitializeDemo()
+    IEnumerator InitializeSystem()
     {
-        Debug.Log("开始初始化树木危险监测演示...");
+        Debug.Log("=== 启动树木危险监测系统 ===");
         
         // 等待一帧确保所有组件都已初始化
         yield return null;
@@ -59,222 +60,46 @@ public class TreeDangerDemo : MonoBehaviour
             Debug.Log("已创建TreeDangerMonitor组件");
         }
         
-        // 创建示例场景
-        if (createSampleTrees)
-        {
-            CreateSampleTrees();
-        }
-        
-        if (createSamplePowerlines)
-        {
-            CreateSamplePowerlines();
-        }
-        
-        // 等待场景创建完成
-        yield return new WaitForSeconds(1f);
+        // 配置监测参数
+        ConfigureMonitoringSystem();
         
         // 启动监测
-        if (autoStartMonitoring)
-        {
-            StartMonitoring();
-        }
+        StartMonitoring();
         
-        demoInitialized = true;
-        Debug.Log("树木危险监测演示初始化完成");
+        systemInitialized = true;
+        Debug.Log("=== 树木危险监测系统启动完成 ===");
         
-        // 开始演示循环
-        StartCoroutine(DemoLoop());
+        // 显示系统状态
+        ShowSystemStatus();
     }
     
     /// <summary>
-    /// 创建示例树木
+    /// 配置监测系统参数
     /// </summary>
-    void CreateSampleTrees()
+    void ConfigureMonitoringSystem()
     {
-        Debug.Log($"开始创建 {sampleTreeCount} 棵示例树木...");
+        if (treeDangerMonitor == null) return;
         
-        // 如果没有指定预制件，创建简单的树木
-        if (treePrefab == null)
-        {
-            treePrefab = CreateSimpleTreePrefab();
-        }
+        // 设置危险评估参数
+        treeDangerMonitor.criticalDistance = criticalDistance;
+        treeDangerMonitor.warningDistance = warningDistance;
+        treeDangerMonitor.safeDistance = safeDistance;
         
-        for (int i = 0; i < sampleTreeCount; i++)
-        {
-            CreateSampleTree(i);
-        }
+        // 设置监测配置
+        treeDangerMonitor.monitoringInterval = monitoringInterval;
+        treeDangerMonitor.maxDetectionDistance = maxDetectionDistance;
         
-        Debug.Log("示例树木创建完成");
-    }
-    
-    /// <summary>
-    /// 创建单棵示例树木
-    /// </summary>
-    void CreateSampleTree(int index)
-    {
-        // 随机位置
-        Vector2 randomCircle = Random.insideUnitCircle * treeAreaRadius;
-        Vector3 position = new Vector3(randomCircle.x, 0, randomCircle.y);
+        // 设置树木生长参数
+        treeDangerMonitor.baseGrowthRate = baseGrowthRate;
+        treeDangerMonitor.maxTreeHeight = maxTreeHeight;
+        treeDangerMonitor.seasonalGrowthFactor = seasonalGrowthFactor;
         
-        // 随机高度
-        float height = Random.Range(minTreeHeight, maxTreeHeight);
+        // 设置电力线安全参数
+        treeDangerMonitor.powerlineHeight = powerlineHeight;
+        treeDangerMonitor.powerlineSag = powerlineSag;
+        treeDangerMonitor.windSwayFactor = windSwayFactor;
         
-        // 实例化树木
-        GameObject tree = Instantiate(treePrefab, position, Quaternion.identity);
-        tree.name = $"DemoTree_{index:D3}";
-        
-        // 设置标签
-        try
-        {
-            tree.tag = "Tree";
-        }
-        catch (UnityException)
-        {
-            Debug.LogWarning("Tree标签未定义，树木将无法被自动识别");
-        }
-        
-        // 调整树木高度
-        tree.transform.localScale = new Vector3(1f, height / 10f, 1f);
-        
-        // 随机旋转
-        tree.transform.rotation = Quaternion.Euler(0, Random.Range(0f, 360f), 0);
-        
-        Debug.Log($"创建树木 {tree.name} 在位置 {position}, 高度 {height}m");
-    }
-    
-    /// <summary>
-    /// 创建示例电力线
-    /// </summary>
-    void CreateSamplePowerlines()
-    {
-        Debug.Log($"开始创建 {samplePowerlineCount} 条示例电力线...");
-        
-        // 如果没有指定预制件，创建简单的电力线
-        if (powerlinePrefab == null)
-        {
-            powerlinePrefab = CreateSimplePowerlinePrefab();
-        }
-        
-        for (int i = 0; i < samplePowerlineCount; i++)
-        {
-            CreateSamplePowerline(i);
-        }
-        
-        Debug.Log("示例电力线创建完成");
-    }
-    
-    /// <summary>
-    /// 创建单条示例电力线
-    /// </summary>
-    void CreateSamplePowerline(int index)
-    {
-        // 随机位置
-        Vector2 randomCircle = Random.insideUnitCircle * powerlineAreaRadius;
-        Vector3 position = new Vector3(randomCircle.x, powerlineHeight, randomCircle.y);
-        
-        // 实例化电力线
-        GameObject powerline = Instantiate(powerlinePrefab, position, Quaternion.identity);
-        powerline.name = $"DemoPowerline_{index:D3}";
-        
-        // 设置标签
-        try
-        {
-            powerline.tag = "Powerline";
-        }
-        catch (UnityException)
-        {
-            Debug.LogWarning("Powerline标签未定义，电力线将无法被自动识别");
-        }
-        
-        // 添加PowerlineInteraction组件
-        PowerlineInteraction interaction = powerline.GetComponent<PowerlineInteraction>();
-        if (interaction == null)
-        {
-            interaction = powerline.AddComponent<PowerlineInteraction>();
-        }
-        
-        // 设置电力线信息
-        var powerlineInfo = new SceneInitializer.PowerlineInfo
-        {
-            wireType = "Conductor",
-            index = index,
-            length = Random.Range(50f, 200f),
-            start = position,
-            end = position + Vector3.right * Random.Range(20f, 50f),
-            points = new System.Collections.Generic.List<Vector3>()
-        };
-        
-        // 添加一些中间点
-        int pointCount = Random.Range(3, 8);
-        for (int j = 0; j < pointCount; j++)
-        {
-            float t = (float)j / (pointCount - 1);
-            Vector3 point = Vector3.Lerp(powerlineInfo.start, powerlineInfo.end, t);
-            point.y = powerlineHeight + Random.Range(-2f, 2f); // 添加一些弧垂
-            powerlineInfo.points.Add(point);
-        }
-        
-        interaction.SetPowerlineInfo(powerlineInfo);
-        
-        Debug.Log($"创建电力线 {powerline.name} 在位置 {position}");
-    }
-    
-    /// <summary>
-    /// 创建简单树木预制件
-    /// </summary>
-    GameObject CreateSimpleTreePrefab()
-    {
-        GameObject tree = new GameObject("SimpleTree");
-        
-        // 创建树干
-        GameObject trunk = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        trunk.name = "Trunk";
-        trunk.transform.SetParent(tree.transform);
-        trunk.transform.localPosition = Vector3.zero;
-        trunk.transform.localScale = new Vector3(0.5f, 5f, 0.5f);
-        
-        // 设置树干材质
-        Material trunkMaterial = new Material(Shader.Find("Standard"));
-        trunkMaterial.color = new Color(0.4f, 0.2f, 0.1f);
-        trunk.GetComponent<Renderer>().material = trunkMaterial;
-        
-        // 创建树冠
-        GameObject crown = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        crown.name = "Crown";
-        crown.transform.SetParent(tree.transform);
-        crown.transform.localPosition = Vector3.up * 4f;
-        crown.transform.localScale = new Vector3(3f, 3f, 3f);
-        
-        // 设置树冠材质
-        Material crownMaterial = new Material(Shader.Find("Standard"));
-        crownMaterial.color = new Color(0.2f, 0.6f, 0.2f);
-        crown.GetComponent<Renderer>().material = crownMaterial;
-        
-        // 移除碰撞器
-        DestroyImmediate(trunk.GetComponent<Collider>());
-        DestroyImmediate(crown.GetComponent<Collider>());
-        
-        return tree;
-    }
-    
-    /// <summary>
-    /// 创建简单电力线预制件
-    /// </summary>
-    GameObject CreateSimplePowerlinePrefab()
-    {
-        GameObject powerline = new GameObject("SimplePowerline");
-        
-        // 创建LineRenderer
-        LineRenderer lineRenderer = powerline.AddComponent<LineRenderer>();
-        lineRenderer.material = new Material(Shader.Find("Standard"));
-        lineRenderer.material.color = new Color(0.8f, 0.7f, 0.5f);
-        lineRenderer.startWidth = 0.2f;
-        lineRenderer.endWidth = 0.2f;
-        lineRenderer.positionCount = 2;
-        lineRenderer.SetPosition(0, Vector3.zero);
-        lineRenderer.SetPosition(1, Vector3.right * 30f);
-        
-        return powerline;
+        Debug.Log("监测系统参数配置完成");
     }
     
     /// <summary>
@@ -289,92 +114,6 @@ public class TreeDangerDemo : MonoBehaviour
         
         // 手动触发一次监测
         treeDangerMonitor.ManualMonitoring();
-    }
-    
-    /// <summary>
-    /// 演示循环
-    /// </summary>
-    IEnumerator DemoLoop()
-    {
-        while (demoInitialized)
-        {
-            yield return new WaitForSeconds(demoUpdateInterval);
-            
-            if (treeDangerMonitor != null)
-            {
-                // 显示统计信息
-                var stats = treeDangerMonitor.GetDangerStatistics();
-                if (stats.Count > 0)
-                {
-                    string statsText = "当前危险统计:\n";
-                    foreach (var stat in stats)
-                    {
-                        statsText += $"{stat.Key}: {stat.Value}\n";
-                    }
-                    Debug.Log(statsText);
-                }
-                
-                // 显示危险树木信息
-                var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-                if (allDangerInfo.Count > 0)
-                {
-                    Debug.Log($"发现 {allDangerInfo.Count} 个危险情况");
-                    
-                    var criticalTrees = allDangerInfo.Where(d => d.dangerLevel >= TreeDangerMonitor.TreeDangerLevel.Critical).ToList();
-                    if (criticalTrees.Count > 0)
-                    {
-                        Debug.LogWarning($"发现 {criticalTrees.Count} 个高危险情况！");
-                        foreach (var critical in criticalTrees)
-                        {
-                            Debug.LogWarning($"高危险树木: {critical.tree.name} - {critical.riskDescription}");
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    /// <summary>
-    /// 重置演示场景
-    /// </summary>
-    [ContextMenu("重置演示场景")]
-    public void ResetDemo()
-    {
-        Debug.Log("重置演示场景...");
-        
-        // 清除现有对象
-        ClearDemoObjects();
-        
-        // 重新初始化
-        StartCoroutine(InitializeDemo());
-    }
-    
-    /// <summary>
-    /// 清除演示对象
-    /// </summary>
-    void ClearDemoObjects()
-    {
-        // 清除演示树木
-        GameObject[] demoTrees = GameObject.FindGameObjectsWithTag("Tree");
-        foreach (var tree in demoTrees)
-        {
-            if (tree.name.StartsWith("DemoTree_"))
-            {
-                DestroyImmediate(tree);
-            }
-        }
-        
-        // 清除演示电力线
-        GameObject[] demoPowerlines = GameObject.FindGameObjectsWithTag("Powerline");
-        foreach (var powerline in demoPowerlines)
-        {
-            if (powerline.name.StartsWith("DemoPowerline_"))
-            {
-                DestroyImmediate(powerline);
-            }
-        }
-        
-        Debug.Log("演示对象已清除");
     }
     
     /// <summary>
@@ -395,10 +134,10 @@ public class TreeDangerDemo : MonoBehaviour
     }
     
     /// <summary>
-    /// 显示监测状态
+    /// 显示系统状态
     /// </summary>
-    [ContextMenu("显示监测状态")]
-    public void ShowMonitoringStatus()
+    [ContextMenu("显示系统状态")]
+    public void ShowSystemStatus()
     {
         if (treeDangerMonitor == null)
         {
@@ -409,7 +148,8 @@ public class TreeDangerDemo : MonoBehaviour
         var stats = treeDangerMonitor.GetDangerStatistics();
         var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
         
-        Debug.Log($"=== 监测状态 ===\n" +
+        Debug.Log($"=== 系统状态 ===\n" +
+                 $"系统初始化: {systemInitialized}\n" +
                  $"自动监测: {treeDangerMonitor.enableAutoMonitoring}\n" +
                  $"监测间隔: {treeDangerMonitor.monitoringInterval}秒\n" +
                  $"危险统计: {stats.Count} 个等级\n" +
@@ -425,26 +165,62 @@ public class TreeDangerDemo : MonoBehaviour
         }
     }
     
-    void OnDestroy()
+    /// <summary>
+    /// 重新配置系统
+    /// </summary>
+    [ContextMenu("重新配置系统")]
+    public void ReconfigureSystem()
     {
-        // 清理演示对象
-        if (Application.isPlaying)
+        if (treeDangerMonitor != null)
         {
-            ClearDemoObjects();
+            ConfigureMonitoringSystem();
+            Debug.Log("系统重新配置完成");
         }
     }
     
     /// <summary>
-    /// 测试方法：验证编译是否正常
+    /// 重置系统
     /// </summary>
-    [ContextMenu("测试编译")]
-    public void TestCompilation()
+    [ContextMenu("重置系统")]
+    public void ResetSystem()
     {
-        Debug.Log("编译测试通过！");
+        Debug.Log("重置树木危险监测系统...");
         
-        // 测试LINQ功能
-        var testList = new System.Collections.Generic.List<int> { 1, 2, 3, 4, 5 };
-        var filtered = testList.Where(x => x > 3).ToList();
-        Debug.Log($"LINQ测试通过，过滤结果: {string.Join(", ", filtered)}");
+        if (treeDangerMonitor != null)
+        {
+            treeDangerMonitor.enableAutoMonitoring = false;
+            DestroyImmediate(treeDangerMonitor.gameObject);
+            treeDangerMonitor = null;
+        }
+        
+        systemInitialized = false;
+        
+        // 重新初始化
+        StartCoroutine(InitializeSystem());
+    }
+    
+    /// <summary>
+    /// 导出监测数据
+    /// </summary>
+    [ContextMenu("导出监测数据")]
+    public void ExportMonitoringData()
+    {
+        if (treeDangerMonitor != null)
+        {
+            var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
+            Debug.Log($"导出监测数据: {allDangerInfo.Count} 条记录");
+            
+            // 这里可以添加CSV导出逻辑
+            // treeDangerMonitor.ExportToCSV();
+        }
+    }
+    
+    void OnValidate()
+    {
+        // 在Inspector中修改参数时自动更新系统配置
+        if (Application.isPlaying && treeDangerMonitor != null && systemInitialized)
+        {
+            ConfigureMonitoringSystem();
+        }
     }
 }

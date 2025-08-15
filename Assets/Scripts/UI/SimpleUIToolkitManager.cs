@@ -45,7 +45,8 @@ public class SimpleUIToolkitManager : MonoBehaviour
         Powerline,
         TowerOverview,
         SceneOverview, // 添加场景总览模式
-        PointCloud // 添加点云模式
+        PointCloud, // 添加点云模式
+        TreeDanger // 添加树木危险监测模式
     }
     
     public UIMode currentMode = UIMode.Normal;
@@ -473,6 +474,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         CreateStyledButton("测量", () => SwitchMode(UIMode.Measure), buttonContainer);
         CreateStyledButton("危险物", () => SwitchMode(UIMode.Danger), buttonContainer);
         CreateStyledButton("电力线", () => SwitchMode(UIMode.Powerline), buttonContainer);
+        CreateStyledButton("树木监测", () => SwitchMode(UIMode.TreeDanger), buttonContainer);
         CreateStyledButton("点云", () => SwitchMode(UIMode.PointCloud), buttonContainer);
         CreateDronePatrolButton(buttonContainer); // 创建特殊的无人机巡检按钮
         
@@ -1005,10 +1007,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
                 case UIMode.TowerOverview:
                     ShowTowerOverviewPanel();
                     break;
-                case UIMode.PointCloud:
-                    ShowPointCloudPanel();
-                    break;
-                case UIMode.SceneOverview:
+                        case UIMode.PointCloud:
+            ShowPointCloudPanel();
+            break;
+        case UIMode.TreeDanger:
+            ShowTreeDangerPanel();
+            break;
+        case UIMode.SceneOverview:
                     // 场景总览使用独立弹窗，不需要侧边栏
                     break;
                 default:
@@ -1656,6 +1661,54 @@ public class SimpleUIToolkitManager : MonoBehaviour
         {
             // 如果没有找到点云控制器，显示错误信息
             var errorText = new Label("点云控制器未找到，请检查配置");
+            errorText.style.color = Color.red;
+            errorText.style.fontSize = 14;
+            errorText.style.whiteSpace = WhiteSpace.Normal;
+            errorText.style.marginBottom = 15;
+            ApplyFont(errorText);
+            panel.Add(errorText);
+        }
+        
+        sidebar.Add(panel);
+    }
+    
+    void ShowTreeDangerPanel()
+    {
+        sidebar.Clear();
+        
+        // 创建有标题的面板容器
+        var panel = CreatePanel("树木危险监测");
+        
+        // 获取或创建树木危险监测控制器
+        var treeDangerController = FindObjectOfType<UIToolkitTreeDangerController>();
+        if (treeDangerController != null)
+        {
+            // 创建树木危险监测面板内容
+            var treeDangerContent = treeDangerController.CreateTreeDangerPanel();
+            if (treeDangerContent != null)
+            {
+                // 移除面板内容的外部样式，只保留内容
+                treeDangerContent.style.backgroundColor = StyleKeyword.None;
+                treeDangerContent.style.borderLeftWidth = 0;
+                treeDangerContent.style.borderRightWidth = 0;
+                treeDangerContent.style.borderTopWidth = 0;
+                treeDangerContent.style.borderBottomWidth = 0;
+                treeDangerContent.style.paddingTop = 0;
+                treeDangerContent.style.paddingBottom = 0;
+                treeDangerContent.style.paddingLeft = 0;
+                treeDangerContent.style.paddingRight = 0;
+                treeDangerContent.style.marginBottom = 0;
+                
+                panel.Add(treeDangerContent);
+                
+                // 更新显示
+                treeDangerController.UpdateDisplay();
+            }
+        }
+        else
+        {
+            // 如果没有找到控制器，显示错误信息
+            var errorText = new Label("树木危险监测控制器未找到，请检查配置");
             errorText.style.color = Color.red;
             errorText.style.fontSize = 14;
             errorText.style.whiteSpace = WhiteSpace.Normal;
