@@ -41,6 +41,9 @@ public class InitialInterfaceManager : MonoBehaviour
     private VisualElement initialPanel;
     private VisualElement fileUploadArea;
     private VisualElement pythonGuideArea;
+    private VisualElement authArea;
+    private VisualElement loginFormInAuthArea;
+    private VisualElement registerFormInAuthArea;
     private Label statusLabel;
     private ProgressBar progressBar;
     private VisualElement uploadLasButton;
@@ -103,8 +106,8 @@ public class InitialInterfaceManager : MonoBehaviour
         if (authSystem != null && authSystem.IsUserLoggedIn())
         {
             isUserLoggedIn = true;
-            ShowMainInterface();
-            Debug.Log("用户已登录，显示主界面");
+            // 不自动显示主界面，保持当前状态
+            Debug.Log("用户已登录，保持当前界面状态");
         }
         else
         {
@@ -179,8 +182,8 @@ public class InitialInterfaceManager : MonoBehaviour
     private void OnUserLoggedIn(UserAuth.UserData user)
     {
         isUserLoggedIn = true;
-        ShowMainInterface();
-        Debug.Log($"用户 {user.Username} 登录成功，显示主界面");
+        BackToMainInterface(); // 登录成功后返回主界面
+        Debug.Log($"用户 {user.Username} 登录成功，返回主界面");
     }
     
     /// <summary>
@@ -189,8 +192,8 @@ public class InitialInterfaceManager : MonoBehaviour
     private void OnUserLoggedOut()
     {
         isUserLoggedIn = false;
-        ShowLoginInterface();
-        Debug.Log("用户登出，显示登录界面");
+        BackToMainInterface(); // 登出后返回主界面
+        Debug.Log("用户登出，返回主界面");
     }
     
     /// <summary>
@@ -251,21 +254,27 @@ public class InitialInterfaceManager : MonoBehaviour
         // 创建登录面板
         Debug.Log("创建登录面板...");
         CreateLoginPanel();
+        Debug.Log($"登录面板创建完成，引用: {(loginPanel != null ? "已设置" : "未设置")}");
         
         // 创建注册面板
         Debug.Log("创建注册面板...");
         CreateRegisterPanel();
+        Debug.Log($"注册面板创建完成，引用: {(registerPanel != null ? "已设置" : "未设置")}");
         
         // 创建主界面面板
         Debug.Log("创建主界面面板...");
         CreateInitialInterface();
+        Debug.Log($"主界面面板创建完成，引用: {(initialPanel != null ? "已设置" : "未设置")}");
         
         Debug.Log("所有UI界面创建完成");
         
         // 查找UI元素引用
+        Debug.Log("开始查找UI元素引用...");
         FindUIElements();
+        Debug.Log("UI元素查找完成");
         
         // 等待一帧后设置初始显示状态，确保所有界面都已创建完成
+        Debug.Log("启动初始显示状态设置协程...");
         StartCoroutine(SetInitialDisplayState());
     }
     
@@ -279,11 +288,17 @@ public class InitialInterfaceManager : MonoBehaviour
         
         Debug.Log("设置初始显示状态...");
         
-        // 强制设置初始显示状态：只显示登录界面，其他全部隐藏
+        // 检查面板是否已创建
+        Debug.Log($"检查面板创建状态:");
+        Debug.Log($"主界面面板: {(initialPanel != null ? "已创建" : "未创建")}");
+        Debug.Log($"登录面板: {(loginPanel != null ? "已创建" : "未创建")}");
+        Debug.Log($"注册面板: {(registerPanel != null ? "已创建" : "未创建")}");
+        
+        // 始终显示主界面，无论用户是否登录
         if (loginPanel != null) 
         {
-            loginPanel.style.display = DisplayStyle.Flex;
-            Debug.Log("登录界面设置为可见");
+            loginPanel.style.display = DisplayStyle.None;
+            Debug.Log("登录界面设置为隐藏");
         }
         else
         {
@@ -302,18 +317,25 @@ public class InitialInterfaceManager : MonoBehaviour
         
         if (initialPanel != null) 
         {
-            initialPanel.style.display = DisplayStyle.None;
-            Debug.Log("主界面设置为隐藏");
+            initialPanel.style.display = DisplayStyle.Flex;
+            Debug.Log("主界面设置为可见");
         }
         else
         {
             Debug.LogWarning("主界面面板为空");
         }
         
-        Debug.Log("初始显示状态设置完成 - 只显示登录界面");
+        // 检查用户登录状态，用于更新主界面的显示内容
+        if (authSystem != null)
+        {
+            bool userAlreadyLoggedIn = authSystem.IsUserLoggedIn();
+            isUserLoggedIn = userAlreadyLoggedIn;
+            Debug.Log($"用户登录状态: {(userAlreadyLoggedIn ? "已登录" : "未登录")}");
+        }
         
-        // 注意：此时不检查用户登录状态，强制显示登录界面
-        // 用户必须手动登录才能进入系统
+        Debug.Log("用户未登录，强制显示主界面");
+        
+        Debug.Log("初始显示状态设置完成");
     }
     
     /// <summary>
@@ -332,15 +354,30 @@ public class InitialInterfaceManager : MonoBehaviour
             }
         }
         
-        // 查找面板
-        loginPanel = rootElement.Q<VisualElement>("login-panel");
-        Debug.Log($"登录面板查找结果: {(loginPanel != null ? "成功" : "失败")}");
+        // 检查面板是否已创建（避免覆盖已创建的引用）
+        Debug.Log($"面板创建状态检查:");
+        Debug.Log($"登录面板: {(loginPanel != null ? "已创建" : "未创建")}");
+        Debug.Log($"注册面板: {(registerPanel != null ? "已创建" : "未创建")}");
+        Debug.Log($"主界面面板: {(initialPanel != null ? "已创建" : "未创建")}");
         
-        registerPanel = rootElement.Q<VisualElement>("register-panel");
-        Debug.Log($"注册面板查找结果: {(registerPanel != null ? "成功" : "失败")}");
+        // 如果面板未创建，则尝试查找
+        if (loginPanel == null)
+        {
+            loginPanel = rootElement.Q<VisualElement>("login-panel");
+            Debug.Log($"登录面板查找结果: {(loginPanel != null ? "成功" : "失败")}");
+        }
         
-        initialPanel = rootElement.Q<VisualElement>("initial-panel");
-        Debug.Log($"主界面面板查找结果: {(initialPanel != null ? "成功" : "失败")}");
+        if (registerPanel == null)
+        {
+            registerPanel = rootElement.Q<VisualElement>("register-panel");
+            Debug.Log($"注册面板查找结果: {(registerPanel != null ? "成功" : "失败")}");
+        }
+        
+        if (initialPanel == null)
+        {
+            initialPanel = rootElement.Q<VisualElement>("initial-panel");
+            Debug.Log($"主界面面板查找结果: {(initialPanel != null ? "成功" : "失败")}");
+        }
         
         // 查找其他UI元素
         fileUploadArea = rootElement.Q<VisualElement>("file-upload-area");
@@ -376,8 +413,8 @@ public class InitialInterfaceManager : MonoBehaviour
         loginPanel.style.paddingLeft = 50;
         loginPanel.style.paddingRight = 50;
         
-        // 暂时注释掉背景装饰，简化测试
-        // CreateBackgroundDecoration(loginPanel);
+        // 添加背景装饰，让登录界面更美观
+        CreateBackgroundDecoration(loginPanel);
         
         // 创建登录表单
         CreateLoginForm(loginPanel);
@@ -386,6 +423,11 @@ public class InitialInterfaceManager : MonoBehaviour
         if (rootElement != null)
         {
             rootElement.Add(loginPanel);
+            Debug.Log("登录面板已添加到根元素");
+        }
+        else
+        {
+            Debug.LogError("根元素为空，无法添加登录面板");
         }
     }
     
@@ -412,8 +454,8 @@ public class InitialInterfaceManager : MonoBehaviour
         registerPanel.style.paddingLeft = 50;
         registerPanel.style.paddingRight = 50;
         
-        // 暂时注释掉背景装饰，简化测试
-        // CreateBackgroundDecoration(registerPanel);
+        // 添加背景装饰，让注册界面更美观
+        CreateBackgroundDecoration(registerPanel);
         
         // 创建注册表单
         CreateRegisterForm(registerPanel);
@@ -422,6 +464,11 @@ public class InitialInterfaceManager : MonoBehaviour
         if (rootElement != null)
         {
             rootElement.Add(registerPanel);
+            Debug.Log("注册面板已添加到根元素");
+        }
+        else
+        {
+            Debug.LogError("根元素为空，无法添加注册面板");
         }
     }
     
@@ -496,8 +543,11 @@ public class InitialInterfaceManager : MonoBehaviour
         // 创建Python引导区域
         CreatePythonGuideArea(initialPanel);
         
-        // 创建状态显示区域
-        CreateStatusArea(initialPanel);
+        // 创建登录/注册区域（作为主界面的子元素）
+        CreateAuthArea(initialPanel);
+        
+        // 移除状态显示区域，避免在认证界面中显示不必要的元素
+        // CreateStatusArea(initialPanel);
         
         // 创建底部信息
         CreateFooterInfo(initialPanel);
@@ -636,7 +686,20 @@ public class InitialInterfaceManager : MonoBehaviour
         );
         selectionContainer.Add(uploadLasButton);
         
-
+        // 分隔符3
+        var separator3 = new VisualElement();
+        separator3.style.width = 25;
+        separator3.style.height = 200;
+        selectionContainer.Add(separator3);
+        
+        // 用户认证按钮
+        var authButton = CreateOptionButton(
+            "用户认证",
+            "登录或注册账户\n管理您的个人信息\n获取个性化服务",
+            "🔐",
+            () => OnAuthButtonClicked()
+        );
+        selectionContainer.Add(authButton);
         
         parent.Add(selectionContainer);
     }
@@ -861,154 +924,217 @@ public class InitialInterfaceManager : MonoBehaviour
     void CreatePythonGuideArea(VisualElement parent)
     {
         pythonGuideArea = new VisualElement();
+        pythonGuideArea.name = "python-guide-area";
         pythonGuideArea.style.display = DisplayStyle.None;
-        pythonGuideArea.style.width = Length.Percent(80);
-        pythonGuideArea.style.alignItems = Align.Center;
         pythonGuideArea.style.flexDirection = FlexDirection.Column;
+        pythonGuideArea.style.alignItems = Align.Center;
+        pythonGuideArea.style.justifyContent = Justify.Center;
+        pythonGuideArea.style.width = Length.Percent(100);
+        pythonGuideArea.style.height = Length.Percent(100);
+        pythonGuideArea.style.paddingTop = 50;
+        pythonGuideArea.style.paddingBottom = 50;
+        pythonGuideArea.style.paddingLeft = 50;
+        pythonGuideArea.style.paddingRight = 50;
         
-        // 标题
-        var titleLabel = new Label("Python环境配置向导");
-        titleLabel.style.color = primaryColor;
-        titleLabel.style.fontSize = 24;
-        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginBottom = 40; // 增加底部间距
-        titleLabel.style.marginTop = 20; // 增加顶部间距
-        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        ApplyFont(titleLabel, FontSize.LargeTitle);
-        pythonGuideArea.Add(titleLabel);
+        // 添加背景装饰
+        CreateBackgroundDecoration(pythonGuideArea);
         
-        // 说明文本
-        var descriptionLabel = new Label("本系统需要Python 3.11环境支持点云处理功能。请确保已安装以下Python库：");
-        descriptionLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-        descriptionLabel.style.fontSize = 16;
-        descriptionLabel.style.marginBottom = 20;
-        descriptionLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        descriptionLabel.style.whiteSpace = WhiteSpace.Normal;
-        ApplyFont(descriptionLabel);
-        pythonGuideArea.Add(descriptionLabel);
+        // 创建Python引导标题
+        var pythonTitle = new Label("Python环境配置向导");
+        pythonTitle.style.color = primaryColor;
+        pythonTitle.style.marginBottom = 30;
+        pythonTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+        ApplyFont(pythonTitle, FontSize.LargeTitle);
+        pythonGuideArea.Add(pythonTitle);
         
-        // 必需的Python库列表
-        var librariesContainer = new VisualElement();
-        librariesContainer.style.width = Length.Percent(100);
-        librariesContainer.style.marginBottom = 30;
+        // 创建Python环境检查按钮
+        var checkPythonButton = new Button(() => CheckPythonEnvironment()) { text = "检查Python环境" };
+        checkPythonButton.style.width = 300;
+        checkPythonButton.style.height = 50;
+        checkPythonButton.style.backgroundColor = primaryColor;
+        checkPythonButton.style.color = Color.white;
+        checkPythonButton.style.borderTopLeftRadius = 8;
+        checkPythonButton.style.borderTopRightRadius = 8;
+        checkPythonButton.style.borderBottomLeftRadius = 8;
+        checkPythonButton.style.borderBottomRightRadius = 8;
+        checkPythonButton.style.marginBottom = 20;
+        ApplyFont(checkPythonButton, FontSize.Title);
+        pythonGuideArea.Add(checkPythonButton);
         
-        string[] requiredLibraries = {
-            "laspy - LAS点云文件读取库",
-            "numpy - 数值计算库",
-            "open3d - 3D点云处理库",
-            "scipy - 科学计算库",
-            "scikit-learn - 机器学习库",
-            "tqdm - 进度条库",
-            "matplotlib - 绘图库（可选）"
-        };
-        
-        foreach (string library in requiredLibraries)
-        {
-            var libraryItem = new Label($"• {library}");
-            libraryItem.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
-            libraryItem.style.fontSize = 14;
-            libraryItem.style.marginBottom = 8;
-            libraryItem.style.unityTextAlign = TextAnchor.MiddleLeft;
-            ApplyFont(libraryItem);
-            librariesContainer.Add(libraryItem);
-        }
-        
-        pythonGuideArea.Add(librariesContainer);
-        
-        // 安装命令
-        var installCommandsContainer = new VisualElement();
-        installCommandsContainer.style.width = Length.Percent(100);
-        installCommandsContainer.style.marginBottom = 30;
-        
-        var installTitle = new Label("安装命令：");
-        installTitle.style.color = primaryColor;
-        installTitle.style.fontSize = 16;
-        installTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
-        installTitle.style.marginBottom = 10;
-        installTitle.style.unityTextAlign = TextAnchor.MiddleLeft;
-        ApplyFont(installTitle);
-        installCommandsContainer.Add(installTitle);
-        
-        var installCommandContainer = new VisualElement();
-        installCommandContainer.style.flexDirection = FlexDirection.Row;
-        installCommandContainer.style.alignItems = Align.Center;
-        installCommandContainer.style.marginBottom = 10;
-        
-        var installCommand = new Label("pip install -i https://pypi.tuna.tsinghua.edu.cn/simple laspy numpy open3d scipy scikit-learn tqdm matplotlib");
-        installCommand.style.color = new Color(0.2f, 0.6f, 0.2f, 1f);
-        installCommand.style.fontSize = 14;
-        installCommand.style.unityFontStyleAndWeight = FontStyle.Bold;
-        installCommand.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-        installCommand.style.paddingTop = 8;
-        installCommand.style.paddingBottom = 8;
-        installCommand.style.paddingLeft = 12;
-        installCommand.style.paddingRight = 12;
-        installCommand.style.borderTopLeftRadius = 4;
-        installCommand.style.borderTopRightRadius = 4;
-        installCommand.style.borderBottomLeftRadius = 4;
-        installCommand.style.borderBottomRightRadius = 4;
-        installCommand.style.unityTextAlign = TextAnchor.MiddleLeft;
-        installCommand.style.flexGrow = 1;
-        ApplyFont(installCommand);
-        installCommandContainer.Add(installCommand);
-        
-        // 复制按钮
-        var copyButton = new Button(() => CopyToClipboard("pip install -i https://pypi.tuna.tsinghua.edu.cn/simple laspy numpy open3d scipy scikit-learn tqdm matplotlib"));
-        copyButton.text = "复制";
-        copyButton.style.backgroundColor = new Color(0.3f, 0.6f, 0.9f, 1f);
-        copyButton.style.color = Color.white;
-        copyButton.style.fontSize = 12;
-        copyButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        copyButton.style.marginLeft = 8;
-        copyButton.style.minHeight = 32;
-        copyButton.style.minWidth = 60;
-        copyButton.style.borderTopLeftRadius = 4;
-        copyButton.style.borderTopRightRadius = 4;
-        copyButton.style.borderBottomLeftRadius = 4;
-        copyButton.style.borderBottomRightRadius = 4;
-        copyButton.style.unityTextAlign = TextAnchor.MiddleCenter;
-        ApplyFont(copyButton, FontSize.Small);
-        installCommandContainer.Add(copyButton);
-        
-        installCommandsContainer.Add(installCommandContainer);
-        
-        pythonGuideArea.Add(installCommandsContainer);
-        
-        // 添加额外的间距容器
-        var spacingContainer = new VisualElement();
-        spacingContainer.style.height = 10; // 减少间距，让按钮更靠近上方内容
-        pythonGuideArea.Add(spacingContainer);
-        
-        // 检查按钮
-        var checkButton = new Button(() => CheckPythonEnvironment());
-        checkButton.text = "检查Python环境";
-        checkButton.style.backgroundColor = accentColor;
-        checkButton.style.color = Color.white;
-        checkButton.style.fontSize = 16;
-        checkButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        checkButton.style.marginBottom = 25; // 增加底部间距
-        checkButton.style.marginTop = 30; // 增加顶部间距，让按钮往上移
-        checkButton.style.minHeight = 45;
-        checkButton.style.minWidth = 200;
-        checkButton.style.unityTextAlign = TextAnchor.MiddleCenter; // 文字居中
-        ApplyFont(checkButton);
-        pythonGuideArea.Add(checkButton);
-        
-        // 返回按钮
-        var backButton = new Button(() => ReturnToMainInterface());
-        backButton.text = "返回主界面";
-        backButton.style.backgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
-        backButton.style.color = Color.white;
-        backButton.style.fontSize = 16;
-        backButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        backButton.style.marginTop = 15; // 增加顶部间距
-        backButton.style.minHeight = 45;
-        backButton.style.minWidth = 200;
-        backButton.style.unityTextAlign = TextAnchor.MiddleCenter; // 文字居中
-        ApplyFont(backButton);
-        pythonGuideArea.Add(backButton);
+        // 创建返回主界面按钮
+        var returnToMainButton = new Button(() => ReturnToMainInterface()) { text = "返回主界面" };
+        returnToMainButton.style.width = 300;
+        returnToMainButton.style.height = 50;
+        returnToMainButton.style.backgroundColor = Color.clear;
+        returnToMainButton.style.color = primaryColor;
+        returnToMainButton.style.borderLeftWidth = 2;
+        returnToMainButton.style.borderRightWidth = 2;
+        returnToMainButton.style.borderTopWidth = 2;
+        returnToMainButton.style.borderBottomWidth = 2;
+        returnToMainButton.style.borderLeftColor = primaryColor;
+        returnToMainButton.style.borderRightColor = primaryColor;
+        returnToMainButton.style.borderTopColor = primaryColor;
+        returnToMainButton.style.borderBottomColor = primaryColor;
+        returnToMainButton.style.borderTopLeftRadius = 8;
+        returnToMainButton.style.borderTopRightRadius = 8;
+        returnToMainButton.style.borderBottomLeftRadius = 8;
+        returnToMainButton.style.borderBottomRightRadius = 8;
+        ApplyFont(returnToMainButton, FontSize.Title);
+        pythonGuideArea.Add(returnToMainButton);
         
         parent.Add(pythonGuideArea);
+    }
+    
+    /// <summary>
+    /// 创建登录/注册区域（作为主界面的子元素）
+    /// </summary>
+    void CreateAuthArea(VisualElement parent)
+    {
+        authArea = new VisualElement();
+        authArea.name = "auth-area";
+        authArea.style.display = DisplayStyle.None;
+        authArea.style.flexDirection = FlexDirection.Column;
+        authArea.style.alignItems = Align.Center;
+        authArea.style.justifyContent = Justify.Center;
+        authArea.style.width = Length.Percent(100);
+        authArea.style.height = Length.Percent(100);
+        authArea.style.paddingTop = 20;
+        authArea.style.paddingBottom = 20;
+        authArea.style.paddingLeft = 20;
+        authArea.style.paddingRight = 20;
+        
+        // 添加背景装饰
+        CreateBackgroundDecoration(authArea);
+        
+        // 创建主认证卡片容器
+        var authCard = new VisualElement();
+        authCard.name = "auth-card";
+        authCard.style.width = 420;
+        authCard.style.backgroundColor = new Color(1f, 1f, 1f, 0.95f);
+        authCard.style.borderTopLeftRadius = 20;
+        authCard.style.borderTopRightRadius = 20;
+        authCard.style.borderBottomLeftRadius = 20;
+        authCard.style.borderBottomRightRadius = 20;
+        authCard.style.paddingTop = 40;
+        authCard.style.paddingBottom = 40;
+        authCard.style.paddingLeft = 40;
+        authCard.style.paddingRight = 40;
+        // Unity UI Toolkit 不支持 boxShadow，使用其他方式创建阴影效果
+        // authCard.style.boxShadow = new StyleBoxShadow(
+        //     new Color(0f, 0f, 0f, 0.1f), 
+        //     new Vector2(0, 10), 
+        //     30, 
+        //     new Color(0f, 0f, 0f, 0.1f)
+        // );
+        authCard.style.borderLeftWidth = 1;
+        authCard.style.borderRightWidth = 1;
+        authCard.style.borderTopWidth = 1;
+        authCard.style.borderBottomWidth = 1;
+        authCard.style.borderLeftColor = new Color(1f, 1f, 1f, 0.3f);
+        authCard.style.borderRightColor = new Color(1f, 1f, 1f, 0.3f);
+        authCard.style.borderTopColor = new Color(1f, 1f, 1f, 0.3f);
+        authCard.style.borderBottomColor = new Color(1f, 1f, 1f, 0.3f);
+        
+        // 创建认证区域标题容器
+        var titleContainer = new VisualElement();
+        titleContainer.style.flexDirection = FlexDirection.Row;
+        titleContainer.style.alignItems = Align.Center;
+        titleContainer.style.justifyContent = Justify.Center;
+        titleContainer.style.marginBottom = 35;
+        titleContainer.style.marginTop = 10;
+        
+        // 添加一个小图标装饰
+        var iconContainer = new VisualElement();
+        iconContainer.style.width = 40;
+        iconContainer.style.height = 40;
+        iconContainer.style.borderTopLeftRadius = 20;
+        iconContainer.style.borderTopRightRadius = 20;
+        iconContainer.style.borderBottomLeftRadius = 20;
+        iconContainer.style.borderBottomRightRadius = 20;
+        iconContainer.style.backgroundColor = new Color(primaryColor.r, primaryColor.g, primaryColor.b, 0.1f);
+        iconContainer.style.borderLeftWidth = 2;
+        iconContainer.style.borderRightWidth = 2;
+        iconContainer.style.borderTopWidth = 2;
+        iconContainer.style.borderBottomWidth = 2;
+        iconContainer.style.borderLeftColor = primaryColor;
+        iconContainer.style.borderRightColor = primaryColor;
+        iconContainer.style.borderTopColor = primaryColor;
+        iconContainer.style.borderBottomColor = primaryColor;
+        iconContainer.style.marginRight = 15;
+        
+        // 在图标中添加一个简单的用户符号
+        var userSymbol = new Label("👤");
+        userSymbol.style.fontSize = 20;
+        userSymbol.style.unityTextAlign = TextAnchor.MiddleCenter;
+        userSymbol.style.color = primaryColor;
+        userSymbol.style.marginTop = 8;
+        iconContainer.Add(userSymbol);
+        
+        titleContainer.Add(iconContainer);
+        
+        // 创建认证区域标题
+        var authTitle = new Label("用户认证");
+        authTitle.style.color = primaryColor;
+        authTitle.style.unityTextAlign = TextAnchor.MiddleCenter;
+        authTitle.style.fontSize = 28;
+        authTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(authTitle, FontSize.LargeTitle);
+        titleContainer.Add(authTitle);
+        
+        authCard.Add(titleContainer);
+        
+        // 创建登录表单
+        CreateLoginFormInAuthArea(authCard);
+        
+        // 创建注册表单
+        CreateRegisterFormInAuthArea(authCard);
+        
+        // 创建返回主界面按钮
+        var returnToMainButton = new Button(() => BackToMainInterface()) { text = "返回主界面" };
+        returnToMainButton.style.width = 340;
+        returnToMainButton.style.height = 45;
+        returnToMainButton.style.backgroundColor = Color.clear;
+        returnToMainButton.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+        returnToMainButton.style.borderLeftWidth = 2;
+        returnToMainButton.style.borderRightWidth = 2;
+        returnToMainButton.style.borderTopWidth = 2;
+        returnToMainButton.style.borderBottomWidth = 2;
+        returnToMainButton.style.borderLeftColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        returnToMainButton.style.borderRightColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        returnToMainButton.style.borderTopColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        returnToMainButton.style.borderBottomColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        returnToMainButton.style.borderTopLeftRadius = 12;
+        returnToMainButton.style.borderTopRightRadius = 12;
+        returnToMainButton.style.borderBottomLeftRadius = 12;
+        returnToMainButton.style.borderBottomRightRadius = 12;
+        returnToMainButton.style.marginTop = 25;
+        returnToMainButton.style.fontSize = 16;
+        returnToMainButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        ApplyFont(returnToMainButton, FontSize.Body);
+        
+        // 添加悬停效果
+        returnToMainButton.RegisterCallback<MouseEnterEvent>(evt => {
+            returnToMainButton.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+            returnToMainButton.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);
+            returnToMainButton.style.borderLeftColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+            returnToMainButton.style.borderRightColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+            returnToMainButton.style.borderTopColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+            returnToMainButton.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        });
+        
+        returnToMainButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            returnToMainButton.style.backgroundColor = Color.clear;
+            returnToMainButton.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            returnToMainButton.style.borderLeftColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            returnToMainButton.style.borderRightColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            returnToMainButton.style.borderTopColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+            returnToMainButton.style.borderBottomColor = new Color(0.7f, 0.7f, 0.7f, 1f);
+        });
+        
+        authCard.Add(returnToMainButton);
+        
+        authArea.Add(authCard);
+        parent.Add(authArea);
     }
     
     void CreateStatusArea(VisualElement parent)
@@ -1089,6 +1215,12 @@ public class InitialInterfaceManager : MonoBehaviour
             fileUploadArea.style.display = DisplayStyle.None;
         }
         
+        // 隐藏认证区域（如果正在显示）
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
+        }
+        
         UpdateStatus($"正在加载数据集{dataSetType}...");
         
         // 初始化场景（使用指定的数据集）
@@ -1102,6 +1234,43 @@ public class InitialInterfaceManager : MonoBehaviour
             Debug.LogError("SceneInitializer未找到，无法加载现有电塔数据");
             UpdateStatus("错误：SceneInitializer未找到");
         }
+    }
+    
+    /// <summary>
+    /// 用户认证按钮点击事件
+    /// </summary>
+    void OnAuthButtonClicked()
+    {
+        Debug.Log("用户点击了认证按钮，准备显示认证界面");
+        
+        // 检查面板状态
+        Debug.Log($"主界面面板状态: {(initialPanel != null ? "已创建" : "未创建")}");
+        Debug.Log($"认证区域状态: {(authArea != null ? "已创建" : "未创建")}");
+        
+        if (rootElement != null)
+        {
+            Debug.Log($"根元素子元素数量: {rootElement.childCount}");
+            foreach (var child in rootElement.Children())
+            {
+                Debug.Log($"子元素: {child.name}, 类型: {child.GetType()}, 显示状态: {child.style.display}");
+            }
+        }
+        
+        // 参考其他按钮的实现方式：隐藏选择按钮区域，显示认证区域
+        HideSelectionButtons();
+        
+        // 显示认证区域
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.Flex;
+            Debug.Log("认证区域已显示");
+        }
+        else
+        {
+            Debug.LogError("认证区域为空，无法显示");
+        }
+        
+        UpdateStatus("请登录或注册您的账户");
     }
     
     /// <summary>
@@ -1433,6 +1602,12 @@ public class InitialInterfaceManager : MonoBehaviour
             pythonGuideArea.style.display = DisplayStyle.None;
         }
         
+        // 隐藏认证区域（如果正在显示）
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
+        }
+        
         // 显示文件上传区域
         fileUploadArea.style.display = DisplayStyle.Flex;
         
@@ -1451,6 +1626,12 @@ public class InitialInterfaceManager : MonoBehaviour
         
         // 隐藏选择按钮
         HideSelectionButtons();
+        
+        // 隐藏认证区域（如果正在显示）
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
+        }
         
         UpdateStatus("Python环境配置向导");
     }
@@ -1471,7 +1652,13 @@ public class InitialInterfaceManager : MonoBehaviour
             pythonGuideArea.style.display = DisplayStyle.None;
         }
         
-        // 显示选择按钮（不显示标题，避免重复）
+        // 隐藏认证区域
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
+        }
+        
+        // 显示选择按钮区域（只显示选择按钮，不显示认证区域）
         ShowSelectionButtonsOnly();
         
         // 重置文件选择状态
@@ -1498,6 +1685,12 @@ public class InitialInterfaceManager : MonoBehaviour
         if (fileUploadArea != null)
         {
             fileUploadArea.style.display = DisplayStyle.None;
+        }
+        
+        // 隐藏认证区域
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
         }
         
         UpdateStatus("Python环境配置向导");
@@ -1553,7 +1746,7 @@ public class InitialInterfaceManager : MonoBehaviour
         // 隐藏选择区域中的所有按钮
         if (initialPanel != null)
         {
-            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 状态(5) -> 底部(6)
+            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 认证区域(5) -> 状态(6) -> 底部(7)
             
             // 隐藏标题区域（第二个子元素，索引为1）
             if (initialPanel.childCount > 1)
@@ -1576,6 +1769,17 @@ public class InitialInterfaceManager : MonoBehaviour
                     Debug.Log("已隐藏选择按钮区域");
                 }
             }
+            
+            // 隐藏认证区域（第六个子元素，索引为5）
+            if (initialPanel.childCount > 5)
+            {
+                var authContainer = initialPanel[5];
+                if (authContainer != null)
+                {
+                    authContainer.style.display = DisplayStyle.None;
+                    Debug.Log("已隐藏认证区域");
+                }
+            }
         }
     }
     
@@ -1587,7 +1791,7 @@ public class InitialInterfaceManager : MonoBehaviour
         // 显示选择区域中的所有按钮
         if (initialPanel != null)
         {
-            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 状态(5) -> 底部(6)
+            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 认证区域(5) -> 状态(6) -> 底部(7)
             
             // 显示标题区域（第二个子元素，索引为1）
             if (initialPanel.childCount > 1)
@@ -1610,6 +1814,17 @@ public class InitialInterfaceManager : MonoBehaviour
                     Debug.Log("已显示选择按钮区域");
                 }
             }
+            
+            // 显示认证区域（第六个子元素，索引为5）
+            if (initialPanel.childCount > 5)
+            {
+                var authContainer = initialPanel[5];
+                if (authContainer != null)
+                {
+                    authContainer.style.display = DisplayStyle.Flex;
+                    Debug.Log("已显示认证区域");
+                }
+            }
         }
     }
     
@@ -1621,7 +1836,7 @@ public class InitialInterfaceManager : MonoBehaviour
         // 只显示选择区域中的按钮，不显示标题
         if (initialPanel != null)
         {
-            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 状态(5) -> 底部(6)
+            // 界面结构：背景装饰(0) -> 标题区域(1) -> 选择区域(2) -> 文件上传(3) -> Python引导(4) -> 认证区域(5) -> 状态(6) -> 底部(7)
             
             // 隐藏标题区域（第二个子元素，索引为1）
             if (initialPanel.childCount > 1)
@@ -1642,6 +1857,17 @@ public class InitialInterfaceManager : MonoBehaviour
                 {
                     selectionContainer.style.display = DisplayStyle.Flex;
                     Debug.Log("已显示选择按钮区域（仅选择区域）");
+                }
+            }
+            
+            // 隐藏认证区域（第六个子元素，索引为5）
+            if (initialPanel.childCount > 5)
+            {
+                var authContainer = initialPanel[5];
+                if (authContainer != null)
+                {
+                    authContainer.style.display = DisplayStyle.None;
+                    Debug.Log("已隐藏认证区域（仅选择区域）");
                 }
             }
         }
@@ -2326,6 +2552,49 @@ public class InitialInterfaceManager : MonoBehaviour
         }
     }
     
+    /// <summary>
+    /// 应用字体到文本输入框
+    /// </summary>
+    void ApplyFont(TextField textField, FontSize size = FontSize.Body)
+    {
+        // 直接应用字体，因为FontManager没有TextField的ApplyFont方法
+        if (uiFont != null)
+        {
+            textField.style.unityFont = uiFont;
+        }
+        else
+        {
+            var builtinFont = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if (builtinFont != null)
+            {
+                textField.style.unityFont = builtinFont;
+            }
+        }
+        
+        // 应用字体大小
+        switch (size)
+        {
+            case FontSize.LargeTitle:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.largeTitleSize : 48;
+                break;
+            case FontSize.Title:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.titleSize : 24;
+                break;
+            case FontSize.Subtitle:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.subtitleSize : 18;
+                break;
+            case FontSize.Body:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.bodySize : 16;
+                break;
+            case FontSize.Small:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.smallSize : 14;
+                break;
+            case FontSize.Tiny:
+                textField.style.fontSize = FontManager.Instance != null ? FontManager.Instance.tinySize : 12;
+                break;
+        }
+    }
+    
     void CreateBackgroundDecoration(VisualElement parent)
     {
         // 创建装饰性背景元素
@@ -2346,16 +2615,17 @@ public class InitialInterfaceManager : MonoBehaviour
         gradientBackground.style.backgroundColor = gradientStart;
         decorationContainer.Add(gradientBackground);
         
-        // 添加装饰性圆圈 - 更多和更大
+        // 添加装饰性圆圈 - 更美观的布局
         var circlePositions = new[] {
-            new { width = 120, top = 5, left = 5, alpha = 0.08f },
-            new { width = 180, top = 15, left = 75, alpha = 0.06f },
-            new { width = 90, top = 65, left = 3, alpha = 0.07f },
-            new { width = 150, top = 10, left = 65, alpha = 0.05f },
-            new { width = 110, top = 55, left = 80, alpha = 0.06f },
-            new { width = 200, top = 80, left = 10, alpha = 0.04f },
-            new { width = 80, top = 30, left = 90, alpha = 0.08f },
-            new { width = 160, top = 40, left = 15, alpha = 0.05f }
+            new { width = 150, top = 10, left = 10, alpha = 0.06f, color = primaryColor },
+            new { width = 200, top = 20, left = 80, alpha = 0.04f, color = accentColor },
+            new { width = 100, top = 70, left = 5, alpha = 0.08f, color = primaryColor },
+            new { width = 180, top = 15, left = 70, alpha = 0.05f, color = secondaryColor },
+            new { width = 120, top = 60, left = 85, alpha = 0.07f, color = accentColor },
+            new { width = 220, top = 85, left = 15, alpha = 0.03f, color = primaryColor },
+            new { width = 90, top = 35, left = 95, alpha = 0.09f, color = secondaryColor },
+            new { width = 170, top = 45, left = 20, alpha = 0.06f, color = accentColor },
+            new { width = 140, top = 90, left = 75, alpha = 0.05f, color = primaryColor }
         };
         
         for (int i = 0; i < circlePositions.Length; i++)
@@ -2369,17 +2639,18 @@ public class InitialInterfaceManager : MonoBehaviour
             circle.style.borderTopRightRadius = 50;
             circle.style.borderBottomLeftRadius = 50;
             circle.style.borderBottomRightRadius = 50;
-            circle.style.backgroundColor = new Color(primaryColor.r, primaryColor.g, primaryColor.b, pos.alpha);
+            circle.style.backgroundColor = new Color(pos.color.r, pos.color.g, pos.color.b, pos.alpha);
             circle.style.top = pos.top;
             circle.style.left = pos.left;
             decorationContainer.Add(circle);
         }
         
-        // 添加装饰性线条
+        // 添加装饰性线条 - 更优雅的设计
         var linePositions = new[] {
-            new { width = 150, top = 25, left = 20, rotation = 15 },
-            new { width = 120, top = 75, left = 70, rotation = -10 },
-            new { width = 180, top = 45, left = 5, rotation = 25 }
+            new { width = 180, top = 30, left = 25, height = 2, alpha = 0.4f, color = primaryColor },
+            new { width = 140, top = 80, left = 75, height = 2, alpha = 0.3f, color = accentColor },
+            new { width = 200, top = 50, left = 8, height = 2, alpha = 0.35f, color = secondaryColor },
+            new { width = 120, top = 95, left = 60, height = 2, alpha = 0.25f, color = primaryColor }
         };
         
         for (int i = 0; i < linePositions.Length; i++)
@@ -2388,12 +2659,40 @@ public class InitialInterfaceManager : MonoBehaviour
             var line = new VisualElement();
             line.style.position = Position.Absolute;
             line.style.width = pos.width;
-            line.style.height = 3;
-            line.style.backgroundColor = new Color(secondaryColor.r, secondaryColor.g, secondaryColor.b, 0.3f);
+            line.style.height = pos.height;
+            line.style.backgroundColor = new Color(pos.color.r, pos.color.g, pos.color.b, pos.alpha);
             line.style.top = pos.top;
             line.style.left = pos.left;
-            // 移除旋转效果，因为Rotate构造函数不支持这种用法
+            line.style.borderTopLeftRadius = 1;
+            line.style.borderTopRightRadius = 1;
+            line.style.borderBottomLeftRadius = 1;
+            line.style.borderBottomRightRadius = 1;
             decorationContainer.Add(line);
+        }
+        
+        // 添加一些小的装饰点
+        var dotPositions = new[] {
+            new { size = 6, top = 25, left = 45, alpha = 0.6f, color = accentColor },
+            new { size = 8, top = 55, left = 90, alpha = 0.5f, color = primaryColor },
+            new { size = 5, top = 85, left = 35, alpha = 0.7f, color = secondaryColor },
+            new { size = 7, top = 15, left = 65, alpha = 0.55f, color = accentColor }
+        };
+        
+        for (int i = 0; i < dotPositions.Length; i++)
+        {
+            var pos = dotPositions[i];
+            var dot = new VisualElement();
+            dot.style.position = Position.Absolute;
+            dot.style.width = pos.size;
+            dot.style.height = pos.size;
+            dot.style.borderTopLeftRadius = 50;
+            dot.style.borderTopRightRadius = 50;
+            dot.style.borderBottomLeftRadius = 50;
+            dot.style.borderBottomRightRadius = 50;
+            dot.style.backgroundColor = new Color(pos.color.r, pos.color.g, pos.color.b, pos.alpha);
+            dot.style.top = pos.top;
+            dot.style.left = pos.left;
+            decorationContainer.Add(dot);
         }
         
         parent.Add(decorationContainer);
@@ -2670,6 +2969,27 @@ public class InitialInterfaceManager : MonoBehaviour
         switchToRegisterButton.style.borderBottomLeftRadius = 5;
         switchToRegisterButton.style.borderBottomRightRadius = 5;
         parent.Add(switchToRegisterButton);
+        
+        // 创建返回主界面的按钮
+        var backToMainButton = new Button(() => BackToMainInterface()) { text = "返回主界面" };
+        backToMainButton.name = "back-to-main-button";
+        backToMainButton.style.width = 300;
+        backToMainButton.style.height = 30;
+        backToMainButton.style.backgroundColor = Color.clear;
+        backToMainButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderLeftWidth = 1;
+        backToMainButton.style.borderRightWidth = 1;
+        backToMainButton.style.borderTopWidth = 1;
+        backToMainButton.style.borderBottomWidth = 1;
+        backToMainButton.style.borderLeftColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderRightColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderTopColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderTopLeftRadius = 5;
+        backToMainButton.style.borderTopRightRadius = 5;
+        backToMainButton.style.borderBottomLeftRadius = 5;
+        backToMainButton.style.borderBottomRightRadius = 5;
+        parent.Add(backToMainButton);
     }
     
     /// <summary>
@@ -2692,12 +3012,7 @@ public class InitialInterfaceManager : MonoBehaviour
         usernameField.style.marginBottom = 20;
         parent.Add(usernameField);
         
-        // 创建邮箱输入框
-        var emailField = new TextField("邮箱");
-        emailField.name = "register-email-field";
-        emailField.style.width = 300;
-        emailField.style.marginBottom = 20;
-        parent.Add(emailField);
+
         
         // 创建密码输入框
         var passwordField = new TextField("密码");
@@ -2749,6 +3064,27 @@ public class InitialInterfaceManager : MonoBehaviour
         switchToLoginButton.style.borderBottomLeftRadius = 5;
         switchToLoginButton.style.borderBottomRightRadius = 5;
         parent.Add(switchToLoginButton);
+        
+        // 创建返回主界面的按钮
+        var backToMainButton = new Button(() => BackToMainInterface()) { text = "返回主界面" };
+        backToMainButton.name = "back-to-main-button";
+        backToMainButton.style.width = 300;
+        backToMainButton.style.height = 30;
+        backToMainButton.style.backgroundColor = Color.clear;
+        backToMainButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderLeftWidth = 1;
+        backToMainButton.style.borderRightWidth = 1;
+        backToMainButton.style.borderTopWidth = 1;
+        backToMainButton.style.borderBottomWidth = 1;
+        backToMainButton.style.borderLeftColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderRightColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderTopColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderBottomColor = new Color(0.5f, 0.5f, 0.5f, 1f);
+        backToMainButton.style.borderTopLeftRadius = 5;
+        backToMainButton.style.borderTopRightRadius = 5;
+        backToMainButton.style.borderBottomLeftRadius = 5;
+        backToMainButton.style.borderBottomRightRadius = 5;
+        parent.Add(backToMainButton);
     }
     
     /// <summary>
@@ -2769,6 +3105,26 @@ public class InitialInterfaceManager : MonoBehaviour
         if (registerPanel != null) registerPanel.style.display = DisplayStyle.None;
         if (loginPanel != null) loginPanel.style.display = DisplayStyle.Flex;
         Debug.Log("切换到登录面板");
+    }
+    
+    /// <summary>
+    /// 返回主界面
+    /// </summary>
+    private void BackToMainInterface()
+    {
+        Debug.Log("用户点击返回主界面按钮");
+        
+        // 隐藏认证区域
+        if (authArea != null)
+        {
+            authArea.style.display = DisplayStyle.None;
+            Debug.Log("认证区域已隐藏");
+        }
+        
+        // 显示选择按钮区域（只显示选择按钮，不显示认证区域）
+        ShowSelectionButtonsOnly();
+        
+        UpdateStatus("欢迎使用电力线可视化系统");
     }
     
     /// <summary>
@@ -2809,20 +3165,18 @@ public class InitialInterfaceManager : MonoBehaviour
         if (authSystem == null) return;
         
         var usernameField = rootElement.Q<TextField>("register-username-field");
-        var emailField = rootElement.Q<TextField>("register-email-field");
         var passwordField = rootElement.Q<TextField>("register-password-field");
         var confirmPasswordField = rootElement.Q<TextField>("register-confirm-password-field");
         
-        if (usernameField == null || emailField == null || passwordField == null || confirmPasswordField == null) return;
+        if (usernameField == null || passwordField == null || confirmPasswordField == null) return;
         
         string username = usernameField.value;
-        string email = emailField.value;
         string password = passwordField.value;
         string confirmPassword = confirmPasswordField.value;
         
-        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
         {
-            Debug.LogWarning("请填写所有必填字段");
+            Debug.LogWarning("请填写用户名和密码");
             return;
         }
         
@@ -2833,12 +3187,626 @@ public class InitialInterfaceManager : MonoBehaviour
         }
         
         // 调用认证系统注册
-        bool success = authSystem.RegisterUser(username, password, email);
+        bool success = authSystem.RegisterUser(username, password);
         
         if (success)
         {
             Debug.Log("注册成功，请登录");
             ShowLoginPanel();
         }
+    }
+    
+    /// <summary>
+    /// 在认证区域中创建登录表单
+    /// </summary>
+    void CreateLoginFormInAuthArea(VisualElement parent)
+    {
+        var loginForm = new VisualElement();
+        loginForm.name = "login-form";
+        loginForm.style.display = DisplayStyle.Flex;
+        loginForm.style.flexDirection = FlexDirection.Column;
+        loginForm.style.alignItems = Align.Center;
+        loginForm.style.marginBottom = 25;
+        
+        // 用户名标签
+        var usernameLabel = new Label("用户名");
+        usernameLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        usernameLabel.style.fontSize = 14;
+        usernameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        usernameLabel.style.marginBottom = 8;
+        usernameLabel.style.alignSelf = Align.FlexStart;
+        usernameLabel.style.marginLeft = 10;
+        ApplyFont(usernameLabel, FontSize.Small);
+        loginForm.Add(usernameLabel);
+        
+        // 用户名输入框
+        var usernameField = new TextField();
+        usernameField.name = "username-field";
+        usernameField.style.width = 340;
+        usernameField.style.height = 50;
+        usernameField.style.marginBottom = 20;
+        usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        usernameField.style.borderTopLeftRadius = 12;
+        usernameField.style.borderTopRightRadius = 12;
+        usernameField.style.borderBottomLeftRadius = 12;
+        usernameField.style.borderBottomRightRadius = 12;
+        usernameField.style.borderLeftWidth = 2;
+        usernameField.style.borderRightWidth = 2;
+        usernameField.style.borderTopWidth = 2;
+        usernameField.style.borderBottomWidth = 2;
+        usernameField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.paddingLeft = 15;
+        usernameField.style.paddingRight = 15;
+        usernameField.style.paddingTop = 8;
+        usernameField.style.paddingBottom = 8;
+        usernameField.style.fontSize = 16;
+        ApplyFont(usernameField, FontSize.Body);
+        
+        // 添加焦点效果
+        usernameField.RegisterCallback<FocusInEvent>(evt => {
+            usernameField.style.borderLeftColor = primaryColor;
+            usernameField.style.borderRightColor = primaryColor;
+            usernameField.style.borderTopColor = primaryColor;
+            usernameField.style.borderBottomColor = primaryColor;
+            usernameField.style.backgroundColor = Color.white;
+        });
+        
+        usernameField.RegisterCallback<FocusOutEvent>(evt => {
+            usernameField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        });
+        
+        loginForm.Add(usernameField);
+        
+        // 密码标签
+        var passwordLabel = new Label("密码");
+        passwordLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        passwordLabel.style.fontSize = 14;
+        passwordLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        passwordLabel.style.marginBottom = 8;
+        passwordLabel.style.alignSelf = Align.FlexStart;
+        passwordLabel.style.marginLeft = 10;
+        ApplyFont(passwordLabel, FontSize.Small);
+        loginForm.Add(passwordLabel);
+        
+        // 密码输入框
+        var passwordField = new TextField();
+        passwordField.name = "password-field";
+        passwordField.isPasswordField = true;
+        passwordField.style.width = 340;
+        passwordField.style.height = 50;
+        passwordField.style.marginBottom = 25;
+        passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        passwordField.style.borderTopLeftRadius = 12;
+        passwordField.style.borderTopRightRadius = 12;
+        passwordField.style.borderBottomLeftRadius = 12;
+        passwordField.style.borderBottomRightRadius = 12;
+        passwordField.style.borderLeftWidth = 2;
+        passwordField.style.borderRightWidth = 2;
+        passwordField.style.borderTopWidth = 2;
+        passwordField.style.borderBottomWidth = 2;
+        passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        passwordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.paddingLeft = 15;
+        passwordField.style.paddingRight = 15;
+        passwordField.style.paddingTop = 8;
+        passwordField.style.paddingBottom = 8;
+        passwordField.style.fontSize = 16;
+        ApplyFont(passwordField, FontSize.Body);
+        
+        // 添加焦点效果
+        passwordField.RegisterCallback<FocusInEvent>(evt => {
+            passwordField.style.borderLeftColor = primaryColor;
+            passwordField.style.borderRightColor = primaryColor;
+            passwordField.style.borderTopColor = primaryColor;
+            passwordField.style.borderBottomColor = primaryColor;
+            passwordField.style.backgroundColor = Color.white;
+        });
+        
+        passwordField.RegisterCallback<FocusOutEvent>(evt => {
+            passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            passwordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            passwordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        });
+        
+        loginForm.Add(passwordField);
+        
+        // 登录按钮
+        var loginButton = new Button(() => OnLoginButtonClickedInAuthArea()) { text = "登录" };
+        loginButton.name = "login-button";
+        loginButton.style.width = 340;
+        loginButton.style.height = 50;
+        loginButton.style.backgroundColor = primaryColor;
+        loginButton.style.color = Color.white;
+        loginButton.style.borderTopLeftRadius = 12;
+        loginButton.style.borderTopRightRadius = 12;
+        loginButton.style.borderBottomLeftRadius = 12;
+        loginButton.style.borderBottomRightRadius = 12;
+        loginButton.style.marginBottom = 20;
+        loginButton.style.fontSize = 18;
+        loginButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        loginButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        ApplyFont(loginButton, FontSize.Title);
+        
+        // 添加悬停效果
+        loginButton.RegisterCallback<MouseEnterEvent>(evt => {
+            loginButton.style.backgroundColor = new Color(
+                Mathf.Min(primaryColor.r + 0.1f, 1f),
+                Mathf.Min(primaryColor.g + 0.1f, 1f),
+                Mathf.Min(primaryColor.b + 0.1f, 1f),
+                1f
+            );
+            loginButton.style.scale = new Scale(new Vector3(1.02f, 1.02f, 1f));
+        });
+        
+        loginButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            loginButton.style.backgroundColor = primaryColor;
+            loginButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        });
+        
+        loginForm.Add(loginButton);
+        
+        // 切换到注册的按钮
+        var switchToRegisterButton = new Button(() => SwitchToRegisterInAuthArea()) { text = "没有账户？点击注册" };
+        switchToRegisterButton.name = "switch-to-register-button";
+        switchToRegisterButton.style.width = 340;
+        switchToRegisterButton.style.height = 40;
+        switchToRegisterButton.style.backgroundColor = Color.clear;
+        switchToRegisterButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        switchToRegisterButton.style.borderLeftWidth = 1;
+        switchToRegisterButton.style.borderRightWidth = 1;
+        switchToRegisterButton.style.borderTopWidth = 1;
+        switchToRegisterButton.style.borderBottomWidth = 1;
+        switchToRegisterButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToRegisterButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToRegisterButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToRegisterButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToRegisterButton.style.borderTopLeftRadius = 10;
+        switchToRegisterButton.style.borderTopRightRadius = 10;
+        switchToRegisterButton.style.borderBottomLeftRadius = 10;
+        switchToRegisterButton.style.borderBottomRightRadius = 10;
+        switchToRegisterButton.style.fontSize = 14;
+        switchToRegisterButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        
+        // 添加悬停效果
+        switchToRegisterButton.RegisterCallback<MouseEnterEvent>(evt => {
+            switchToRegisterButton.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+            switchToRegisterButton.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+            switchToRegisterButton.style.borderLeftColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToRegisterButton.style.borderRightColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToRegisterButton.style.borderTopColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToRegisterButton.style.borderBottomColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+        });
+        
+        switchToRegisterButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            switchToRegisterButton.style.backgroundColor = Color.clear;
+            switchToRegisterButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            switchToRegisterButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToRegisterButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToRegisterButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToRegisterButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        });
+        
+        loginForm.Add(switchToRegisterButton);
+        
+        parent.Add(loginForm);
+        
+        // 保存引用
+        loginFormInAuthArea = loginForm;
+    }
+    
+    /// <summary>
+    /// 在认证区域中创建注册表单
+    /// </summary>
+    void CreateRegisterFormInAuthArea(VisualElement parent)
+    {
+        var registerForm = new VisualElement();
+        registerForm.name = "register-form";
+        registerForm.style.display = DisplayStyle.None;
+        registerForm.style.flexDirection = FlexDirection.Column;
+        registerForm.style.alignItems = Align.Center;
+        registerForm.style.marginBottom = 30; // 增加底部边距
+        
+        // 用户名标签
+        var usernameLabel = new Label("用户名");
+        usernameLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        usernameLabel.style.fontSize = 16; // 增加字体大小
+        usernameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        usernameLabel.style.marginBottom = 10; // 增加标签和输入框之间的间距
+        usernameLabel.style.alignSelf = Align.FlexStart;
+        usernameLabel.style.marginLeft = 10;
+        ApplyFont(usernameLabel, FontSize.Body); // 改为Body大小
+        registerForm.Add(usernameLabel);
+        
+        // 用户名输入框
+        var usernameField = new TextField();
+        usernameField.name = "register-username-field";
+        usernameField.style.width = 340;
+        usernameField.style.height = 55; // 增加输入框高度
+        usernameField.style.marginBottom = 25; // 增加输入框之间的间距
+        usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 0.98f);
+        usernameField.style.borderTopLeftRadius = 12;
+        usernameField.style.borderTopRightRadius = 12;
+        usernameField.style.borderBottomLeftRadius = 12;
+        usernameField.style.borderBottomRightRadius = 12;
+        usernameField.style.borderLeftWidth = 2;
+        usernameField.style.borderRightWidth = 2;
+        usernameField.style.borderTopWidth = 2;
+        usernameField.style.borderBottomWidth = 2;
+        usernameField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        usernameField.style.paddingLeft = 15;
+        usernameField.style.paddingRight = 15;
+        usernameField.style.paddingTop = 8;
+        usernameField.style.paddingBottom = 8;
+        usernameField.style.fontSize = 16;
+        ApplyFont(usernameField, FontSize.Body);
+        
+        // 添加焦点效果
+        usernameField.RegisterCallback<FocusInEvent>(evt => {
+            usernameField.style.borderLeftColor = accentColor;
+            usernameField.style.borderRightColor = accentColor;
+            usernameField.style.borderTopColor = accentColor;
+            usernameField.style.borderBottomColor = accentColor;
+            usernameField.style.backgroundColor = Color.white;
+        });
+        
+        usernameField.RegisterCallback<FocusOutEvent>(evt => {
+            usernameField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        });
+        
+        registerForm.Add(usernameField);
+        
+        // 密码标签
+        var passwordLabel = new Label("密码");
+        passwordLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        passwordLabel.style.fontSize = 16; // 增加字体大小
+        passwordLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        passwordLabel.style.marginBottom = 10; // 增加标签和输入框之间的间距
+        passwordLabel.style.alignSelf = Align.FlexStart;
+        passwordLabel.style.marginLeft = 10;
+        ApplyFont(passwordLabel, FontSize.Body); // 改为Body大小
+        registerForm.Add(passwordLabel);
+        
+        // 密码输入框
+        var passwordField = new TextField();
+        passwordField.name = "register-password-field";
+        passwordField.isPasswordField = true;
+        passwordField.style.width = 340;
+        passwordField.style.height = 55; // 增加输入框高度
+        passwordField.style.marginBottom = 25; // 增加输入框之间的间距
+        passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        passwordField.style.borderTopLeftRadius = 12;
+        passwordField.style.borderTopRightRadius = 12;
+        passwordField.style.borderBottomLeftRadius = 12;
+        passwordField.style.borderBottomRightRadius = 12;
+        passwordField.style.borderLeftWidth = 2;
+        passwordField.style.borderRightWidth = 2;
+        passwordField.style.borderTopWidth = 2;
+        passwordField.style.borderBottomWidth = 2;
+        passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        passwordField.style.paddingLeft = 15;
+        passwordField.style.paddingRight = 15;
+        passwordField.style.paddingTop = 8;
+        passwordField.style.paddingBottom = 8;
+        passwordField.style.fontSize = 16;
+        ApplyFont(passwordField, FontSize.Body);
+        
+        // 添加焦点效果
+        passwordField.RegisterCallback<FocusInEvent>(evt => {
+            passwordField.style.borderLeftColor = accentColor;
+            passwordField.style.borderRightColor = accentColor;
+            passwordField.style.borderTopColor = accentColor;
+            passwordField.style.borderBottomColor = accentColor;
+            passwordField.style.backgroundColor = Color.white;
+        });
+        
+        passwordField.RegisterCallback<FocusOutEvent>(evt => {
+            passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            passwordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            passwordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        });
+        
+        registerForm.Add(passwordField);
+        
+        // 确认密码标签
+        var confirmPasswordLabel = new Label("确认密码");
+        confirmPasswordLabel.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+        confirmPasswordLabel.style.fontSize = 16; // 增加字体大小
+        confirmPasswordLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        confirmPasswordLabel.style.marginBottom = 10; // 增加标签和输入框之间的间距
+        confirmPasswordLabel.style.alignSelf = Align.FlexStart;
+        confirmPasswordLabel.style.marginLeft = 10;
+        ApplyFont(confirmPasswordLabel, FontSize.Body); // 改为Body大小
+        registerForm.Add(confirmPasswordLabel);
+        
+        // 确认密码输入框
+        var confirmPasswordField = new TextField();
+        confirmPasswordField.name = "confirm-password-field";
+        confirmPasswordField.isPasswordField = true;
+        confirmPasswordField.style.width = 340;
+        confirmPasswordField.style.height = 55; // 增加输入框高度
+        confirmPasswordField.style.marginBottom = 30; // 增加底部间距
+        confirmPasswordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        confirmPasswordField.style.borderTopLeftRadius = 12;
+        confirmPasswordField.style.borderTopRightRadius = 12;
+        confirmPasswordField.style.borderBottomLeftRadius = 12;
+        confirmPasswordField.style.borderBottomRightRadius = 12;
+        confirmPasswordField.style.borderLeftWidth = 2;
+        confirmPasswordField.style.borderRightWidth = 2;
+        confirmPasswordField.style.borderTopWidth = 2;
+        confirmPasswordField.style.borderBottomWidth = 2;
+        confirmPasswordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        confirmPasswordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        confirmPasswordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        confirmPasswordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+        confirmPasswordField.style.paddingLeft = 15;
+        confirmPasswordField.style.paddingRight = 15;
+        confirmPasswordField.style.paddingTop = 8;
+        confirmPasswordField.style.paddingBottom = 8;
+        confirmPasswordField.style.fontSize = 16;
+        ApplyFont(confirmPasswordField, FontSize.Body);
+        
+        // 添加焦点效果
+        confirmPasswordField.RegisterCallback<FocusInEvent>(evt => {
+            confirmPasswordField.style.borderLeftColor = accentColor;
+            confirmPasswordField.style.borderRightColor = accentColor;
+            confirmPasswordField.style.borderTopColor = accentColor;
+            confirmPasswordField.style.borderBottomColor = accentColor;
+            confirmPasswordField.style.backgroundColor = Color.white;
+        });
+        
+        confirmPasswordField.RegisterCallback<FocusOutEvent>(evt => {
+            confirmPasswordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            confirmPasswordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            confirmPasswordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            confirmPasswordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
+            confirmPasswordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        });
+        
+        registerForm.Add(confirmPasswordField);
+        
+        // 注册按钮
+        var registerButton = new Button(() => OnRegisterButtonClickedInAuthArea()) { text = "注册" };
+        registerButton.name = "register-button";
+        registerButton.style.width = 340;
+        registerButton.style.height = 55; // 增加按钮高度
+        registerButton.style.backgroundColor = accentColor;
+        registerButton.style.color = Color.white;
+        registerButton.style.borderTopLeftRadius = 12;
+        registerButton.style.borderTopRightRadius = 12;
+        registerButton.style.borderBottomLeftRadius = 12;
+        registerButton.style.borderBottomRightRadius = 12;
+        registerButton.style.marginBottom = 25; // 增加按钮间距
+        registerButton.style.fontSize = 18;
+        registerButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        registerButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        ApplyFont(registerButton, FontSize.Title);
+        
+        // 添加悬停效果
+        registerButton.RegisterCallback<MouseEnterEvent>(evt => {
+            registerButton.style.backgroundColor = new Color(
+                Mathf.Min(accentColor.r + 0.1f, 1f),
+                Mathf.Min(accentColor.g + 0.1f, 1f),
+                Mathf.Min(accentColor.b + 0.1f, 1f),
+                1f
+            );
+            registerButton.style.scale = new Scale(new Vector3(1.02f, 1.02f, 1f));
+        });
+        
+        registerButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            registerButton.style.backgroundColor = accentColor;
+            registerButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        });
+        
+        registerForm.Add(registerButton);
+        
+        // 切换到登录的按钮
+        var switchToLoginButton = new Button(() => SwitchToLoginInAuthArea()) { text = "已有账户？点击登录" };
+        switchToLoginButton.name = "switch-to-login-button";
+        switchToLoginButton.style.width = 340;
+        switchToLoginButton.style.height = 45; // 增加按钮高度
+        switchToLoginButton.style.backgroundColor = Color.clear;
+        switchToLoginButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        switchToLoginButton.style.borderLeftWidth = 1;
+        switchToLoginButton.style.borderRightWidth = 1;
+        switchToLoginButton.style.borderTopWidth = 1;
+        switchToLoginButton.style.borderBottomWidth = 1;
+        switchToLoginButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToLoginButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToLoginButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToLoginButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        switchToLoginButton.style.borderTopLeftRadius = 10;
+        switchToLoginButton.style.borderTopRightRadius = 10;
+        switchToLoginButton.style.borderBottomLeftRadius = 10;
+        switchToLoginButton.style.borderBottomRightRadius = 10;
+        switchToLoginButton.style.fontSize = 14;
+        switchToLoginButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        
+        // 添加悬停效果
+        switchToLoginButton.RegisterCallback<MouseEnterEvent>(evt => {
+            switchToLoginButton.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+            switchToLoginButton.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+            switchToLoginButton.style.borderLeftColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+            switchToLoginButton.style.borderRightColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+            switchToLoginButton.style.borderTopColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+            switchToLoginButton.style.borderBottomColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+        });
+        
+        switchToLoginButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            switchToLoginButton.style.backgroundColor = Color.clear;
+            switchToLoginButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            switchToLoginButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToLoginButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToLoginButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
+            switchToLoginButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
+        });
+        
+        registerForm.Add(switchToLoginButton);
+        
+        parent.Add(registerForm);
+        
+        // 保存引用
+        registerFormInAuthArea = registerForm;
+    }
+    
+    /// <summary>
+    /// 在认证区域中处理登录按钮点击
+    /// </summary>
+    void OnLoginButtonClickedInAuthArea()
+    {
+        Debug.Log("用户在认证区域中点击了登录按钮");
+        
+        // 获取输入框的值
+        var usernameField = loginFormInAuthArea.Q<TextField>("username-field");
+        var passwordField = loginFormInAuthArea.Q<TextField>("password-field");
+        
+        if (usernameField == null || passwordField == null)
+        {
+            Debug.LogError("无法找到用户名或密码输入框");
+            UpdateStatus("错误：无法找到输入框");
+            return;
+        }
+        
+        string username = usernameField.value;
+        string password = passwordField.value;
+        
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        {
+            UpdateStatus("请输入用户名和密码");
+            return;
+        }
+        
+        // 调用认证系统进行登录
+        if (authSystem != null)
+        {
+            bool loginSuccess = authSystem.LoginUser(username, password);
+            if (loginSuccess)
+            {
+                UpdateStatus("登录成功！");
+                // 登录成功后会触发OnUserLoggedIn事件，然后调用BackToMainInterface
+            }
+            else
+            {
+                UpdateStatus("登录失败，请检查用户名和密码");
+            }
+        }
+        else
+        {
+            Debug.LogError("认证系统未找到");
+            UpdateStatus("错误：认证系统未找到");
+        }
+    }
+    
+    /// <summary>
+    /// 在认证区域中处理注册按钮点击
+    /// </summary>
+    void OnRegisterButtonClickedInAuthArea()
+    {
+        Debug.Log("用户在认证区域中点击了注册按钮");
+        
+        // 获取输入框的值
+        var usernameField = registerFormInAuthArea.Q<TextField>("register-username-field");
+        var passwordField = registerFormInAuthArea.Q<TextField>("register-password-field");
+        var confirmPasswordField = registerFormInAuthArea.Q<TextField>("confirm-password-field");
+        
+        if (usernameField == null || passwordField == null || confirmPasswordField == null)
+        {
+            Debug.LogError("无法找到注册表单的输入框");
+            UpdateStatus("错误：无法找到输入框");
+            return;
+        }
+        
+        string username = usernameField.value;
+        string password = passwordField.value;
+        string confirmPassword = confirmPasswordField.value;
+        
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(confirmPassword))
+        {
+            UpdateStatus("请填写用户名、密码和确认密码");
+            return;
+        }
+        
+        if (password != confirmPassword)
+        {
+            UpdateStatus("两次输入的密码不一致");
+            return;
+        }
+        
+        // 调用认证系统进行注册
+        if (authSystem != null)
+        {
+            bool registerSuccess = authSystem.RegisterUser(username, password);
+            if (registerSuccess)
+            {
+                UpdateStatus("注册成功！请使用新账户登录");
+                // 注册成功后切换到登录表单
+                SwitchToLoginInAuthArea();
+            }
+            else
+            {
+                UpdateStatus("注册失败，用户名可能已存在");
+            }
+        }
+        else
+        {
+            Debug.LogError("认证系统未找到");
+            UpdateStatus("错误：认证系统未找到");
+        }
+    }
+    
+    /// <summary>
+    /// 在认证区域中切换到注册表单
+    /// </summary>
+    void SwitchToRegisterInAuthArea()
+    {
+        Debug.Log("切换到注册表单");
+        if (loginFormInAuthArea != null)
+        {
+            loginFormInAuthArea.style.display = DisplayStyle.None;
+        }
+        if (registerFormInAuthArea != null)
+        {
+            registerFormInAuthArea.style.display = DisplayStyle.Flex;
+        }
+        UpdateStatus("请填写注册信息");
+    }
+    
+    /// <summary>
+    /// 在认证区域中切换到登录表单
+    /// </summary>
+    void SwitchToLoginInAuthArea()
+    {
+        Debug.Log("切换到登录表单");
+        if (registerFormInAuthArea != null)
+        {
+            registerFormInAuthArea.style.display = DisplayStyle.None;
+        }
+        if (loginFormInAuthArea != null)
+        {
+            loginFormInAuthArea.style.display = DisplayStyle.Flex;
+        }
+        UpdateStatus("请登录您的账户");
     }
 } 
