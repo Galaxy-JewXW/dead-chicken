@@ -64,6 +64,26 @@ public class SceneInitializer : MonoBehaviour
     public GameObject towerPrefab;
     public float towerScale = 0.1f;
     
+    [Header("树木配置")]
+    [Tooltip("是否在建立电塔和电线的同时建立树木")]
+    public bool enableTreePlacement = true;
+    [Tooltip("树木预制体")]
+    public GameObject treePrefab;
+    [Tooltip("树木CSV文件名")]
+    public string treeCsvFileName = "tree/trees";
+    [Tooltip("是否启用树木自动缩放")]
+    public bool enableTreeAutoScaling = true;
+    [Tooltip("树木目标高度范围")]
+    public Vector2 treeHeightRange = new Vector2(3f, 8f);
+    [Tooltip("每个电塔周围的树木数量范围")]
+    public Vector2Int treesPerTowerRange = new Vector2Int(3, 7);
+    [Tooltip("树木距离电塔的最小距离")]
+    public float minTreeDistanceFromTower = 3f;
+    [Tooltip("树木距离电塔的最大距离")]
+    public float maxTreeDistanceFromTower = 15f;
+    [Tooltip("树木基础缩放倍数")]
+    public float treeBaseScale = 50f;
+    
     [Header("点云集成")]
     [Tooltip("点云管理器（可选）")]
     public PowerlineSystem.PowerlinePointCloudManager pointCloudManager;
@@ -117,8 +137,34 @@ public class SceneInitializer : MonoBehaviour
         }
     }
     
+    [System.Serializable]
+    public class SimpleTreeData
+    {
+        public int treeId;
+        public Vector3 position;
+        public float height;
+        public int groupId;
+        public int towerId;
+        public string treeType;
+        public float scale;
+        
+        public SimpleTreeData(int id, Vector3 pos, float h, int group, int tower, string type, float s = 1.0f)
+        {
+            treeId = id;
+            position = pos;
+            height = h;
+            groupId = group;
+            towerId = tower;
+            treeType = type;
+            scale = s;
+        }
+    }
+    
     public List<PowerlineInfo> powerlines = new List<PowerlineInfo>();
     private Dictionary<Vector3, float> towerHeights = new Dictionary<Vector3, float>();
+    
+    // 树木管理
+    private List<GameObject> placedTrees = new List<GameObject>();
 
     [Header("初始化控制")]
     [Tooltip("是否在Start时自动初始化场景")]
@@ -186,6 +232,13 @@ public class SceneInitializer : MonoBehaviour
         
         // 5. 初始化点云系统（如果配置了）
         InitializePointCloudSystem();
+        
+        // 6. 创建树木（如果启用）
+        if (enableTreePlacement)
+        {
+            Debug.Log("[SceneInitializer] 正在创建树木...");
+            CreateTreesFromCsv();
+        }
         
         Debug.Log("电力线场景初始化完成");
     }
@@ -1063,12 +1116,580 @@ public class SceneInitializer : MonoBehaviour
                 PowerlineSystem.PowerlinePointSizeEnabler.SetupPointCloudCamera(mainCamera);
             }
             
-            Debug.Log("点云系统已初始化并与电力线系统集成");
+                    Debug.Log("点云系统已初始化并与电力线系统集成");
+    }
+    else
+    {
+        Debug.Log("未找到点云管理器，跳过点云系统初始化");
+    }
+}
+
+#region 树木管理
+
+/// <summary>
+/// 从CSV文件创建树木
+/// </summary>
+private void CreateTreesFromCsv()
+{
+    Debug.Log("[SceneInitializer] 开始执行树木放置...");
+    
+    List<SimpleTreeData> trees = LoadSimpleTreeData();
+    List<GameObject> createdTrees = new List<GameObject>();
+    
+    if (trees.Count == 0) 
+    {
+        Debug.LogWarning("[SceneInitializer] 没有树木数据可供放置");
+        return;
+    }
+    
+    Debug.Log($"[SceneInitializer] 准备放置 {trees.Count} 棵树");
+    
+    // 清理已放置的树木
+    ClearPlacedTrees();
+    
+    // 如果没有指定树木预制件，尝试从Resources加载
+    if (treePrefab == null)
+    {
+        Debug.Log("[SceneInitializer] 树木预制件未指定，尝试从Resources加载...");
+        treePrefab = Resources.Load<GameObject>("Prefabs/Tree");
+        if (treePrefab == null)
+        {
+            Debug.LogError("[SceneInitializer] 无法找到Tree预制件，跳过树木放置");
+            Debug.LogError("[SceneInitializer] 请确保Tree.prefab位于Resources/Prefabs/文件夹中");
+            return;
+        }
+        Debug.Log("[SceneInitializer] 成功加载Tree预制件");
+    }
+    else
+    {
+        Debug.Log("[SceneInitializer] 使用已指定的树木预制件");
+    }
+    
+    int successCount = 0;
+    int failCount = 0;
+    
+    foreach (var treeData in trees)
+    {
+        GameObject tree = CreateTreeAtPosition(treeData);
+        if (tree != null)
+        {
+            createdTrees.Add(tree);
+            placedTrees.Add(tree);
+            successCount++;
+            
+            // 每10棵树输出一次进度
+            if (successCount % 10 == 0)
+            {
+                Debug.Log($"[SceneInitializer] 已成功放置 {successCount} 棵树");
+            }
         }
         else
         {
-            Debug.Log("未找到点云管理器，跳过点云系统初始化");
+            failCount++;
+            Debug.LogWarning($"[SceneInitializer] 第 {treeData.treeId} 棵树创建失败");
         }
     }
     
-} 
+    Debug.Log($"[SceneInitializer] 树木放置完成！成功: {successCount}, 失败: {failCount}");
+    Debug.Log($"[SceneInitializer] 总共放置了 {placedTrees.Count} 棵树");
+}
+
+/// <summary>
+/// 加载简化树木数据
+/// </summary>
+private List<SimpleTreeData> LoadSimpleTreeData()
+{
+    List<SimpleTreeData> trees = new List<SimpleTreeData>();
+    
+    if (!enableTreePlacement) 
+    {
+        Debug.LogWarning("[SceneInitializer] 树木放置功能未启用！");
+        return trees;
+    }
+    
+    Debug.Log($"[SceneInitializer] 开始加载树木数据，CSV文件名: {treeCsvFileName}");
+    
+    // 首先尝试从CSV文件加载树木数据
+    List<SimpleTreeData> csvTrees = LoadTreesFromCsvFile();
+    
+    // 如果CSV文件中有树木数据，使用它
+    if (csvTrees.Count > 0)
+    {
+        trees.AddRange(csvTrees);
+        Debug.Log($"[SceneInitializer] 从CSV文件加载了 {csvTrees.Count} 棵树");
+    }
+    else
+    {
+        // 如果CSV文件中没有树木数据，基于电塔位置自动生成树木
+        Debug.Log("[SceneInitializer] CSV文件中没有树木数据，将基于电塔位置自动生成树木");
+        trees = GenerateTreesNearTowers();
+    }
+    
+    Debug.Log($"[SceneInitializer] 成功加载 {trees.Count} 棵简化树木数据");
+    return trees;
+}
+
+/// <summary>
+/// 从CSV文件加载树木数据
+/// </summary>
+private List<SimpleTreeData> LoadTreesFromCsvFile()
+{
+    List<SimpleTreeData> trees = new List<SimpleTreeData>();
+    
+    // 加载CSV文件
+    TextAsset csvFile = Resources.Load<TextAsset>(treeCsvFileName);
+    if (csvFile == null)
+    {
+        Debug.LogWarning($"[SceneInitializer] 无法找到树木CSV文件 {treeCsvFileName}");
+        return trees;
+    }
+    
+    Debug.Log($"[SceneInitializer] 成功加载CSV文件，文件大小: {csvFile.text.Length} 字符");
+    
+    // 解析CSV数据
+    string[] lines = csvFile.text.Split('\n');
+    Debug.Log($"[SceneInitializer] CSV文件包含 {lines.Length} 行数据");
+    
+    // 先收集所有数据，然后进行缩放和居中（类似B.csv的处理方式）
+    List<(float x, float y, float z, int treeId, int groupId, int towerId, string treeType)> rawTreeData = new List<(float, float, float, int, int, int, string)>();
+    float minX = float.MaxValue, maxX = float.MinValue;
+    float minY = float.MaxValue, maxY = float.MinValue;
+    
+    // 跳过标题行
+    for (int i = 1; i < lines.Length; i++)
+    {
+        string line = lines[i].Trim();
+        if (string.IsNullOrEmpty(line)) continue;
+        
+        string[] values = line.Split(',');
+        if (values.Length >= 6)
+        {
+            if (int.TryParse(values[0], out int treeId) &&
+                int.TryParse(values[1], out int groupId) &&
+                int.TryParse(values[2], out int towerId) &&
+                float.TryParse(values[3], out float x) &&
+                float.TryParse(values[4], out float y) &&
+                float.TryParse(values[5], out float z))
+            {
+                // 使用和B.csv相同的缩放比例：千米转米（乘以10）
+                float xMeter = x * 10f;
+                float yMeter = y * 10f;
+                float zMeter = z;
+                
+                string treeType = values.Length > 6 ? values[6] : "Tree";
+                
+                // 收集原始数据用于居中计算
+                rawTreeData.Add((xMeter, yMeter, zMeter, treeId, groupId, towerId, treeType));
+                minX = Mathf.Min(minX, xMeter);
+                maxX = Mathf.Max(maxX, xMeter);
+                minY = Mathf.Min(minY, yMeter);
+                maxY = Mathf.Max(maxY, yMeter);
+            }
+            else
+            {
+                Debug.LogWarning($"[SceneInitializer] 第 {i} 行数据解析失败: {line}");
+            }
+        }
+        else
+        {
+            Debug.LogWarning($"[SceneInitializer] 第 {i} 行数据列数不足: {line}");
+        }
+    }
+    
+    // 计算中心点并居中（类似B.csv的处理方式）
+    float centerX = (minX + maxX) / 2f;
+    float centerY = (minY + maxY) / 2f;
+    
+    Debug.Log($"[SceneInitializer] 树木数据已缩放(千米转米)并居中，中心点({centerX:F2}, {centerY:F2})");
+    
+    // 创建最终的树木数据
+    foreach (var (x, y, z, treeId, groupId, towerId, treeType) in rawTreeData)
+    {
+        // 坐标转换：X,Y→Unity的X,Z，Z→Y（高度），并居中
+        Vector3 position = new Vector3(x - centerX, z, y - centerY);
+        
+        // 计算树木高度（基于目标高度范围）
+        float treeHeight = UnityEngine.Random.Range(treeHeightRange.x, treeHeightRange.y);
+        
+        // 计算缩放比例（增加变化范围）
+        float scale = UnityEngine.Random.Range(0.6f, 1.8f);
+        
+        SimpleTreeData treeData = new SimpleTreeData(treeId, position, treeHeight, groupId, towerId, treeType, scale);
+        trees.Add(treeData);
+        
+        // 每10棵树输出一次调试信息
+        if (trees.Count % 10 == 0)
+        {
+            Debug.Log($"[SceneInitializer] 已加载 {trees.Count} 棵树，最新: ID={treeId}, 原始位置=({x/10f},{y/10f},{z}) -> Unity位置=({position.x:F1},{position.y:F1},{position.z:F1}), 组={groupId}, 塔={towerId}");
+        }
+    }
+    
+    Debug.Log($"[SceneInitializer] 成功加载 {trees.Count} 棵树，使用和B.csv相同的缩放和居中处理");
+    return trees;
+}
+
+/// <summary>
+/// 基于电塔位置自动生成树木（在电力线路附近）
+/// </summary>
+private List<SimpleTreeData> GenerateTreesNearTowers()
+{
+    List<SimpleTreeData> trees = new List<SimpleTreeData>();
+    
+    // 获取电塔数据
+    List<SimpleTowerData> towerData = LoadSimpleTowerData();
+    if (towerData.Count == 0)
+    {
+        Debug.LogWarning("[SceneInitializer] 没有电塔数据，无法生成树木");
+        return trees;
+    }
+    
+    Debug.Log($"[SceneInitializer] 基于 {towerData.Count} 座电塔生成树木");
+    
+    // 获取实际场景中的电塔GameObject位置（更准确）
+    GameObject[] actualTowers = GameObject.FindGameObjectsWithTag("Tower");
+    if (actualTowers.Length == 0)
+    {
+        // 如果没有找到Tower标签，尝试通过名称查找
+        actualTowers = FindObjectsOfType<GameObject>().Where(go => 
+            go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
+    }
+    
+    Debug.Log($"[SceneInitializer] 找到 {actualTowers.Length} 座实际电塔");
+    
+    int treeId = 1;
+    
+    // 为每个电塔生成多棵树
+    foreach (var tower in towerData)
+    {
+        // 找到对应的实际电塔位置
+        Vector3 actualTowerPosition = tower.position;
+        
+        // 尝试从实际电塔GameObject获取更准确的位置
+        if (actualTowers.Length > 0)
+        {
+            // 找到最近的已放置电塔
+            GameObject nearestTower = null;
+            float minDistance = float.MaxValue;
+            
+            foreach (var actualTower in actualTowers)
+            {
+                float distance = Vector3.Distance(actualTower.transform.position, tower.position);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    nearestTower = actualTower;
+                }
+            }
+            
+            if (nearestTower != null)
+            {
+                actualTowerPosition = nearestTower.transform.position;
+                Debug.Log($"[SceneInitializer] 电塔 {tower.groupId}-{towerData.IndexOf(tower)} 使用实际位置: {actualTowerPosition}");
+            }
+        }
+        
+        // 每个电塔生成树木（使用配置参数）
+        int treesPerTower = UnityEngine.Random.Range(treesPerTowerRange.x, treesPerTowerRange.y + 1);
+        
+        for (int i = 0; i < treesPerTower; i++)
+        {
+            // 在电塔周围随机位置生成树木（使用配置参数）
+            float distanceFromTower = UnityEngine.Random.Range(minTreeDistanceFromTower, maxTreeDistanceFromTower);
+            float angle = UnityEngine.Random.Range(0f, 360f); // 随机角度
+            
+            // 计算树木位置（相对于电塔）
+            float offsetX = Mathf.Cos(angle * Mathf.Deg2Rad) * distanceFromTower;
+            float offsetZ = Mathf.Sin(angle * Mathf.Deg2Rad) * distanceFromTower;
+            
+            Vector3 treePosition = actualTowerPosition + new Vector3(offsetX, 0, offsetZ);
+            
+                         // 计算树木高度和缩放
+             float treeHeight = UnityEngine.Random.Range(treeHeightRange.x, treeHeightRange.y);
+             float scale = UnityEngine.Random.Range(0.6f, 1.8f);
+            
+            // 创建树木数据
+            SimpleTreeData treeData = new SimpleTreeData(
+                treeId, 
+                treePosition, 
+                treeHeight, 
+                tower.groupId, 
+                towerData.IndexOf(tower), 
+                "AutoTree", 
+                scale
+            );
+            
+            trees.Add(treeData);
+            treeId++;
+            
+            // 每10棵树输出一次调试信息
+            if (trees.Count % 10 == 0)
+            {
+                Debug.Log($"[SceneInitializer] 已生成 {trees.Count} 棵树，最新: ID={treeData.treeId}, 位置=({treePosition.x:F1},{treePosition.y:F1},{treePosition.z:F1}), 距离电塔={distanceFromTower:F1}m");
+            }
+        }
+    }
+    
+    Debug.Log($"[SceneInitializer] 自动生成了 {trees.Count} 棵树，分布在 {towerData.Count} 座电塔周围");
+    return trees;
+}
+
+/// <summary>
+/// 在指定位置创建树木
+/// </summary>
+private GameObject CreateTreeAtPosition(SimpleTreeData treeData)
+{
+    if (treePrefab == null) 
+    {
+        Debug.LogError("[SceneInitializer] 树木预制件为空，无法创建树木");
+        return null;
+    }
+    
+    Vector3 position = treeData.position;
+    Debug.Log($"[SceneInitializer] 创建树木 ID={treeData.treeId}, 原始位置=({position.x:F2}, {position.y:F2}, {position.z:F2})");
+    
+    // 地形适配：调整树木基座高度
+    if (terrainManager != null)
+    {
+        float terrainHeight = terrainManager.GetTerrainHeight(position);
+        position.y = Mathf.Max(position.y, terrainHeight);
+        Debug.Log($"[SceneInitializer] 地形高度: {terrainHeight:F2}, 调整后Y坐标: {position.y:F2}");
+    }
+    else
+    {
+        Debug.LogWarning("[SceneInitializer] 地形管理器未找到，跳过地形适配");
+    }
+    
+    // 添加随机偏移，避免树木完全重叠
+    float randomOffsetX = UnityEngine.Random.Range(-2f, 2f);
+    float randomOffsetZ = UnityEngine.Random.Range(-2f, 2f);
+    position += new Vector3(randomOffsetX, 0, randomOffsetZ);
+    Debug.Log($"[SceneInitializer] 随机偏移: ({randomOffsetX:F2}, 0, {randomOffsetZ:F2}), 最终位置: ({position.x:F2}, {position.y:F2}, {position.z:F2})");
+    
+    GameObject tree = Instantiate(treePrefab, position, Quaternion.identity);
+    if (tree == null)
+    {
+        Debug.LogError("[SceneInitializer] 树木实例化失败");
+        return null;
+    }
+    
+    tree.name = $"Tree_{treeData.treeId}_Group{treeData.groupId}_Tower{treeData.towerId}";
+    
+    // 随机旋转
+    float randomRotation = UnityEngine.Random.Range(0f, 360f);
+    tree.transform.rotation = Quaternion.Euler(0, randomRotation, 0);
+    
+    // 根据树木高度进行缩放（参考电塔的缩放方式）
+    float scaleRatio = treeData.height / 3f; // 假设标准树木高度为3米
+    // 增加基础缩放，让树木更明显
+    tree.transform.localScale = Vector3.one * scaleRatio * treeData.scale * treeBaseScale;
+    
+    Debug.Log($"[SceneInitializer] 树木 {tree.name} 创建成功，高度缩放: {scaleRatio:F2}, 基础缩放: {treeData.scale:F2}, 旋转: {randomRotation:F1}°");
+    
+    // 调整树木位置，让底部贴在地面上（参考电塔的AdjustTowerGroundPosition方法）
+    AdjustTreeGroundPosition(tree, treeData);
+    
+    // 自动缩放（如果需要）
+    if (enableTreeAutoScaling)
+    {
+        ApplyTreeAutoScaling(tree);
+        Debug.Log("[SceneInitializer] 已应用自动缩放");
+    }
+    
+    // 设置父对象（如果有电塔父对象）
+    if (powerlineParent != null)
+    {
+        tree.transform.SetParent(powerlineParent.transform);
+        Debug.Log($"[SceneInitializer] 树木已设置父对象: {powerlineParent.name}");
+    }
+    else
+    {
+        Debug.LogWarning("[SceneInitializer] 未设置树木父对象");
+    }
+    
+    return tree;
+}
+
+/// <summary>
+/// 调整树木位置，让底部贴在地面上（参考电塔的AdjustTowerGroundPosition方法）
+/// </summary>
+void AdjustTreeGroundPosition(GameObject tree, SimpleTreeData treeData)
+{
+    // 获取树木的实际包围盒
+    Renderer treeRenderer = tree.GetComponentInChildren<Renderer>();
+    if (treeRenderer == null)
+    {
+        Debug.LogWarning($"树木 {tree.name} 没有找到 Renderer 组件，无法调整底部位置");
+        return;
+    }
+    
+    // 强制更新包围盒
+    treeRenderer.bounds.Encapsulate(treeRenderer.bounds);
+    
+    // 获取树木底部的世界坐标Y值
+    float treeBottomY = treeRenderer.bounds.min.y;
+    
+    // 计算目标地面高度
+    float targetGroundY = 0f;
+    if (adaptToTerrain && terrainManager != null)
+    {
+        targetGroundY = terrainManager.GetTerrainHeight(tree.transform.position);
+    }
+    else
+    {
+        targetGroundY = treeData.position.y;
+    }
+    
+    // 计算需要向上偏移的距离
+    float offsetY = targetGroundY - treeBottomY;
+    
+    // 应用偏移
+    Vector3 newPosition = tree.transform.position;
+    newPosition.y += offsetY;
+    tree.transform.position = newPosition;
+    
+    Debug.Log($"[SceneInitializer] 树木 {tree.name} 地面适配: 底部Y={treeBottomY:F2}, 目标地面Y={targetGroundY:F2}, 偏移Y={offsetY:F2}");
+}
+
+/// <summary>
+/// 应用树木自动缩放
+/// </summary>
+private void ApplyTreeAutoScaling(GameObject tree)
+{
+    if (tree == null) return;
+    
+    // 获取树木的边界
+    Renderer renderer = tree.GetComponent<Renderer>();
+    if (renderer != null)
+    {
+        Bounds bounds = renderer.bounds;
+        float currentHeight = bounds.size.y;
+        float targetHeight = UnityEngine.Random.Range(treeHeightRange.x, treeHeightRange.y);
+        
+        if (currentHeight > 0)
+        {
+            float scaleFactor = targetHeight / currentHeight;
+            tree.transform.localScale *= scaleFactor;
+            Debug.Log($"[SceneInitializer] 树木自动缩放: 当前高度={currentHeight:F2}, 目标高度={targetHeight:F2}, 缩放因子={scaleFactor:F2}");
+        }
+    }
+}
+
+/// <summary>
+/// 清理已放置的树木
+/// </summary>
+private void ClearPlacedTrees()
+{
+    foreach (var tree in placedTrees)
+    {
+        if (tree != null)
+        {
+            DestroyImmediate(tree);
+        }
+    }
+    placedTrees.Clear();
+    Debug.Log("[SceneInitializer] 已清理所有已放置的树木");
+}
+
+/// <summary>
+/// 手动构建树木（用于调试）
+/// </summary>
+[ContextMenu("手动构建树木")]
+public void BuildTreesFromCsv()
+{
+    Debug.Log("[SceneInitializer] 手动触发树木构建...");
+    
+    if (!enableTreePlacement)
+    {
+        Debug.LogWarning("[SceneInitializer] 树木放置功能未启用，请先启用enableTreePlacement");
+        return;
+    }
+    
+    CreateTreesFromCsv();
+    Debug.Log("[SceneInitializer] 手动构建完成");
+}
+
+/// <summary>
+/// 检查树木系统状态（用于调试）
+/// </summary>
+[ContextMenu("检查树木系统状态")]
+public void CheckTreeSystemStatus()
+{
+    Debug.Log("=== SceneInitializer 树木系统状态检查 ===");
+    Debug.Log($"enableTreePlacement: {enableTreePlacement}");
+    Debug.Log($"treePrefab: {(treePrefab != null ? treePrefab.name : "null")}");
+    Debug.Log($"treeCsvFileName: {treeCsvFileName}");
+    Debug.Log($"enableTreeAutoScaling: {enableTreeAutoScaling}");
+    Debug.Log($"treeHeightRange: {treeHeightRange.x}-{treeHeightRange.y}");
+    Debug.Log($"treesPerTowerRange: {treesPerTowerRange.x}-{treesPerTowerRange.y}");
+    Debug.Log($"treeDistanceFromTower: {minTreeDistanceFromTower}-{maxTreeDistanceFromTower}m");
+    Debug.Log($"treeBaseScale: {treeBaseScale}");
+    Debug.Log($"terrainManager: {(terrainManager != null ? terrainManager.name : "null")}");
+    Debug.Log($"powerlineParent: {(powerlineParent != null ? powerlineParent.name : "null")}");
+    Debug.Log($"已放置树木数量: {placedTrees.Count}");
+    
+    TextAsset csvFile = Resources.Load<TextAsset>(treeCsvFileName);
+    if (csvFile != null)
+    {
+        Debug.Log($"CSV文件存在，大小: {csvFile.text.Length} 字符");
+        string[] lines = csvFile.text.Split('\n');
+        Debug.Log($"CSV文件行数: {lines.Length}");
+    }
+    else
+    {
+        Debug.LogError($"CSV文件不存在: {treeCsvFileName}");
+    }
+    
+    if (treePrefab == null)
+    {
+        GameObject loadedPrefab = Resources.Load<GameObject>("Prefabs/Tree");
+        Debug.Log($"从Resources加载的预制件: {(loadedPrefab != null ? loadedPrefab.name : "null")}");
+    }
+    
+    // 显示电塔和树木的位置信息
+    Debug.Log("=== 位置信息 ===");
+    GameObject[] towers = GameObject.FindGameObjectsWithTag("Tower");
+    if (towers.Length == 0)
+    {
+        towers = FindObjectsOfType<GameObject>().Where(go => 
+            go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
+    }
+    
+    Debug.Log($"找到 {towers.Length} 座电塔:");
+    foreach (var tower in towers)
+    {
+        Debug.Log($"电塔: {tower.name}, 位置: {tower.transform.position}");
+    }
+    
+    Debug.Log($"已放置 {placedTrees.Count} 棵树:");
+    for (int i = 0; i < Mathf.Min(placedTrees.Count, 10); i++) // 只显示前10棵
+    {
+        var tree = placedTrees[i];
+        if (tree != null)
+        {
+            Debug.Log($"树木 {i}: {tree.name}, 位置: {tree.transform.position}");
+        }
+    }
+    
+    if (placedTrees.Count > 10)
+    {
+        Debug.Log($"... 还有 {placedTrees.Count - 10} 棵树");
+    }
+    
+    Debug.Log("=== 状态检查完成 ===");
+}
+
+/// <summary>
+/// 重新生成树木（用于调试位置问题）
+/// </summary>
+[ContextMenu("重新生成树木")]
+public void RegenerateTrees()
+{
+    Debug.Log("[SceneInitializer] 重新生成树木...");
+    ClearPlacedTrees();
+    CreateTreesFromCsv();
+    Debug.Log("[SceneInitializer] 树木重新生成完成");
+}
+
+#endregion
+
+}  

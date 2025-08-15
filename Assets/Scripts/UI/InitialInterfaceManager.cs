@@ -5,6 +5,7 @@ using System.Linq;
 using System.Collections.Generic;
 using PowerlineSystem;
 using UI;
+using UserAuth;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -28,12 +29,15 @@ public class InitialInterfaceManager : MonoBehaviour
     public SceneInitializer sceneInitializer;
     public PowerLineExtractorManager powerLineExtractorManager;
     public SimpleUIToolkitManager uiManager;
+    public SimpleUserAuth authSystem;
     
     [Header("UI组件")]
     private UIDocument uiDocument;
     private VisualElement rootElement;
     
     // UI元素
+    private VisualElement loginPanel;
+    private VisualElement registerPanel;
     private VisualElement initialPanel;
     private VisualElement fileUploadArea;
     private VisualElement pythonGuideArea;
@@ -44,6 +48,7 @@ public class InitialInterfaceManager : MonoBehaviour
     
     // 状态
     private bool isInitialized = false;
+    private bool isUserLoggedIn = false;
     private string selectedLasFile = "";
     private bool isProcessing = false;
     
@@ -61,6 +66,8 @@ public class InitialInterfaceManager : MonoBehaviour
             powerLineExtractorManager = FindObjectOfType<PowerLineExtractorManager>();
         if (uiManager == null)
             uiManager = FindObjectOfType<SimpleUIToolkitManager>();
+        if (authSystem == null)
+            authSystem = FindObjectOfType<SimpleUserAuth>();
             
         // 创建独立的UIDocument
         CreateUIDocument();
@@ -73,8 +80,125 @@ public class InitialInterfaceManager : MonoBehaviour
             powerLineExtractorManager.OnError += OnExtractionError;
         }
         
+        // 注册认证事件
+        if (authSystem != null)
+        {
+            authSystem.OnUserLoggedIn += OnUserLoggedIn;
+            authSystem.OnUserLoggedOut += OnUserLoggedOut;
+            authSystem.OnAuthMessage += OnAuthMessage;
+        }
+        
         isInitialized = true;
         Debug.Log("初始界面管理器初始化完成");
+        
+        // 注意：此时不要立即检查用户登录状态，因为UI界面还在创建中
+        // 用户登录状态检查将在SetInitialDisplayState协程完成后进行
+    }
+    
+    /// <summary>
+    /// 检查用户登录状态
+    /// </summary>
+    private void CheckUserLoginStatus()
+    {
+        if (authSystem != null && authSystem.IsUserLoggedIn())
+        {
+            isUserLoggedIn = true;
+            ShowMainInterface();
+            Debug.Log("用户已登录，显示主界面");
+        }
+        else
+        {
+            isUserLoggedIn = false;
+            // 不自动显示登录界面，保持当前状态
+            Debug.Log("用户未登录，保持当前界面状态");
+        }
+    }
+    
+    /// <summary>
+    /// 显示登录界面
+    /// </summary>
+    private void ShowLoginInterface()
+    {
+        if (rootElement == null) return;
+        
+        Debug.Log("正在显示登录界面...");
+        
+        // 隐藏主界面，显示登录界面
+        if (initialPanel != null) 
+        {
+            initialPanel.style.display = DisplayStyle.None;
+            Debug.Log("主界面已隐藏");
+        }
+        if (loginPanel != null) 
+        {
+            loginPanel.style.display = DisplayStyle.Flex;
+            Debug.Log("登录界面已显示");
+        }
+        if (registerPanel != null) 
+        {
+            registerPanel.style.display = DisplayStyle.None;
+            Debug.Log("注册界面已隐藏");
+        }
+        
+        
+        Debug.Log("登录界面显示完成");
+    }
+    
+    /// <summary>
+    /// 显示主界面
+    /// </summary>
+    private void ShowMainInterface()
+    {
+        if (rootElement == null) return;
+        
+        Debug.Log("正在显示主界面...");
+        
+        // 隐藏登录界面，显示主界面
+        if (loginPanel != null) 
+        {
+            loginPanel.style.display = DisplayStyle.None;
+            Debug.Log("登录界面已隐藏");
+        }
+        if (registerPanel != null) 
+        {
+            registerPanel.style.display = DisplayStyle.None;
+            Debug.Log("注册界面已隐藏");
+        }
+        if (initialPanel != null) 
+        {
+            initialPanel.style.display = DisplayStyle.Flex;
+            Debug.Log("主界面已显示");
+        }
+        
+        Debug.Log("主界面显示完成");
+    }
+    
+    /// <summary>
+    /// 用户登录成功事件
+    /// </summary>
+    private void OnUserLoggedIn(UserAuth.UserData user)
+    {
+        isUserLoggedIn = true;
+        ShowMainInterface();
+        Debug.Log($"用户 {user.Username} 登录成功，显示主界面");
+    }
+    
+    /// <summary>
+    /// 用户登出事件
+    /// </summary>
+    private void OnUserLoggedOut()
+    {
+        isUserLoggedIn = false;
+        ShowLoginInterface();
+        Debug.Log("用户登出，显示登录界面");
+    }
+    
+    /// <summary>
+    /// 认证消息事件
+    /// </summary>
+    private void OnAuthMessage(string message)
+    {
+        Debug.Log($"[认证系统] {message}");
     }
     
     /// <summary>
@@ -108,7 +232,197 @@ public class InitialInterfaceManager : MonoBehaviour
         rootElement.style.right = 0;
         rootElement.style.bottom = 0;
         
+        Debug.Log("根元素已设置，开始创建UI界面");
+        
+        // 创建UI界面
+        CreateUI();
+        
         Debug.Log("初始界面UIDocument已创建");
+    }
+    
+    /// <summary>
+    /// 创建UI界面
+    /// </summary>
+    void CreateUI()
+    {
+        Debug.Log("开始创建UI界面...");
+        Debug.Log($"rootElement状态: {(rootElement != null ? "已设置" : "为空")}");
+        
+        // 创建登录面板
+        Debug.Log("创建登录面板...");
+        CreateLoginPanel();
+        
+        // 创建注册面板
+        Debug.Log("创建注册面板...");
+        CreateRegisterPanel();
+        
+        // 创建主界面面板
+        Debug.Log("创建主界面面板...");
+        CreateInitialInterface();
+        
+        Debug.Log("所有UI界面创建完成");
+        
+        // 查找UI元素引用
+        FindUIElements();
+        
+        // 等待一帧后设置初始显示状态，确保所有界面都已创建完成
+        StartCoroutine(SetInitialDisplayState());
+    }
+    
+    /// <summary>
+    /// 设置初始显示状态
+    /// </summary>
+    private System.Collections.IEnumerator SetInitialDisplayState()
+    {
+        // 等待一帧，确保所有界面都已创建完成
+        yield return new WaitForEndOfFrame();
+        
+        Debug.Log("设置初始显示状态...");
+        
+        // 强制设置初始显示状态：只显示登录界面，其他全部隐藏
+        if (loginPanel != null) 
+        {
+            loginPanel.style.display = DisplayStyle.Flex;
+            Debug.Log("登录界面设置为可见");
+        }
+        else
+        {
+            Debug.LogWarning("登录面板为空");
+        }
+        
+        if (registerPanel != null) 
+        {
+            registerPanel.style.display = DisplayStyle.None;
+            Debug.Log("注册界面设置为隐藏");
+        }
+        else
+        {
+            Debug.LogWarning("注册面板为空");
+        }
+        
+        if (initialPanel != null) 
+        {
+            initialPanel.style.display = DisplayStyle.None;
+            Debug.Log("主界面设置为隐藏");
+        }
+        else
+        {
+            Debug.LogWarning("主界面面板为空");
+        }
+        
+        Debug.Log("初始显示状态设置完成 - 只显示登录界面");
+        
+        // 注意：此时不检查用户登录状态，强制显示登录界面
+        // 用户必须手动登录才能进入系统
+    }
+    
+    /// <summary>
+    /// 查找UI元素
+    /// </summary>
+    void FindUIElements()
+    {
+        Debug.Log("开始查找UI元素...");
+        Debug.Log($"rootElement状态: {(rootElement != null ? "已设置" : "为空")}");
+        if (rootElement != null)
+        {
+            Debug.Log($"根元素子元素数量: {rootElement.childCount}");
+            foreach (var child in rootElement.Children())
+            {
+                Debug.Log($"子元素: {child.name}, 类型: {child.GetType()}");
+            }
+        }
+        
+        // 查找面板
+        loginPanel = rootElement.Q<VisualElement>("login-panel");
+        Debug.Log($"登录面板查找结果: {(loginPanel != null ? "成功" : "失败")}");
+        
+        registerPanel = rootElement.Q<VisualElement>("register-panel");
+        Debug.Log($"注册面板查找结果: {(registerPanel != null ? "成功" : "失败")}");
+        
+        initialPanel = rootElement.Q<VisualElement>("initial-panel");
+        Debug.Log($"主界面面板查找结果: {(initialPanel != null ? "成功" : "失败")}");
+        
+        // 查找其他UI元素
+        fileUploadArea = rootElement.Q<VisualElement>("file-upload-area");
+        pythonGuideArea = rootElement.Q<VisualElement>("python-guide-area");
+        statusLabel = rootElement.Q<Label>("status-label");
+        progressBar = rootElement.Q<ProgressBar>("progress-bar");
+        uploadLasButton = rootElement.Q<VisualElement>("upload-las-button");
+        startExtractionButton = rootElement.Q<Button>("start-extraction-button");
+        
+        Debug.Log("UI元素查找完成");
+    }
+    
+    /// <summary>
+    /// 创建登录面板
+    /// </summary>
+    void CreateLoginPanel()
+    {
+        loginPanel = new VisualElement();
+        loginPanel.name = "login-panel";
+        loginPanel.style.position = Position.Absolute;
+        loginPanel.style.top = 0;
+        loginPanel.style.left = 0;
+        loginPanel.style.right = 0;
+        loginPanel.style.bottom = 0;
+        loginPanel.style.width = Length.Percent(100);
+        loginPanel.style.height = Length.Percent(100);
+        loginPanel.style.backgroundColor = backgroundColor;
+        loginPanel.style.flexDirection = FlexDirection.Column;
+        loginPanel.style.justifyContent = Justify.Center;
+        loginPanel.style.alignItems = Align.Center;
+        loginPanel.style.paddingTop = 50;
+        loginPanel.style.paddingBottom = 50;
+        loginPanel.style.paddingLeft = 50;
+        loginPanel.style.paddingRight = 50;
+        
+        // 暂时注释掉背景装饰，简化测试
+        // CreateBackgroundDecoration(loginPanel);
+        
+        // 创建登录表单
+        CreateLoginForm(loginPanel);
+        
+        // 添加到根元素
+        if (rootElement != null)
+        {
+            rootElement.Add(loginPanel);
+        }
+    }
+    
+    /// <summary>
+    /// 创建注册面板
+    /// </summary>
+    void CreateRegisterPanel()
+    {
+        registerPanel = new VisualElement();
+        registerPanel.name = "register-panel";
+        registerPanel.style.position = Position.Absolute;
+        registerPanel.style.top = 0;
+        registerPanel.style.left = 0;
+        registerPanel.style.right = 0;
+        registerPanel.style.bottom = 0;
+        registerPanel.style.width = Length.Percent(100);
+        registerPanel.style.height = Length.Percent(100);
+        registerPanel.style.backgroundColor = backgroundColor;
+        registerPanel.style.flexDirection = FlexDirection.Column;
+        registerPanel.style.justifyContent = Justify.Center;
+        registerPanel.style.alignItems = Align.Center;
+        registerPanel.style.paddingTop = 50;
+        registerPanel.style.paddingBottom = 50;
+        registerPanel.style.paddingLeft = 50;
+        registerPanel.style.paddingRight = 50;
+        
+        // 暂时注释掉背景装饰，简化测试
+        // CreateBackgroundDecoration(registerPanel);
+        
+        // 创建注册表单
+        CreateRegisterForm(registerPanel);
+        
+        // 添加到根元素
+        if (rootElement != null)
+        {
+            rootElement.Add(registerPanel);
+        }
     }
     
     /// <summary>
@@ -143,8 +457,12 @@ public class InitialInterfaceManager : MonoBehaviour
     
     void CreateInitialInterface()
     {
+        Debug.Log("开始创建初始界面...");
+        Debug.Log($"rootElement状态: {(rootElement != null ? "已设置" : "为空")}");
+        
         // 创建主面板 - 全屏显示
         initialPanel = new VisualElement();
+        initialPanel.name = "initial-panel";
         initialPanel.style.position = Position.Absolute;
         initialPanel.style.top = 0;
         initialPanel.style.left = 0;
@@ -160,6 +478,8 @@ public class InitialInterfaceManager : MonoBehaviour
         initialPanel.style.paddingBottom = 50;
         initialPanel.style.paddingLeft = 50;
         initialPanel.style.paddingRight = 50;
+        
+        Debug.Log("初始面板样式设置完成");
         
         // 添加背景装饰
         CreateBackgroundDecoration(initialPanel);
@@ -182,6 +502,8 @@ public class InitialInterfaceManager : MonoBehaviour
         // 创建底部信息
         CreateFooterInfo(initialPanel);
         
+        Debug.Log("初始界面所有组件创建完成，准备添加到根元素");
+        
         // 添加到独立的根元素
         if (rootElement != null)
         {
@@ -191,6 +513,11 @@ public class InitialInterfaceManager : MonoBehaviour
         else
         {
             Debug.LogError("根元素为空，无法添加初始界面");
+            Debug.LogError($"uidocument状态: {(uiDocument != null ? "已设置" : "为空")}");
+            if (uiDocument != null)
+            {
+                Debug.LogError($"uidocument.rootVisualElement状态: {(uiDocument.rootVisualElement != null ? "已设置" : "为空")}");
+            }
         }
     }
     
@@ -509,7 +836,7 @@ public class InitialInterfaceManager : MonoBehaviour
         fileUploadArea.Add(startExtractionButton);
         
         // 返回按钮
-        var backButton = new Button(() => ShowMainInterface());
+        var backButton = new Button(() => ReturnToMainInterface());
         backButton.text = "返回主界面";
         backButton.style.backgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f); // 灰色
         backButton.style.color = Color.white;
@@ -668,7 +995,7 @@ public class InitialInterfaceManager : MonoBehaviour
         pythonGuideArea.Add(checkButton);
         
         // 返回按钮
-        var backButton = new Button(() => ShowMainInterface());
+        var backButton = new Button(() => ReturnToMainInterface());
         backButton.text = "返回主界面";
         backButton.style.backgroundColor = new Color(0.6f, 0.6f, 0.6f, 1f);
         backButton.style.color = Color.white;
@@ -1129,9 +1456,9 @@ public class InitialInterfaceManager : MonoBehaviour
     }
     
     /// <summary>
-    /// 显示主界面（返回功能）
+    /// 返回主界面（从其他区域返回）
     /// </summary>
-    void ShowMainInterface()
+    void ReturnToMainInterface()
     {
         Debug.Log("用户选择返回主界面");
         
@@ -2278,6 +2605,240 @@ public class InitialInterfaceManager : MonoBehaviour
         {
             Debug.LogError($"复制到剪贴板失败: {ex.Message}");
             UpdateStatus("复制失败，请手动复制");
+        }
+    }
+    
+    /// <summary>
+    /// 创建登录表单
+    /// </summary>
+    void CreateLoginForm(VisualElement parent)
+    {
+        // 创建标题
+        var titleLabel = new Label("用户登录");
+        titleLabel.style.fontSize = 32;
+        titleLabel.style.color = primaryColor;
+        titleLabel.style.marginBottom = 30;
+        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        parent.Add(titleLabel);
+        
+        // 创建用户名输入框
+        var usernameField = new TextField("用户名");
+        usernameField.name = "login-username-field";
+        usernameField.style.width = 300;
+        usernameField.style.marginBottom = 20;
+        parent.Add(usernameField);
+        
+        // 创建密码输入框
+        var passwordField = new TextField("密码");
+        passwordField.name = "login-password-field";
+        passwordField.isPasswordField = true;
+        passwordField.style.width = 300;
+        passwordField.style.marginBottom = 30;
+        parent.Add(passwordField);
+        
+        // 创建登录按钮
+        var loginButton = new Button(() => OnLoginButtonClicked()) { text = "登录" };
+        loginButton.name = "login-button";
+        loginButton.style.width = 300;
+        loginButton.style.height = 40;
+        loginButton.style.backgroundColor = primaryColor;
+        loginButton.style.color = Color.white;
+        loginButton.style.borderTopLeftRadius = 5;
+        loginButton.style.borderTopRightRadius = 5;
+        loginButton.style.borderBottomLeftRadius = 5;
+        loginButton.style.borderBottomRightRadius = 5;
+        loginButton.style.marginBottom = 20;
+        parent.Add(loginButton);
+        
+        // 创建切换到注册的按钮
+        var switchToRegisterButton = new Button(() => ShowRegisterPanel()) { text = "没有账号？点击注册" };
+        switchToRegisterButton.name = "switch-to-register-button";
+        switchToRegisterButton.style.width = 300;
+        switchToRegisterButton.style.height = 30;
+        switchToRegisterButton.style.backgroundColor = Color.clear;
+        switchToRegisterButton.style.color = primaryColor;
+        switchToRegisterButton.style.borderLeftWidth = 1;
+        switchToRegisterButton.style.borderRightWidth = 1;
+        switchToRegisterButton.style.borderTopWidth = 1;
+        switchToRegisterButton.style.borderBottomWidth = 1;
+        switchToRegisterButton.style.borderLeftColor = primaryColor;
+        switchToRegisterButton.style.borderRightColor = primaryColor;
+        switchToRegisterButton.style.borderTopColor = primaryColor;
+        switchToRegisterButton.style.borderBottomColor = primaryColor;
+        switchToRegisterButton.style.borderTopLeftRadius = 5;
+        switchToRegisterButton.style.borderTopRightRadius = 5;
+        switchToRegisterButton.style.borderBottomLeftRadius = 5;
+        switchToRegisterButton.style.borderBottomRightRadius = 5;
+        parent.Add(switchToRegisterButton);
+    }
+    
+    /// <summary>
+    /// 创建注册表单
+    /// </summary>
+    void CreateRegisterForm(VisualElement parent)
+    {
+        // 创建标题
+        var titleLabel = new Label("用户注册");
+        titleLabel.style.fontSize = 32;
+        titleLabel.style.color = primaryColor;
+        titleLabel.style.marginBottom = 30;
+        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        parent.Add(titleLabel);
+        
+        // 创建用户名输入框
+        var usernameField = new TextField("用户名");
+        usernameField.name = "register-username-field";
+        usernameField.style.width = 300;
+        usernameField.style.marginBottom = 20;
+        parent.Add(usernameField);
+        
+        // 创建邮箱输入框
+        var emailField = new TextField("邮箱");
+        emailField.name = "register-email-field";
+        emailField.style.width = 300;
+        emailField.style.marginBottom = 20;
+        parent.Add(emailField);
+        
+        // 创建密码输入框
+        var passwordField = new TextField("密码");
+        passwordField.name = "register-password-field";
+        passwordField.isPasswordField = true;
+        passwordField.style.width = 300;
+        passwordField.style.marginBottom = 20;
+        parent.Add(passwordField);
+        
+        // 创建确认密码输入框
+        var confirmPasswordField = new TextField("确认密码");
+        confirmPasswordField.name = "register-confirm-password-field";
+        confirmPasswordField.isPasswordField = true;
+        confirmPasswordField.style.width = 300;
+        confirmPasswordField.style.marginBottom = 30;
+        parent.Add(confirmPasswordField);
+        
+        // 创建注册按钮
+        var registerButton = new Button(() => OnRegisterButtonClicked()) { text = "注册" };
+        registerButton.name = "register-button";
+        registerButton.style.width = 300;
+        registerButton.style.height = 40;
+        registerButton.style.backgroundColor = accentColor;
+        registerButton.style.color = Color.white;
+        registerButton.style.borderTopLeftRadius = 5;
+        registerButton.style.borderTopRightRadius = 5;
+        registerButton.style.borderBottomLeftRadius = 5;
+        registerButton.style.borderBottomRightRadius = 5;
+        registerButton.style.marginBottom = 20;
+        parent.Add(registerButton);
+        
+        // 创建切换到登录的按钮
+        var switchToLoginButton = new Button(() => ShowLoginPanel()) { text = "已有账号？点击登录" };
+        switchToLoginButton.name = "switch-to-login-button";
+        switchToLoginButton.style.width = 300;
+        switchToLoginButton.style.height = 30;
+        switchToLoginButton.style.backgroundColor = Color.clear;
+        switchToLoginButton.style.color = accentColor;
+        switchToLoginButton.style.borderLeftWidth = 1;
+        switchToLoginButton.style.borderRightWidth = 1;
+        switchToLoginButton.style.borderTopWidth = 1;
+        switchToLoginButton.style.borderBottomWidth = 1;
+        switchToLoginButton.style.borderLeftColor = accentColor;
+        switchToLoginButton.style.borderRightColor = accentColor;
+        switchToLoginButton.style.borderTopColor = accentColor;
+        switchToLoginButton.style.borderBottomColor = accentColor;
+        switchToLoginButton.style.borderTopLeftRadius = 5;
+        switchToLoginButton.style.borderTopRightRadius = 5;
+        switchToLoginButton.style.borderBottomLeftRadius = 5;
+        switchToLoginButton.style.borderBottomRightRadius = 5;
+        parent.Add(switchToLoginButton);
+    }
+    
+    /// <summary>
+    /// 显示注册面板
+    /// </summary>
+    private void ShowRegisterPanel()
+    {
+        if (loginPanel != null) loginPanel.style.display = DisplayStyle.None;
+        if (registerPanel != null) registerPanel.style.display = DisplayStyle.Flex;
+        Debug.Log("切换到注册面板");
+    }
+    
+    /// <summary>
+    /// 显示登录面板
+    /// </summary>
+    private void ShowLoginPanel()
+    {
+        if (registerPanel != null) registerPanel.style.display = DisplayStyle.None;
+        if (loginPanel != null) loginPanel.style.display = DisplayStyle.Flex;
+        Debug.Log("切换到登录面板");
+    }
+    
+    /// <summary>
+    /// 登录按钮点击事件
+    /// </summary>
+    private void OnLoginButtonClicked()
+    {
+        if (authSystem == null) return;
+        
+        var usernameField = rootElement.Q<TextField>("login-username-field");
+        var passwordField = rootElement.Q<TextField>("login-password-field");
+        
+        if (usernameField == null || passwordField == null) return;
+        
+        string username = usernameField.value;
+        string password = passwordField.value;
+        
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
+        {
+            Debug.LogWarning("用户名和密码不能为空");
+            return;
+        }
+        
+        // 调用认证系统登录
+        bool success = authSystem.LoginUser(username, password);
+        
+        if (success)
+        {
+            Debug.Log("登录成功");
+        }
+    }
+    
+    /// <summary>
+    /// 注册按钮点击事件
+    /// </summary>
+    private void OnRegisterButtonClicked()
+    {
+        if (authSystem == null) return;
+        
+        var usernameField = rootElement.Q<TextField>("register-username-field");
+        var emailField = rootElement.Q<TextField>("register-email-field");
+        var passwordField = rootElement.Q<TextField>("register-password-field");
+        var confirmPasswordField = rootElement.Q<TextField>("register-confirm-password-field");
+        
+        if (usernameField == null || emailField == null || passwordField == null || confirmPasswordField == null) return;
+        
+        string username = usernameField.value;
+        string email = emailField.value;
+        string password = passwordField.value;
+        string confirmPassword = confirmPasswordField.value;
+        
+        if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(email))
+        {
+            Debug.LogWarning("请填写所有必填字段");
+            return;
+        }
+        
+        if (password != confirmPassword)
+        {
+            Debug.LogWarning("两次输入的密码不一致");
+            return;
+        }
+        
+        // 调用认证系统注册
+        bool success = authSystem.RegisterUser(username, password, email);
+        
+        if (success)
+        {
+            Debug.Log("注册成功，请登录");
+            ShowLoginPanel();
         }
     }
 } 

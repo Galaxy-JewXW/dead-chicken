@@ -64,11 +64,50 @@ namespace PowerlineSystem
         [Tooltip("相机跳转高度偏移")]
         public float cameraHeightOffset = 50f;
         
+        [Header("树木配置")]
+        [Tooltip("是否在建立电塔和电线的同时建立树木")]
+        public bool enableTreePlacement = true;
+        
+        [Tooltip("树木预制体")]
+        public GameObject treePrefab;
+        
+        [Tooltip("树木CSV文件名")]
+        public string treeCsvFileName = "trees";
+        
+        [Tooltip("每个电塔附近的树木数量")]
+        public int treesPerTower = 3;
+        
+        [Tooltip("树木距离电塔的最小距离")]
+        public float minTreeDistanceFromTower = 8f;
+        
+        [Tooltip("树木距离电塔的最大距离")]
+        public float maxTreeDistanceFromTower = 25f;
+        
+        [Tooltip("是否启用树木自动缩放")]
+        public bool enableTreeAutoScaling = true;
+        
+        [Tooltip("树木高度相对于电塔高度的比例范围")]
+        public Vector2 treeHeightRatioRange = new Vector2(0.2f, 0.8f);
+        
+        [Tooltip("树木高度随机变化范围（相对于计算出的高度）")]
+        public Vector2 treeHeightVariationRange = new Vector2(0.7f, 1.3f);
+        
+        [Tooltip("是否启用树木高度随机变化")]
+        public bool enableTreeHeightVariation = true;
+        
+        [Tooltip("树木基础缩放倍数")]
+        public float treeBaseScale = 50f;
+        
         // 内部组件引用
         private TowerPinpointSystem towerPinpointSystem;
         private SceneInitializer sceneInitializer;
         private SimpleUIToolkitManager uiManager;
         private CameraManager cameraManager;
+        
+        // 树木管理
+        private List<GameObject> placedTrees = new List<GameObject>();
+        private List<TreeData> treeDataList = new List<TreeData>();
+        private TerrainManager terrainManager;
         
         // 电力线提取数据
         private string currentCsvPath = "";
@@ -78,6 +117,39 @@ namespace PowerlineSystem
         
         // 状态
         private bool isBuilding = false;
+        
+        [System.Serializable]
+        public struct TreeData
+        {
+            public int treeId;
+            public int groupId;
+            public int towerId;
+            public Vector3 position;
+            public string treeType;
+        }
+        
+        [System.Serializable]
+        public class SimpleTreeData
+        {
+            public int treeId;
+            public Vector3 position;
+            public float height;
+            public int groupId;
+            public int towerId;
+            public string treeType;
+            public float scale;
+            
+            public SimpleTreeData(int id, Vector3 pos, float h, int group, int tower, string type, float s = 1.0f)
+            {
+                treeId = id;
+                position = pos;
+                height = h;
+                groupId = group;
+                towerId = tower;
+                treeType = type;
+                scale = s;
+            }
+        }
         
         /// <summary>
         /// 组件启动时的初始化
@@ -193,6 +265,20 @@ namespace PowerlineSystem
                 else
                 {
                     Debug.LogWarning("[PowerlineExtractionSceneBuilder] SceneInitializer的towerPrefab为空，可能影响电塔创建");
+                }
+            }
+            
+            // 查找地形管理器
+            if (terrainManager == null)
+            {
+                terrainManager = FindObjectOfType<TerrainManager>();
+                if (terrainManager != null)
+                {
+                    Debug.Log("[PowerlineExtractionSceneBuilder] 找到TerrainManager");
+                }
+                else
+                {
+                    Debug.LogWarning("[PowerlineExtractionSceneBuilder] 未找到TerrainManager，树木地形适配功能将不可用");
                 }
             }
             
@@ -348,6 +434,14 @@ namespace PowerlineSystem
             Debug.Log("[PowerlineExtractionSceneBuilder] 正在创建电力线连接...");
             yield return StartCoroutine(CreatePowerlineConnections());
             
+            // 步骤3.5：加载树木数据
+            if (enableTreePlacement)
+            {
+                Debug.Log("[PowerlineExtractionSceneBuilder] 正在加载树木数据...");
+                // 使用新的简化树木构建方式
+                LoadSimpleTreeData();
+            }
+            
             // 步骤4：优化相机视角（无yield的错误处理）
             try
             {
@@ -372,6 +466,24 @@ namespace PowerlineSystem
                 
                 // 等待相机跳转完成
                 yield return new WaitForSeconds(0.2f);
+            }
+            
+            // 步骤5.5：放置树木（如果启用）
+            if (enableTreePlacement)
+            {
+                Debug.Log("[PowerlineExtractionSceneBuilder] 正在放置树木...");
+                try
+                {
+                    // 使用新的简化树木构建方式
+                    PlaceTreesFromSimplifiedInput();
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"[PowerlineExtractionSceneBuilder] 放置树木失败: {ex.Message}");
+                }
+                
+                // 等待树木放置完成
+                yield return new WaitForSeconds(0.1f);
             }
             
             // 步骤6：更新UI模式（无yield的错误处理）
@@ -438,6 +550,13 @@ namespace PowerlineSystem
             catch (UnityException)
             {
                 Debug.Log("[PowerlineExtractionSceneBuilder] Tower标签未定义，跳过标签清理");
+            }
+            
+            // 清理已放置的树木
+            if (enableTreePlacement)
+            {
+                ClearPlacedTrees();
+                Debug.Log("[PowerlineExtractionSceneBuilder] 已清理所有树木");
             }
             
             // 方法3：通过名称全局查找并清理
@@ -1362,5 +1481,800 @@ namespace PowerlineSystem
                 Debug.Log($"[PowerlineExtractionSceneBuilder] 示例 {i+1}: ({original.x:F1}, {original.y:F1}, {original.z:F1}) → ({scaled.x:F2}, {scaled.y:F2}, {scaled.z:F2})");
             }
         }
+        
+        #region 树木管理
+        
+        /// <summary>
+        /// 加载简化树木数据
+        /// </summary>
+        private List<SimpleTreeData> LoadSimpleTreeData()
+        {
+            List<SimpleTreeData> trees = new List<SimpleTreeData>();
+            
+            if (!enableTreePlacement) 
+            {
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] 树木放置功能未启用！");
+                return trees;
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 开始加载树木数据，CSV文件名: {treeCsvFileName}");
+            
+            // 加载CSV文件
+            TextAsset csvFile = Resources.Load<TextAsset>(treeCsvFileName);
+            if (csvFile == null)
+            {
+                Debug.LogError($"[PowerlineExtractionSceneBuilder] 无法找到树木CSV文件 {treeCsvFileName}，跳过树木放置");
+                Debug.LogError("[PowerlineExtractionSceneBuilder] 请确保CSV文件位于Resources文件夹中");
+                return trees;
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 成功加载CSV文件，文件大小: {csvFile.text.Length} 字符");
+            
+            // 获取电塔高度信息
+            Dictionary<int, float> towerHeights = GetTowerHeights();
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 获取到 {towerHeights.Count} 座电塔的高度信息");
+            
+            // 解析CSV数据
+            string[] lines = csvFile.text.Split('\n');
+            Debug.Log($"[PowerlineExtractionSceneBuilder] CSV文件包含 {lines.Length} 行数据");
+            
+            // 跳过标题行
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+                
+                string[] values = line.Split(',');
+                if (values.Length >= 6)
+                {
+                    if (int.TryParse(values[0], out int treeId) &&
+                        int.TryParse(values[1], out int groupId) &&
+                        int.TryParse(values[2], out int towerId) &&
+                        float.TryParse(values[3], out float x) &&
+                        float.TryParse(values[4], out float y) &&
+                        float.TryParse(values[5], out float z))
+                    {
+                        // 坐标转换：X,Y→Unity的X,Z，Z→Y（高度）
+                        Vector3 position = new Vector3(x, z, y);
+                        string treeType = values.Length > 6 ? values[6] : "Tree";
+                        
+                        // 计算树木高度（基于电塔高度的比例）
+                        float treeHeight = CalculateTreeHeightBasedOnTower(towerId, towerHeights);
+                        
+                        // 计算缩放比例
+                        float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+                        
+                        SimpleTreeData treeData = new SimpleTreeData(treeId, position, treeHeight, groupId, towerId, treeType, scale);
+                        trees.Add(treeData);
+                        
+                        // 每10棵树输出一次调试信息
+                        if (trees.Count % 10 == 0)
+                        {
+                            Debug.Log($"[PowerlineExtractionSceneBuilder] 已加载 {trees.Count} 棵树，最新: ID={treeId}, 位置=({x},{y},{z}), 组={groupId}, 塔={towerId}, 高度={treeHeight:F2}");
+                        }
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 第 {i} 行数据解析失败: {line}");
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 第 {i} 行数据列数不足: {line}");
+                }
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 成功加载 {trees.Count} 棵简化树木数据");
+            return trees;
+        }
+        
+        /// <summary>
+        /// 从简化数据放置树木（仿照电塔的PlaceTowersFromSimplifiedInput方式）
+        /// </summary>
+        private List<GameObject> PlaceTreesFromSimplifiedInput()
+        {
+            Debug.Log("[PowerlineExtractionSceneBuilder] 开始执行树木放置...");
+            
+            List<SimpleTreeData> trees = LoadSimpleTreeData();
+            List<GameObject> createdTrees = new List<GameObject>();
+            
+            if (trees.Count == 0) 
+            {
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] 没有树木数据可供放置");
+                return createdTrees;
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 准备放置 {trees.Count} 棵树");
+            
+            // 清理已放置的树木
+            ClearPlacedTrees();
+            
+            // 如果没有指定树木预制件，尝试从Resources加载
+            if (treePrefab == null)
+            {
+                Debug.Log("[PowerlineExtractionSceneBuilder] 树木预制件未指定，尝试从Resources加载...");
+                treePrefab = Resources.Load<GameObject>("Prefabs/Tree");
+                if (treePrefab == null)
+                {
+                    Debug.LogError("[PowerlineExtractionSceneBuilder] 无法找到Tree预制件，跳过树木放置");
+                    Debug.LogError("[PowerlineExtractionSceneBuilder] 请确保Tree.prefab位于Resources/Prefabs/文件夹中");
+                    return createdTrees;
+                }
+                Debug.Log("[PowerlineExtractionSceneBuilder] 成功加载Tree预制件");
+            }
+            else
+            {
+                Debug.Log("[PowerlineExtractionSceneBuilder] 使用已指定的树木预制件");
+            }
+            
+            int successCount = 0;
+            int failCount = 0;
+            
+            foreach (var treeData in trees)
+            {
+                GameObject tree = CreateTreeAtPosition(treeData);
+                if (tree != null)
+                {
+                    createdTrees.Add(tree);
+                    placedTrees.Add(tree);
+                    successCount++;
+                    
+                    // 每10棵树输出一次进度
+                    if (successCount % 10 == 0)
+                    {
+                        Debug.Log($"[PowerlineExtractionSceneBuilder] 已成功放置 {successCount} 棵树");
+                    }
+                }
+                else
+                {
+                    failCount++;
+                    Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 第 {treeData.treeId} 棵树创建失败");
+                }
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木放置完成！成功: {successCount}, 失败: {failCount}");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 总共放置了 {placedTrees.Count} 棵树");
+            
+            return createdTrees;
+        }
+        
+        /// <summary>
+        /// 在指定位置创建树木（仿照电塔的CreateTowerAtPosition方式）
+        /// </summary>
+        private GameObject CreateTreeAtPosition(SimpleTreeData treeData)
+        {
+            if (treePrefab == null) 
+            {
+                Debug.LogError("[PowerlineExtractionSceneBuilder] 树木预制件为空，无法创建树木");
+                return null;
+            }
+            
+            Vector3 position = treeData.position;
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 创建树木 ID={treeData.treeId}, 原始位置=({position.x:F2}, {position.y:F2}, {position.z:F2})");
+            
+            // 地形适配：调整树木基座高度
+            if (terrainManager != null)
+            {
+                float terrainHeight = terrainManager.GetTerrainHeight(position);
+                position.y = Mathf.Max(position.y, terrainHeight);
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 地形高度: {terrainHeight:F2}, 调整后Y坐标: {position.y:F2}");
+            }
+            else
+            {
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] 地形管理器未找到，跳过地形适配");
+            }
+            
+            // 添加随机偏移，避免树木完全重叠
+            float randomOffsetX = UnityEngine.Random.Range(-2f, 2f);
+            float randomOffsetZ = UnityEngine.Random.Range(-2f, 2f);
+            position += new Vector3(randomOffsetX, 0, randomOffsetZ);
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 随机偏移: ({randomOffsetX:F2}, 0, {randomOffsetZ:F2}), 最终位置: ({position.x:F2}, {position.y:F2}, {position.z:F2})");
+            
+            // 实例化树木
+            GameObject tree = Instantiate(treePrefab, position, Quaternion.identity);
+            if (tree == null)
+            {
+                Debug.LogError("[PowerlineExtractionSceneBuilder] 树木实例化失败");
+                return null;
+            }
+            
+            // 设置名称
+            tree.name = $"Tree_{treeData.treeId}_Group{treeData.groupId}_Tower{treeData.towerId}";
+            
+            // 随机旋转
+            float randomRotation = UnityEngine.Random.Range(0f, 360f);
+            tree.transform.rotation = Quaternion.Euler(0, randomRotation, 0);
+            
+            // 应用缩放
+            tree.transform.localScale = Vector3.one * treeData.scale * treeBaseScale;
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木 {tree.name} 创建成功，缩放: {treeData.scale:F2}, 旋转: {randomRotation:F1}°");
+            
+            // 应用自动缩放（如果启用）
+            if (enableTreeAutoScaling)
+            {
+                ApplyTreeAutoScaling(tree);
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 已应用自动缩放");
+            }
+            
+            // 设置父对象
+            if (towerParent != null)
+            {
+                tree.transform.SetParent(towerParent);
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 树木已设置父对象: {towerParent.name}");
+            }
+            else
+            {
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] 未设置树木父对象");
+            }
+            
+            return tree;
+        }
+        
+        /// <summary>
+        /// 加载树木数据
+        /// </summary>
+        private void LoadTreeData()
+        {
+            if (!enableTreePlacement) return;
+            
+            treeDataList.Clear();
+            
+            // 加载CSV文件
+            TextAsset csvFile = Resources.Load<TextAsset>(treeCsvFileName);
+            if (csvFile == null)
+            {
+                Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 无法找到树木CSV文件 {treeCsvFileName}，跳过树木放置");
+                return;
+            }
+            
+            // 解析CSV数据
+            string[] lines = csvFile.text.Split('\n');
+            
+            // 跳过标题行
+            for (int i = 1; i < lines.Length; i++)
+            {
+                string line = lines[i].Trim();
+                if (string.IsNullOrEmpty(line)) continue;
+                
+                string[] values = line.Split(',');
+                if (values.Length >= 6)
+                {
+                    TreeData treeData = new TreeData();
+                    
+                    if (int.TryParse(values[0], out treeData.treeId) &&
+                        int.TryParse(values[1], out treeData.groupId) &&
+                        int.TryParse(values[2], out treeData.towerId) &&
+                        float.TryParse(values[3], out float x) &&
+                        float.TryParse(values[4], out float y) &&
+                        float.TryParse(values[5], out float z))
+                    {
+                        // 坐标转换：X,Y→Unity的X,Z，Z→Y（高度）
+                        treeData.position = new Vector3(x, z, y);
+                        treeData.treeType = values.Length > 6 ? values[6] : "Tree";
+                        
+                        treeDataList.Add(treeData);
+                    }
+                }
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 成功加载 {treeDataList.Count} 棵树的数据");
+        }
+        
+        /// <summary>
+        /// 在电塔附近放置树木
+        /// </summary>
+        private void PlaceTreesNearTowers(List<Vector3> towerPositions)
+        {
+            if (!enableTreePlacement || treeDataList.Count == 0) return;
+            
+            // 清理已放置的树木
+            ClearPlacedTrees();
+            
+            // 如果没有指定树木预制件，尝试从Resources加载
+            if (treePrefab == null)
+            {
+                treePrefab = Resources.Load<GameObject>("Prefabs/Tree");
+                if (treePrefab == null)
+                {
+                    Debug.LogWarning("[PowerlineExtractionSceneBuilder] 无法找到Tree预制件，跳过树木放置");
+                    return;
+                }
+            }
+            
+            int treesPlaced = 0;
+            
+            // 为每个电塔放置树木
+            foreach (Vector3 towerPos in towerPositions)
+            {
+                // 放置CSV中定义的树木
+                var treesForThisTower = treeDataList.Where(t => 
+                    Vector3.Distance(t.position, towerPos) < 50f).ToList();
+                
+                foreach (var treeData in treesForThisTower)
+                {
+                    if (treesPlaced >= treeDataList.Count) break;
+                    
+                    PlaceSingleTree(treeData);
+                    treesPlaced++;
+                }
+                
+                // 在电塔附近添加额外的随机树木
+                for (int i = 0; i < treesPerTower; i++)
+                {
+                    if (treesPlaced >= treeDataList.Count + treesPerTower * towerPositions.Count) break;
+                    
+                    PlaceRandomTreeNearTower(towerPos);
+                    treesPlaced++;
+                }
+            }
+            
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 成功放置了 {placedTrees.Count} 棵树");
+        }
+        
+        /// <summary>
+        /// 放置单棵树
+        /// </summary>
+        private void PlaceSingleTree(TreeData treeData)
+        {
+            Vector3 finalPosition = CalculateTreePosition(treeData.position);
+            
+            // 实例化树
+            GameObject tree = Instantiate(treePrefab, finalPosition, Quaternion.identity);
+            
+            // 设置父对象
+            if (towerParent != null)
+            {
+                tree.transform.SetParent(towerParent);
+            }
+            
+            // 随机旋转
+            tree.transform.rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+            
+            // 随机缩放
+            float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+            tree.transform.localScale = Vector3.one * scale * treeBaseScale;
+            
+            // 应用自动缩放
+            if (enableTreeAutoScaling)
+            {
+                ApplyTreeAutoScaling(tree);
+            }
+            
+            // 设置名称
+            tree.name = $"Tree_{treeData.treeId}_Group{treeData.groupId}_Tower{treeData.towerId}";
+            
+            // 添加到已放置列表
+            placedTrees.Add(tree);
+        }
+        
+        /// <summary>
+        /// 在电塔附近放置随机树木
+        /// </summary>
+        private void PlaceRandomTreeNearTower(Vector3 towerPos)
+        {
+            // 计算随机位置
+            float angle = UnityEngine.Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            float distance = UnityEngine.Random.Range(minTreeDistanceFromTower, maxTreeDistanceFromTower);
+            
+            Vector3 treePos = towerPos + new Vector3(
+                Mathf.Cos(angle) * distance,
+                0,
+                Mathf.Sin(angle) * distance
+            );
+            
+            // 地形适配
+            if (terrainManager != null)
+            {
+                float terrainHeight = terrainManager.GetTerrainHeight(treePos);
+                treePos.y = Mathf.Max(treePos.y, terrainHeight);
+            }
+            
+            // 检查是否与现有树木重叠
+            if (IsTreePositionOccupied(treePos, 2f)) return;
+            
+            // 实例化树
+            GameObject tree = Instantiate(treePrefab, treePos, Quaternion.identity);
+            
+            // 设置父对象
+            if (towerParent != null)
+            {
+                tree.transform.SetParent(towerParent);
+            }
+            
+            // 随机旋转和缩放
+            tree.transform.rotation = Quaternion.Euler(0, UnityEngine.Random.Range(0f, 360f), 0);
+            float scale = UnityEngine.Random.Range(0.8f, 1.2f);
+            tree.transform.localScale = Vector3.one * scale * treeBaseScale;
+            
+            // 应用自动缩放
+            if (enableTreeAutoScaling)
+            {
+                ApplyTreeAutoScaling(tree);
+            }
+            
+            // 设置名称
+            tree.name = $"RandomTree_Tower_{placedTrees.Count}";
+            
+            // 添加到已放置列表
+            placedTrees.Add(tree);
+        }
+        
+        /// <summary>
+        /// 计算树木的最终位置
+        /// </summary>
+        private Vector3 CalculateTreePosition(Vector3 basePosition)
+        {
+            // 添加随机偏移，避免树木完全重叠
+            float randomOffsetX = UnityEngine.Random.Range(-2f, 2f);
+            float randomOffsetZ = UnityEngine.Random.Range(-2f, 2f);
+            
+            Vector3 finalPosition = basePosition + new Vector3(randomOffsetX, 0, randomOffsetZ);
+            
+            // 如果启用了地形适配，调整高度
+            if (terrainManager != null)
+            {
+                float terrainHeight = terrainManager.GetTerrainHeight(finalPosition);
+                finalPosition.y = Mathf.Max(finalPosition.y, terrainHeight);
+            }
+            
+            return finalPosition;
+        }
+        
+        /// <summary>
+        /// 应用树木自动缩放
+        /// </summary>
+        private void ApplyTreeAutoScaling(GameObject tree)
+        {
+            // 获取树的当前高度
+            Bounds bounds = GetTreeBounds(tree);
+            float currentHeight = bounds.size.y;
+            
+            if (currentHeight > 0)
+            {
+                // 尝试从树木名称中提取电塔ID，以获取电塔高度
+                int towerId = ExtractTowerIdFromTreeName(tree.name);
+                float targetHeight = 0f;
+                
+                                 if (towerId > 0)
+                 {
+                     // 获取电塔高度信息
+                     Dictionary<int, float> towerHeights = GetTowerHeights();
+                     if (towerHeights.TryGetValue(towerId, out float towerHeight))
+                     {
+                         // 基础比例：树木高度为电塔高度的20%-80%
+                         float baseHeightRatio = UnityEngine.Random.Range(treeHeightRatioRange.x, treeHeightRatioRange.y);
+                         float baseTargetHeight = towerHeight * baseHeightRatio;
+                         
+                         // 添加随机变化
+                         if (enableTreeHeightVariation)
+                         {
+                             float variationRatio = UnityEngine.Random.Range(treeHeightVariationRange.x, treeHeightVariationRange.y);
+                             targetHeight = baseTargetHeight * variationRatio;
+                         }
+                         else
+                         {
+                             targetHeight = baseTargetHeight;
+                         }
+                         
+                         // 确保在合理范围内
+                         targetHeight = Mathf.Clamp(targetHeight, 1f, towerHeight * 0.9f);
+                         
+                         Debug.Log($"[PowerlineExtractionSceneBuilder] 自动缩放: 电塔 {towerId} 高度={towerHeight:F2}, 基础目标高度={baseTargetHeight:F2}, 最终目标高度={targetHeight:F2}");
+                     }
+                 }
+                
+                // 如果无法获取电塔高度，使用默认范围
+                if (targetHeight <= 0)
+                {
+                    targetHeight = UnityEngine.Random.Range(10f, 20f);
+                    Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 无法获取电塔高度，使用默认目标高度: {targetHeight:F2}");
+                }
+                
+                // 计算缩放比例
+                float scaleRatio = targetHeight / currentHeight;
+                // 移除缩放限制，允许树木更大
+                scaleRatio = Mathf.Clamp(scaleRatio, 0.1f, 10f); // 扩大缩放范围
+                
+                // 应用缩放：基于treeBaseScale重新计算，而不是乘以scaleRatio
+                // 这样可以确保树木保持我们设置的基础大小
+                Vector3 baseScale = Vector3.one * treeBaseScale;
+                tree.transform.localScale = baseScale * scaleRatio;
+                
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 自动缩放: 目标高度={targetHeight:F2}, 当前高度={currentHeight:F2}, 缩放比例={scaleRatio:F2}, 最终缩放={tree.transform.localScale}");
+            }
+        }
+        
+        /// <summary>
+        /// 获取电塔高度信息
+        /// </summary>
+        private Dictionary<int, float> GetTowerHeights()
+        {
+            Dictionary<int, float> towerHeights = new Dictionary<int, float>();
+            
+            // 查找所有电塔
+            GameObject[] towers = FindTowersSafely();
+            
+            foreach (GameObject tower in towers)
+            {
+                if (tower != null)
+                {
+                    // 尝试从电塔名称中提取ID
+                    if (int.TryParse(ExtractTowerIdFromName(tower.name), out int towerId))
+                    {
+                        // 获取电塔的实际高度（从Renderer的bounds）
+                        Renderer[] renderers = tower.GetComponentsInChildren<Renderer>();
+                        float towerHeight = 0f;
+                        
+                        if (renderers.Length > 0)
+                        {
+                            Bounds bounds = renderers[0].bounds;
+                            for (int i = 1; i < renderers.Length; i++)
+                            {
+                                bounds.Encapsulate(renderers[i].bounds);
+                            }
+                            towerHeight = bounds.size.y;
+                        }
+                        
+                        if (towerHeight > 0)
+                        {
+                            towerHeights[towerId] = towerHeight;
+                            Debug.Log($"[PowerlineExtractionSceneBuilder] 电塔 {towerId}: 高度 = {towerHeight:F2}");
+                        }
+                    }
+                }
+            }
+            
+            return towerHeights;
+        }
+        
+        /// <summary>
+        /// 从电塔名称中提取ID
+        /// </summary>
+        private string ExtractTowerIdFromName(string towerName)
+        {
+            // 尝试从名称中提取数字ID
+            // 例如: "Tower_1", "GoodTower_2", "Tower1" 等
+            string[] parts = towerName.Split('_');
+            if (parts.Length > 1)
+            {
+                return parts[parts.Length - 1];
+            }
+            
+            // 如果没有下划线，尝试提取末尾的数字
+            string result = "";
+            for (int i = towerName.Length - 1; i >= 0; i--)
+            {
+                if (char.IsDigit(towerName[i]))
+                {
+                    result = towerName[i] + result;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
+            return result;
+        }
+        
+        /// <summary>
+        /// 从树木名称中提取电塔ID
+        /// </summary>
+        private int ExtractTowerIdFromTreeName(string treeName)
+        {
+            // 树木名称格式通常是: "Tree_1_Group1_Tower2" 或 "RandomTree_Tower_3"
+            if (treeName.Contains("Tower"))
+            {
+                string[] parts = treeName.Split('_');
+                for (int i = 0; i < parts.Length; i++)
+                {
+                    if (parts[i].ToLower() == "tower" && i + 1 < parts.Length)
+                    {
+                        // 下一个部分应该是电塔ID
+                        if (int.TryParse(parts[i + 1], out int towerId))
+                        {
+                            return towerId;
+                        }
+                    }
+                }
+            }
+            
+            return -1; // 无法提取
+        }
+        
+        /// <summary>
+        /// 基于电塔高度计算树木高度
+        /// </summary>
+        private float CalculateTreeHeightBasedOnTower(int towerId, Dictionary<int, float> towerHeights)
+        {
+            if (towerHeights.TryGetValue(towerId, out float towerHeight))
+            {
+                // 基础比例：树木高度为电塔高度的20%-80%（扩大范围）
+                float baseHeightRatio = UnityEngine.Random.Range(treeHeightRatioRange.x, treeHeightRatioRange.y);
+                float baseTreeHeight = towerHeight * baseHeightRatio;
+                
+                // 添加随机变化：在基础高度上增加±30%的变化
+                float finalTreeHeight = baseTreeHeight;
+                if (enableTreeHeightVariation)
+                {
+                    float variationRatio = UnityEngine.Random.Range(treeHeightVariationRange.x, treeHeightVariationRange.y);
+                    finalTreeHeight = baseTreeHeight * variationRatio;
+                }
+                
+                // 确保树木高度在合理范围内（最小1米，最大不超过电塔高度的90%）
+                finalTreeHeight = Mathf.Clamp(finalTreeHeight, 1f, towerHeight * 0.9f);
+                
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 电塔 {towerId}: 高度={towerHeight:F2}, 基础比例={baseHeightRatio:F2}, 基础高度={baseTreeHeight:F2}, 最终高度={finalTreeHeight:F2}");
+                return finalTreeHeight;
+            }
+            else
+            {
+                // 如果找不到电塔高度，使用更大的默认范围
+                float defaultHeight = UnityEngine.Random.Range(5f, 25f);
+                Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 未找到电塔 {towerId} 的高度信息，使用默认高度: {defaultHeight:F2}");
+                return defaultHeight;
+            }
+        }
+        
+        /// <summary>
+        /// 获取树的边界
+        /// </summary>
+        private Bounds GetTreeBounds(GameObject tree)
+        {
+            Renderer renderer = tree.GetComponent<Renderer>();
+            if (renderer != null)
+            {
+                return renderer.bounds;
+            }
+            
+            // 如果没有Renderer，尝试获取所有子对象的边界
+            Renderer[] renderers = tree.GetComponentsInChildren<Renderer>();
+            if (renderers.Length > 0)
+            {
+                Bounds bounds = renderers[0].bounds;
+                for (int i = 1; i < renderers.Length; i++)
+                {
+                    bounds.Encapsulate(renderers[i].bounds);
+                }
+                return bounds;
+            }
+            
+            // 默认边界
+            return new Bounds(tree.transform.position, Vector3.one);
+        }
+        
+        /// <summary>
+        /// 检查树木位置是否被占用
+        /// </summary>
+        private bool IsTreePositionOccupied(Vector3 position, float minDistance)
+        {
+            foreach (GameObject tree in placedTrees)
+            {
+                if (tree != null && Vector3.Distance(tree.transform.position, position) < minDistance)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        /// <summary>
+        /// 清理已放置的树木
+        /// </summary>
+        private void ClearPlacedTrees()
+        {
+            foreach (GameObject tree in placedTrees)
+            {
+                if (tree != null)
+                {
+                    DestroyImmediate(tree);
+                }
+            }
+            placedTrees.Clear();
+        }
+        
+        /// <summary>
+        /// 重新加载和放置树木
+        /// </summary>
+        [ContextMenu("重新加载树木")]
+        public void ReloadTrees()
+        {
+            // 使用新的简化树木构建方式
+            PlaceTreesFromSimplifiedInput();
+        }
+        
+        /// <summary>
+        /// 清除所有树木
+        /// </summary>
+        [ContextMenu("清除所有树木")]
+        public void ClearAllTrees()
+        {
+            ClearPlacedTrees();
+        }
+        
+
+        
+        /// <summary>
+        /// 测试树木系统（用于调试）
+        /// </summary>
+        [ContextMenu("测试树木系统")]
+        public void TestTreeSystem()
+        {
+            Debug.Log("[PowerlineExtractionSceneBuilder] === 树木系统测试 ===");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 启用树木放置: {enableTreePlacement}");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木CSV文件名: {treeCsvFileName}");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木预制件: {(treePrefab != null ? treePrefab.name : "未设置")}");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木高度比例范围: {treeHeightRatioRange.x * 100:F0}% - {treeHeightRatioRange.y * 100:F0}% (相对于电塔高度)");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 树木高度变化范围: {treeHeightVariationRange.x * 100:F0}% - {treeHeightVariationRange.y * 100:F0}% (相对于计算高度)");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 启用树木高度变化: {enableTreeHeightVariation}");
+            
+            // 测试加载树木数据
+            var trees = LoadSimpleTreeData();
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 测试加载树木数据: {trees.Count} 棵");
+            
+            // 测试放置树木
+            if (trees.Count > 0)
+            {
+                var createdTrees = PlaceTreesFromSimplifiedInput();
+                Debug.Log($"[PowerlineExtractionSceneBuilder] 测试放置树木: {createdTrees.Count} 棵");
+            }
+        }
+        
+        /// <summary>
+        /// 手动触发从CSV构建树木（用于测试）
+        /// </summary>
+        [ContextMenu("手动构建树木")]
+        public void BuildTreesFromCsv()
+        {
+            Debug.Log("[PowerlineExtractionSceneBuilder] 手动触发树木构建...");
+            
+            if (!enableTreePlacement)
+            {
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] 树木放置功能未启用，请先启用enableTreePlacement");
+                return;
+            }
+            
+            var createdTrees = PlaceTreesFromSimplifiedInput();
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 手动构建完成，创建了 {createdTrees.Count} 棵树");
+        }
+        
+        /// <summary>
+        /// 检查树木系统状态（用于调试）
+        /// </summary>
+        [ContextMenu("检查树木系统状态")]
+        public void CheckTreeSystemStatus()
+        {
+            Debug.Log("=== 树木系统状态检查 ===");
+            Debug.Log($"enableTreePlacement: {enableTreePlacement}");
+            Debug.Log($"treePrefab: {(treePrefab != null ? treePrefab.name : "null")}");
+            Debug.Log($"treeCsvFileName: {treeCsvFileName}");
+            Debug.Log($"terrainManager: {(terrainManager != null ? terrainManager.name : "null")}");
+            Debug.Log($"towerParent: {(towerParent != null ? towerParent.name : "null")}");
+            Debug.Log($"已放置树木数量: {placedTrees.Count}");
+            
+            // 检查CSV文件
+            TextAsset csvFile = Resources.Load<TextAsset>(treeCsvFileName);
+            if (csvFile != null)
+            {
+                Debug.Log($"CSV文件存在，大小: {csvFile.text.Length} 字符");
+                string[] lines = csvFile.text.Split('\n');
+                Debug.Log($"CSV文件行数: {lines.Length}");
+            }
+            else
+            {
+                Debug.LogError($"CSV文件不存在: {treeCsvFileName}");
+            }
+            
+            // 检查预制件
+            if (treePrefab == null)
+            {
+                GameObject loadedPrefab = Resources.Load<GameObject>("Prefabs/Tree");
+                Debug.Log($"从Resources加载的预制件: {(loadedPrefab != null ? loadedPrefab.name : "null")}");
+            }
+            
+            Debug.Log("=== 状态检查完成 ===");
+        }
+        
+        #endregion
     }
 } 
