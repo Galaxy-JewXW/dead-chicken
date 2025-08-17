@@ -46,7 +46,8 @@ public class SimpleUIToolkitManager : MonoBehaviour
         TowerOverview,
         SceneOverview, // 添加场景总览模式
         PointCloud, // 添加点云模式
-        TreeDanger // 添加树木危险监测模式
+        TreeDanger, // 添加树木危险监测模式
+        AIAssistant // 添加AI助手模式
     }
     
     public UIMode currentMode = UIMode.Normal;
@@ -477,6 +478,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         CreateStyledButton("树木监测", () => SwitchMode(UIMode.TreeDanger), buttonContainer);
         CreateStyledButton("点云", () => SwitchMode(UIMode.PointCloud), buttonContainer);
         CreateDronePatrolButton(buttonContainer); // 创建特殊的无人机巡检按钮
+        
+        // 添加AI助手按钮
+        CreateAIAssistantButton(buttonContainer);
         
         // 总览按钮容器
         var overviewContainer = new VisualElement();
@@ -1013,12 +1017,15 @@ public class SimpleUIToolkitManager : MonoBehaviour
         case UIMode.TreeDanger:
             ShowTreeDangerPanel();
             break;
-        case UIMode.SceneOverview:
-                    // 场景总览使用独立弹窗，不需要侧边栏
-                    break;
-                default:
-                    ShowNormalPanel();
-                    break;
+                case UIMode.SceneOverview:
+            // 场景总览使用独立弹窗，不需要侧边栏
+            break;
+        case UIMode.AIAssistant:
+            ShowAIAssistantPanel();
+            break;
+        default:
+            ShowNormalPanel();
+            break;
             }
             
             UpdateStatusBar($"模式: {mode}");
@@ -1094,7 +1101,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         infoContainer.Add(operationHint);
         
         // 快捷键说明
-        var hotkeyInfo = new Label("快捷键：\nH - 首页  M - 测量模式  C - 相机模式\nX - 危险物模式  P - 电力线模式\nT - 电塔总览  Tab - 切换面板");
+        var hotkeyInfo = new Label("快捷键：\nH - 首页  M - 测量模式  C - 相机模式\nX - 危险物模式  P - 电力线模式\nT - 电塔总览  A - AI助手  Tab - 切换面板");
         hotkeyInfo.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
         hotkeyInfo.style.fontSize = 12;
         hotkeyInfo.style.whiteSpace = WhiteSpace.Normal;
@@ -1720,6 +1727,618 @@ public class SimpleUIToolkitManager : MonoBehaviour
         sidebar.Add(panel);
     }
     
+    void ShowAIAssistantPanel()
+    {
+        // 获取或创建AI助手管理器
+        var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
+        if (aiAssistantManager != null)
+        {
+            // 显示全屏聊天界面
+            var chatContent = CreateAIAssistantChatContent(aiAssistantManager);
+            if (chatContent != null && rootElement != null)
+            {
+                // 直接添加到根元素，实现全屏弹窗效果
+                rootElement.Add(chatContent);
+                // 将聊天界面置于最上层
+                chatContent.BringToFront();
+            }
+        }
+        else
+        {
+            // 如果没有找到AI助手管理器，在侧边栏显示创建选项
+            sidebar.Clear();
+            
+            // 创建有标题的面板容器
+            var panel = CreatePanel("AI智能助手");
+            
+            // 显示创建按钮
+            var createButton = new Button(() => {
+                AIAssistantManager.AutoFindOrCreateAIAssistant();
+                // 延迟刷新面板
+                StartCoroutine(RefreshAIAssistantPanel());
+            });
+            createButton.text = "创建AI助手";
+            createButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f);
+            createButton.style.color = Color.white;
+            createButton.style.paddingTop = 10;
+            createButton.style.paddingBottom = 10;
+            createButton.style.paddingLeft = 20;
+            createButton.style.paddingRight = 20;
+            createButton.style.marginBottom = 15;
+            createButton.style.borderTopLeftRadius = 5;
+            createButton.style.borderTopRightRadius = 5;
+            createButton.style.borderBottomLeftRadius = 5;
+            createButton.style.borderBottomRightRadius = 5;
+            ApplyFont(createButton);
+            
+            panel.Add(createButton);
+            
+            // 显示说明文字
+            var infoText = new Label("AI助手功能：\n• 智能问答和系统帮助\n• 操作指导和技术支持\n• 系统状态查询\n• 故障诊断建议");
+            infoText.style.color = Color.black;
+            infoText.style.fontSize = 14;
+            infoText.style.whiteSpace = WhiteSpace.Normal;
+            infoText.style.marginBottom = 15;
+            ApplyFont(infoText);
+            panel.Add(infoText);
+            
+            sidebar.Add(panel);
+        }
+    }
+    
+    /// <summary>
+    /// 创建AI助手内容
+    /// </summary>
+    VisualElement CreateAIAssistantContent()
+    {
+        var content = new VisualElement();
+        
+        // 欢迎信息
+        var welcomeLabel = new Label("🤖 欢迎使用AI智能助手！");
+        welcomeLabel.style.color = new Color(0.8f, 0.4f, 0.8f, 1f);
+        welcomeLabel.style.fontSize = 16;
+        welcomeLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        welcomeLabel.style.marginBottom = 15;
+        ApplyFont(welcomeLabel);
+        content.Add(welcomeLabel);
+        
+        // 功能说明
+        var functionLabel = new Label("我可以帮助您：\n• 了解系统功能和使用方法\n• 提供操作指导和技术支持\n• 解答常见问题和故障排除\n• 查询系统状态和配置信息");
+        functionLabel.style.color = Color.black;
+        functionLabel.style.fontSize = 14;
+        functionLabel.style.whiteSpace = WhiteSpace.Normal;
+        functionLabel.style.marginBottom = 20;
+        ApplyFont(functionLabel);
+        content.Add(functionLabel);
+        
+        // 快速操作按钮
+        var quickActionsContainer = new VisualElement();
+        quickActionsContainer.style.flexDirection = FlexDirection.Row;
+        quickActionsContainer.style.flexWrap = Wrap.Wrap;
+        // 使用margin来替代gap属性
+        quickActionsContainer.style.marginRight = 10;
+        
+        // 系统帮助按钮
+        var helpButton = new Button(() => {
+            var aiAssistant = FindObjectOfType<AIAssistantManager>();
+            if (aiAssistant != null)
+            {
+                aiAssistant.AddMessage("请告诉我系统的主要功能和使用方法", false);
+                UpdateStatusBar("AI助手：已发送系统帮助请求");
+            }
+        });
+        helpButton.text = "系统帮助";
+        helpButton.style.backgroundColor = new Color(0.2f, 0.8f, 0.4f, 1f);
+        helpButton.style.color = Color.white;
+        helpButton.style.paddingTop = 8;
+        helpButton.style.paddingBottom = 8;
+        helpButton.style.paddingLeft = 15;
+        helpButton.style.paddingRight = 15;
+        helpButton.style.marginRight = 10; // 添加右边距
+        helpButton.style.borderTopLeftRadius = 5;
+        helpButton.style.borderTopRightRadius = 5;
+        helpButton.style.borderBottomLeftRadius = 5;
+        helpButton.style.borderBottomRightRadius = 5;
+        ApplyFont(helpButton);
+        
+        // 操作指导按钮
+        var guideButton = new Button(() => {
+            var aiAssistant = FindObjectOfType<AIAssistantManager>();
+            if (aiAssistant != null)
+            {
+                aiAssistant.AddMessage("请提供相机控制、测量、危险标记等功能的操作指导", false);
+                UpdateStatusBar("AI助手：已发送操作指导请求");
+            }
+        });
+        guideButton.text = "操作指导";
+        guideButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+        guideButton.style.color = Color.white;
+        guideButton.style.paddingTop = 8;
+        guideButton.style.paddingBottom = 8;
+        guideButton.style.paddingLeft = 15;
+        guideButton.style.paddingRight = 15;
+        guideButton.style.marginRight = 10; // 添加右边距
+        guideButton.style.borderTopLeftRadius = 5;
+        guideButton.style.borderTopRightRadius = 5;
+        guideButton.style.borderBottomLeftRadius = 5;
+        guideButton.style.borderBottomRightRadius = 5;
+        ApplyFont(guideButton);
+        
+        // 故障排除按钮
+        var troubleshootButton = new Button(() => {
+            var aiAssistant = FindObjectOfType<AIAssistantManager>();
+            if (aiAssistant != null)
+            {
+                aiAssistant.AddMessage("请帮我诊断系统可能存在的问题和解决方案", false);
+                UpdateStatusBar("AI助手：已发送故障排除请求");
+            }
+        });
+        troubleshootButton.text = "故障排除";
+        troubleshootButton.style.backgroundColor = new Color(0.8f, 0.6f, 0.2f, 1f);
+        troubleshootButton.style.color = Color.white;
+        troubleshootButton.style.paddingTop = 8;
+        troubleshootButton.style.paddingBottom = 8;
+        troubleshootButton.style.paddingLeft = 15;
+        troubleshootButton.style.paddingRight = 15;
+        troubleshootButton.style.marginRight = 10; // 添加右边距
+        troubleshootButton.style.borderTopLeftRadius = 5;
+        troubleshootButton.style.borderTopRightRadius = 5;
+        troubleshootButton.style.borderBottomLeftRadius = 5;
+        troubleshootButton.style.borderBottomRightRadius = 5;
+        ApplyFont(troubleshootButton);
+        
+        quickActionsContainer.Add(helpButton);
+        quickActionsContainer.Add(guideButton);
+        quickActionsContainer.Add(troubleshootButton);
+        
+        content.Add(quickActionsContainer);
+        
+        return content;
+    }
+    
+    /// <summary>
+    /// 创建AI助手聊天内容 - 全屏弹窗版本
+    /// </summary>
+    VisualElement CreateAIAssistantChatContent(AIAssistantManager aiAssistant)
+    {
+        // 创建全屏覆盖层
+        var fullScreenOverlay = new VisualElement();
+        fullScreenOverlay.style.position = Position.Absolute;
+        fullScreenOverlay.style.left = 0;
+        fullScreenOverlay.style.top = 0;
+        fullScreenOverlay.style.right = 0;
+        fullScreenOverlay.style.bottom = 0;
+        fullScreenOverlay.style.backgroundColor = new Color(0, 0, 0, 0.8f); // 半透明黑色背景
+        // 通过添加到根元素的最上层来确保在最前面显示
+        
+        // 创建主弹窗容器
+        var mainDialog = new VisualElement();
+        mainDialog.style.position = Position.Absolute;
+        mainDialog.style.left = 50;
+        mainDialog.style.top = 50;
+        mainDialog.style.right = 50;
+        mainDialog.style.bottom = 50;
+        mainDialog.style.backgroundColor = Color.white;
+        mainDialog.style.borderTopLeftRadius = 15;
+        mainDialog.style.borderTopRightRadius = 15;
+        mainDialog.style.borderBottomLeftRadius = 15;
+        mainDialog.style.borderBottomRightRadius = 15;
+        mainDialog.style.borderLeftWidth = 2;
+        mainDialog.style.borderRightWidth = 2;
+        mainDialog.style.borderTopWidth = 2;
+        mainDialog.style.borderBottomWidth = 2;
+        mainDialog.style.borderLeftColor = primaryColor;
+        mainDialog.style.borderRightColor = primaryColor;
+        mainDialog.style.borderTopColor = primaryColor;
+        mainDialog.style.borderBottomColor = primaryColor;
+        mainDialog.style.paddingTop = 20;
+        mainDialog.style.paddingBottom = 20;
+        mainDialog.style.paddingLeft = 25;
+        mainDialog.style.paddingRight = 25;
+        
+        // 标题栏
+        var titleBar = new VisualElement();
+        titleBar.style.flexDirection = FlexDirection.Row;
+        titleBar.style.justifyContent = Justify.SpaceBetween;
+        titleBar.style.alignItems = Align.Center;
+        titleBar.style.marginBottom = 20;
+        
+        var titleLabel = new Label("🤖 AI智能助手");
+        titleLabel.style.color = new Color(0.8f, 0.4f, 0.8f, 1f);
+        titleLabel.style.fontSize = 24;
+        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(titleLabel);
+        
+        var closeButton = new Button(() => {
+            // 关闭弹窗，返回主界面
+            if (rootElement != null)
+            {
+                rootElement.Remove(fullScreenOverlay);
+                SwitchMode(UIMode.Normal);
+            }
+        });
+        closeButton.text = "✕";
+        closeButton.style.width = 40;
+        closeButton.style.height = 40;
+        closeButton.style.backgroundColor = new Color(0.9f, 0.3f, 0.3f, 1f);
+        closeButton.style.color = Color.white;
+        closeButton.style.borderTopLeftRadius = 20;
+        closeButton.style.borderTopRightRadius = 20;
+        closeButton.style.borderBottomLeftRadius = 20;
+        closeButton.style.borderBottomRightRadius = 20;
+        closeButton.style.fontSize = 18;
+        closeButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(closeButton);
+        
+        titleBar.Add(titleLabel);
+        titleBar.Add(closeButton);
+        mainDialog.Add(titleBar);
+        
+        // 聊天记录显示区域 - 更大的显示区域
+        var chatContainer = new ScrollView();
+        chatContainer.style.height = 400;
+        chatContainer.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        chatContainer.style.borderTopLeftRadius = 10;
+        chatContainer.style.borderTopRightRadius = 10;
+        chatContainer.style.borderBottomLeftRadius = 10;
+        chatContainer.style.borderBottomRightRadius = 10;
+        chatContainer.style.paddingTop = 15;
+        chatContainer.style.paddingBottom = 15;
+        chatContainer.style.paddingLeft = 15;
+        chatContainer.style.paddingRight = 15;
+        chatContainer.style.marginBottom = 20;
+        chatContainer.style.borderLeftWidth = 1;
+        chatContainer.style.borderRightWidth = 1;
+        chatContainer.style.borderTopWidth = 1;
+        chatContainer.style.borderBottomWidth = 1;
+        chatContainer.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        chatContainer.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        chatContainer.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        chatContainer.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        
+        // 添加欢迎消息
+        var welcomeMessage = new Label("AI助手：您好！我是您的智能助手，有什么可以帮助您的吗？");
+        welcomeMessage.style.color = new Color(0.2f, 0.6f, 0.8f, 1f);
+        welcomeMessage.style.fontSize = 16;
+        welcomeMessage.style.whiteSpace = WhiteSpace.Normal;
+        welcomeMessage.style.marginBottom = 15;
+        welcomeMessage.style.paddingTop = 10;
+        welcomeMessage.style.paddingBottom = 10;
+        welcomeMessage.style.paddingLeft = 15;
+        welcomeMessage.style.paddingRight = 15;
+        welcomeMessage.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
+        welcomeMessage.style.borderTopLeftRadius = 8;
+        welcomeMessage.style.borderTopRightRadius = 8;
+        welcomeMessage.style.borderBottomLeftRadius = 8;
+        welcomeMessage.style.borderBottomRightRadius = 8;
+        ApplyFont(welcomeMessage);
+        chatContainer.Add(welcomeMessage);
+        
+        mainDialog.Add(chatContainer);
+        
+        // 输入区域
+        var inputContainer = new VisualElement();
+        inputContainer.style.flexDirection = FlexDirection.Row;
+        inputContainer.style.alignItems = Align.Center;
+        inputContainer.style.marginBottom = 20;
+        
+        var inputField = new TextField();
+        // 在较老的Unity版本中，TextField没有placeholder属性，使用label来模拟
+        inputField.label = "请输入您的问题...";
+        inputField.style.flexGrow = 1;
+        inputField.style.marginRight = 15;
+        inputField.style.height = 45;
+        inputField.style.fontSize = 16;
+        ApplyFont(inputField);
+        
+        var sendButton = new Button(() => {
+            string message = inputField.value?.Trim();
+            if (!string.IsNullOrEmpty(message))
+            {
+                // 添加用户消息到聊天记录
+                var userMessage = new Label($"您：{message}");
+                userMessage.style.color = Color.black;
+                userMessage.style.fontSize = 16;
+                userMessage.style.whiteSpace = WhiteSpace.Normal;
+                userMessage.style.marginBottom = 15;
+                userMessage.style.alignSelf = Align.FlexEnd;
+                userMessage.style.paddingTop = 10;
+                userMessage.style.paddingBottom = 10;
+                userMessage.style.paddingLeft = 15;
+                userMessage.style.paddingRight = 15;
+                userMessage.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+                userMessage.style.borderTopLeftRadius = 8;
+                userMessage.style.borderTopRightRadius = 8;
+                userMessage.style.borderBottomLeftRadius = 8;
+                userMessage.style.borderBottomRightRadius = 8;
+                ApplyFont(userMessage);
+                chatContainer.Add(userMessage);
+                
+                // 发送消息给AI助手
+                aiAssistant.AddMessage(message, true);
+                
+                // 生成AI回复
+                string response = GenerateAIResponse(message);
+                var aiResponse = new Label($"AI助手：{response}");
+                aiResponse.style.color = new Color(0.2f, 0.6f, 0.8f, 1f);
+                aiResponse.style.fontSize = 16;
+                aiResponse.style.whiteSpace = WhiteSpace.Normal;
+                aiResponse.style.marginBottom = 15;
+                aiResponse.style.paddingTop = 10;
+                aiResponse.style.paddingBottom = 10;
+                aiResponse.style.paddingLeft = 15;
+                aiResponse.style.paddingRight = 15;
+                aiResponse.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
+                aiResponse.style.borderTopLeftRadius = 8;
+                aiResponse.style.borderTopRightRadius = 8;
+                aiResponse.style.borderBottomLeftRadius = 8;
+                aiResponse.style.borderBottomRightRadius = 8;
+                ApplyFont(aiResponse);
+                chatContainer.Add(aiResponse);
+                
+                // 清空输入框
+                inputField.value = "";
+                
+                // 滚动到底部
+                chatContainer.scrollOffset = new Vector2(0, chatContainer.scrollOffset.y + 300);
+            }
+        });
+        sendButton.text = "发送";
+        sendButton.style.width = 80;
+        sendButton.style.height = 45;
+        sendButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f);
+        sendButton.style.color = Color.white;
+        sendButton.style.borderTopLeftRadius = 8;
+        sendButton.style.borderTopRightRadius = 8;
+        sendButton.style.borderBottomLeftRadius = 8;
+        sendButton.style.borderBottomRightRadius = 8;
+        sendButton.style.fontSize = 16;
+        sendButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(sendButton);
+        
+        inputContainer.Add(inputField);
+        inputContainer.Add(sendButton);
+        mainDialog.Add(inputContainer);
+        
+        // 快速操作按钮
+        var quickActionsContainer = new VisualElement();
+        quickActionsContainer.style.flexDirection = FlexDirection.Row;
+        quickActionsContainer.style.flexWrap = Wrap.Wrap;
+        quickActionsContainer.style.justifyContent = Justify.Center;
+        quickActionsContainer.style.marginBottom = 10;
+        
+        // 系统帮助按钮
+        var helpButton = new Button(() => {
+            string message = "请告诉我系统的主要功能和使用方法";
+            var userMessage = new Label($"您：{message}");
+            userMessage.style.color = Color.black;
+            userMessage.style.fontSize = 16;
+            userMessage.style.whiteSpace = WhiteSpace.Normal;
+            userMessage.style.marginBottom = 15;
+            userMessage.style.alignSelf = Align.FlexEnd;
+            userMessage.style.paddingTop = 10;
+            userMessage.style.paddingBottom = 10;
+            userMessage.style.paddingLeft = 15;
+            userMessage.style.paddingRight = 15;
+            userMessage.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            userMessage.style.borderTopLeftRadius = 8;
+            userMessage.style.borderTopRightRadius = 8;
+            userMessage.style.borderBottomLeftRadius = 8;
+            userMessage.style.borderBottomRightRadius = 8;
+            ApplyFont(userMessage);
+            chatContainer.Add(userMessage);
+            
+            aiAssistant.AddMessage(message, true);
+            string response = GenerateAIResponse(message);
+            var aiResponse = new Label($"AI助手：{response}");
+            aiResponse.style.color = new Color(0.2f, 0.6f, 0.8f, 1f);
+            aiResponse.style.fontSize = 16;
+            aiResponse.style.whiteSpace = WhiteSpace.Normal;
+            aiResponse.style.marginBottom = 15;
+            aiResponse.style.paddingTop = 10;
+            aiResponse.style.paddingBottom = 10;
+            aiResponse.style.paddingLeft = 15;
+            aiResponse.style.paddingRight = 15;
+            aiResponse.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
+            aiResponse.style.borderTopLeftRadius = 8;
+            aiResponse.style.borderTopRightRadius = 8;
+            aiResponse.style.borderBottomLeftRadius = 8;
+            aiResponse.style.borderBottomRightRadius = 8;
+            ApplyFont(aiResponse);
+            chatContainer.Add(aiResponse);
+            
+            chatContainer.scrollOffset = new Vector2(0, chatContainer.scrollOffset.y + 300);
+        });
+        helpButton.text = "系统帮助";
+        helpButton.style.backgroundColor = new Color(0.2f, 0.8f, 0.4f, 1f);
+        helpButton.style.color = Color.white;
+        helpButton.style.paddingTop = 12;
+        helpButton.style.paddingBottom = 12;
+        helpButton.style.paddingLeft = 20;
+        helpButton.style.paddingRight = 20;
+        helpButton.style.marginRight = 15;
+        helpButton.style.borderTopLeftRadius = 8;
+        helpButton.style.borderTopRightRadius = 8;
+        helpButton.style.borderBottomLeftRadius = 8;
+        helpButton.style.borderBottomRightRadius = 8;
+        helpButton.style.fontSize = 16;
+        helpButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(helpButton);
+        
+        // 操作指导按钮
+        var guideButton = new Button(() => {
+            string message = "请提供相机控制、测量、危险标记等功能的操作指导";
+            var userMessage = new Label($"您：{message}");
+            userMessage.style.color = Color.black;
+            userMessage.style.fontSize = 16;
+            userMessage.style.whiteSpace = WhiteSpace.Normal;
+            userMessage.style.marginBottom = 15;
+            userMessage.style.alignSelf = Align.FlexEnd;
+            userMessage.style.paddingTop = 10;
+            userMessage.style.paddingBottom = 10;
+            userMessage.style.paddingLeft = 15;
+            userMessage.style.paddingRight = 15;
+            userMessage.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            userMessage.style.borderTopLeftRadius = 8;
+            userMessage.style.borderTopRightRadius = 8;
+            userMessage.style.borderBottomLeftRadius = 8;
+            userMessage.style.borderBottomRightRadius = 8;
+            ApplyFont(userMessage);
+            chatContainer.Add(userMessage);
+            
+            aiAssistant.AddMessage(message, true);
+            string response = GenerateAIResponse(message);
+            var aiResponse = new Label($"AI助手：{response}");
+            aiResponse.style.color = new Color(0.2f, 0.6f, 0.8f, 1f);
+            aiResponse.style.fontSize = 16;
+            aiResponse.style.whiteSpace = WhiteSpace.Normal;
+            aiResponse.style.marginBottom = 15;
+            aiResponse.style.paddingTop = 10;
+            aiResponse.style.paddingBottom = 10;
+            aiResponse.style.paddingLeft = 15;
+            aiResponse.style.paddingRight = 15;
+            aiResponse.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
+            aiResponse.style.borderTopLeftRadius = 8;
+            aiResponse.style.borderTopRightRadius = 8;
+            aiResponse.style.borderBottomLeftRadius = 8;
+            aiResponse.style.borderBottomRightRadius = 8;
+            ApplyFont(aiResponse);
+            chatContainer.Add(aiResponse);
+            
+            chatContainer.scrollOffset = new Vector2(0, chatContainer.scrollOffset.y + 300);
+        });
+        guideButton.text = "操作指导";
+        guideButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+        guideButton.style.color = Color.white;
+        guideButton.style.paddingTop = 12;
+        guideButton.style.paddingBottom = 12;
+        guideButton.style.paddingLeft = 20;
+        guideButton.style.paddingRight = 20;
+        guideButton.style.marginRight = 15;
+        guideButton.style.borderTopLeftRadius = 8;
+        guideButton.style.borderTopRightRadius = 8;
+        guideButton.style.borderBottomLeftRadius = 8;
+        guideButton.style.borderBottomRightRadius = 8;
+        guideButton.style.fontSize = 16;
+        guideButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(guideButton);
+        
+        // 故障排除按钮
+        var troubleshootButton = new Button(() => {
+            string message = "请帮我诊断系统可能存在的问题和解决方案";
+            var userMessage = new Label($"您：{message}");
+            userMessage.style.color = Color.black;
+            userMessage.style.fontSize = 16;
+            userMessage.style.whiteSpace = WhiteSpace.Normal;
+            userMessage.style.marginBottom = 15;
+            userMessage.style.alignSelf = Align.FlexEnd;
+            userMessage.style.paddingTop = 10;
+            userMessage.style.paddingBottom = 10;
+            userMessage.style.paddingLeft = 15;
+            userMessage.style.paddingRight = 15;
+            userMessage.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+            userMessage.style.borderTopLeftRadius = 8;
+            userMessage.style.borderTopRightRadius = 8;
+            userMessage.style.borderBottomLeftRadius = 8;
+            userMessage.style.borderBottomRightRadius = 8;
+            ApplyFont(userMessage);
+            chatContainer.Add(userMessage);
+            
+            aiAssistant.AddMessage(message, true);
+            string response = GenerateAIResponse(message);
+            var aiResponse = new Label($"AI助手：{response}");
+            aiResponse.style.color = new Color(0.2f, 0.6f, 0.8f, 1f);
+            aiResponse.style.fontSize = 16;
+            aiResponse.style.whiteSpace = WhiteSpace.Normal;
+            aiResponse.style.marginBottom = 15;
+            aiResponse.style.paddingTop = 10;
+            aiResponse.style.paddingBottom = 10;
+            aiResponse.style.paddingLeft = 15;
+            aiResponse.style.paddingRight = 15;
+            aiResponse.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
+            aiResponse.style.borderTopLeftRadius = 8;
+            aiResponse.style.borderTopRightRadius = 8;
+            aiResponse.style.borderBottomLeftRadius = 8;
+            aiResponse.style.borderBottomRightRadius = 8;
+            ApplyFont(aiResponse);
+            chatContainer.Add(aiResponse);
+            
+            chatContainer.scrollOffset = new Vector2(0, chatContainer.scrollOffset.y + 300);
+        });
+        troubleshootButton.text = "故障排除";
+        troubleshootButton.style.backgroundColor = new Color(0.8f, 0.6f, 0.2f, 1f);
+        troubleshootButton.style.color = Color.white;
+        troubleshootButton.style.paddingTop = 12;
+        troubleshootButton.style.paddingBottom = 12;
+        troubleshootButton.style.paddingLeft = 20;
+        troubleshootButton.style.paddingRight = 20;
+        troubleshootButton.style.borderTopLeftRadius = 8;
+        troubleshootButton.style.borderTopRightRadius = 8;
+        troubleshootButton.style.borderBottomLeftRadius = 8;
+        troubleshootButton.style.borderBottomRightRadius = 8;
+        troubleshootButton.style.fontSize = 16;
+        troubleshootButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(troubleshootButton);
+        
+        quickActionsContainer.Add(helpButton);
+        quickActionsContainer.Add(guideButton);
+        quickActionsContainer.Add(troubleshootButton);
+        
+        mainDialog.Add(quickActionsContainer);
+        
+        // 将主弹窗添加到覆盖层
+        fullScreenOverlay.Add(mainDialog);
+        
+        // 点击覆盖层背景可以关闭弹窗
+        fullScreenOverlay.RegisterCallback<ClickEvent>(evt => {
+            if (evt.target == fullScreenOverlay)
+            {
+                if (rootElement != null)
+                {
+                    rootElement.Remove(fullScreenOverlay);
+                    SwitchMode(UIMode.Normal);
+                }
+            }
+        });
+        
+        return fullScreenOverlay;
+    }
+    
+    /// <summary>
+    /// 生成AI回复
+    /// </summary>
+    string GenerateAIResponse(string userMessage)
+    {
+        string lowerMessage = userMessage.ToLower();
+        
+        // 基于关键词的智能回复
+        if (lowerMessage.Contains("如何") || lowerMessage.Contains("怎么"))
+        {
+            return "关于操作指导，您可以：\n• 询问具体功能的使用方法\n• 查看系统帮助文档\n• 使用快捷键操作\n• 参考操作示例";
+        }
+        else if (lowerMessage.Contains("问题") || lowerMessage.Contains("错误"))
+        {
+            return "如果遇到问题，建议您：\n• 检查输入数据格式\n• 确认组件配置正确\n• 查看控制台错误信息\n• 重启相关功能模块";
+        }
+        else if (lowerMessage.Contains("功能") || lowerMessage.Contains("特性"))
+        {
+            return "系统主要功能包括：\n• 电力线可视化和管理\n• 多视角相机控制\n• 危险监测和预警\n• 无人机巡检管理\n• 地形适配和优化";
+        }
+        else
+        {
+            return "我理解您的问题，但可能需要更具体的信息。您可以：\n• 询问特定功能的使用方法\n• 了解系统配置选项\n• 获取操作指导\n• 查看常见问题解答";
+        }
+    }
+    
+    /// <summary>
+    /// 刷新AI助手面板
+    /// </summary>
+    System.Collections.IEnumerator RefreshAIAssistantPanel()
+    {
+        yield return new WaitForSeconds(0.5f);
+        ShowAIAssistantPanel();
+    }
+    
     VisualElement CreatePanel(string title)
     {
         var panel = new VisualElement();
@@ -2160,6 +2779,19 @@ public class SimpleUIToolkitManager : MonoBehaviour
             else
             {
                 SwitchMode(UIMode.TowerOverview);
+            }
+        }
+        
+        if (Input.GetKeyDown(KeyCode.A))
+        {
+            // A键切换AI助手模式
+            if (currentMode == UIMode.AIAssistant)
+            {
+                SwitchMode(UIMode.Normal);
+            }
+            else
+            {
+                SwitchMode(UIMode.AIAssistant);
             }
         }
         
@@ -3276,6 +3908,53 @@ public class SimpleUIToolkitManager : MonoBehaviour
         });
         
         parent.Add(dronePatrolButtonContainer);
+    }
+    
+    /// <summary>
+    /// 创建AI助手按钮
+    /// </summary>
+    void CreateAIAssistantButton(VisualElement parent)
+    {
+        var aiAssistantButton = new Button(() => {
+            SwitchMode(UIMode.AIAssistant);
+        });
+        aiAssistantButton.text = "AI助手";
+        aiAssistantButton.style.marginRight = 3;
+        aiAssistantButton.style.width = 80;
+        aiAssistantButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f); // 紫色
+        aiAssistantButton.style.color = Color.white;
+        aiAssistantButton.style.borderBottomLeftRadius = 5;
+        aiAssistantButton.style.borderBottomRightRadius = 5;
+        aiAssistantButton.style.borderTopLeftRadius = 5;
+        aiAssistantButton.style.borderTopRightRadius = 5;
+        aiAssistantButton.style.borderBottomWidth = 1;
+        aiAssistantButton.style.borderTopWidth = 1;
+        aiAssistantButton.style.borderLeftWidth = 1;
+        aiAssistantButton.style.borderRightWidth = 1;
+        aiAssistantButton.style.borderBottomColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+        aiAssistantButton.style.borderTopColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+        aiAssistantButton.style.borderLeftColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+        aiAssistantButton.style.borderRightColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+        aiAssistantButton.style.paddingLeft = 8;
+        aiAssistantButton.style.paddingRight = 8;
+        aiAssistantButton.style.paddingTop = 6;
+        aiAssistantButton.style.paddingBottom = 6;
+        aiAssistantButton.style.height = 40;
+        aiAssistantButton.style.fontSize = 13;
+        aiAssistantButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        aiAssistantButton.style.whiteSpace = WhiteSpace.NoWrap;
+        ApplyFont(aiAssistantButton);
+        
+        // 添加悬停效果
+        aiAssistantButton.RegisterCallback<MouseEnterEvent>(evt => {
+            aiAssistantButton.style.backgroundColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+        });
+        
+        aiAssistantButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            aiAssistantButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f);
+        });
+        
+        parent.Add(aiAssistantButton);
     }
     
     /// <summary>

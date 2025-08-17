@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0000000000000000e000000000000000, type: 3}
+  m_Name: AIAssistantConfig
+  m_EditorClassIdentifier: 
+  assistantName: 电力线助手
+  assistantVersion: 1.0.0
+  primaryColor: {r: 0.2, g: 0.8, b: 0.4, a: 1}
+  secondaryColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.8}
+  maxChatHistory: 50
+  typingSpeed: 0.05
+  enableTypingEffect: 1
+  enableSoundEffects: 0
+  knowledgeBase:
+  - category: 系统功能
+    keyword: 电力线
+    response: "电力线系统是核心功能，包括：\n• 电塔管理和可视化\n• 线路路径规划\n• 危险监测和预警\n• 无人机巡检管理\n• 地形适配和优化"
+    relatedKeywords:
+    - 电塔
+    - 线路
+    - 监测
+    - 巡检
+    priority: 5
+  - category: 系统功能
+    keyword: 相机控制
+    response: "相机系统提供多种视角：\n• 第一人称视角：沉浸式体验\n• 俯视视角：全局观察\n• 自由飞行：灵活导航\n• 鼠标控制：滚轮缩放，右键旋转"
+    relatedKeywords:
+    - 视角
+    - 导航
+    - 缩放
+    - 旋转
+    priority: 4
+  - category: 系统功能
+    keyword: 危险监测
+    response: "危险监测系统功能：\n• 树木危险评估\n• 距离测量工具\n• 风险等级分类\n• 预警通知系统\n• 历史记录追踪"
+    relatedKeywords:
+    - 树木
+    - 距离
+    - 风险
+    - 预警
+    priority: 4
+  - category: 操作指导
+    keyword: 如何操作
+    response: "基本操作步骤：\n1. 使用WASD键移动相机\n2. 鼠标滚轮缩放场景\n3. 右键拖拽旋转视角\n4. 点击电塔查看信息\n5. 使用工具栏切换功能"
+    relatedKeywords:
+    - 移动
+    - 缩放
+    - 旋转
+    - 点击
+    priority: 3
+  - category: 操作指导
+    keyword: 电塔设置
+    response: "电塔设置步骤：\n1. 选择电塔预制体\n2. 配置CSV数据文件\n3. 设置缩放参数\n4. 调整连接点位置\n5. 验证连接效果"
+    relatedKeywords:
+    - 预制体
+    - 数据
+    - 缩放
+    - 连接
+    priority: 3
+  - category: 问题解答
+    keyword: 常见问题
+    response: "常见问题及解决方案：\n• 电塔位置不准确：使用位置修正功能\n• 连接线显示异常：检查数据格式\n• 性能问题：启用LOD优化\n• 材质问题：检查材质设置"
+    relatedKeywords:
+    - 位置
+    - 连接
+    - 性能
+    - 材质
+    priority: 2
+  quickResponses:
+  - trigger: 你好
+    response: "你好！我是电力线可视化系统的AI助手，很高兴为您服务！"
+    variations:
+    - 您好
+    - hi
+    - hello
+  - trigger: 帮助
+    response: "我可以帮助您了解系统功能、提供操作指导、解答技术问题。请告诉我您需要什么帮助？"
+    variations:
+    - help
+    - 帮助
+    - 支持
+  - trigger: 谢谢
+    response: "不客气！如果还有其他问题，随时可以问我。"
+    variations:
+    - 感谢
+    - thank
+    - thanks
+  integrateWithPowerlineSystem: 1
+  integrateWithCameraSystem: 1
+  integrateWithTerrainSystem: 1
+  integrateWithDangerSystem: 1

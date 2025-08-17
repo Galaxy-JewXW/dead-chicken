@@ -714,6 +714,7 @@ public class TreeDangerMonitor : MonoBehaviour
         float horizontalDistance = horizontalDiff.magnitude;
         float verticalDistance = Mathf.Abs(treeHeight - powerlineHeight);
         
+        // 计算有效危险距离（考虑电力线弧垂和风力摇摆）
         float effectiveDangerDistance = criticalDistance + powerlineSag + windSwayFactor;
         
         // 当前距离计算
@@ -721,34 +722,103 @@ public class TreeDangerMonitor : MonoBehaviour
         dangerInfo.treeHeight = treeHeight;
         dangerInfo.growthRate = CalculateTreeGrowthRate(tree);
         
-        // 30天后的预测距离（原有逻辑）
+        // 新增：基于高度比例的判定逻辑
+        float heightRatio = treeHeight / powerlineHeight; // 树木高度与电塔高度比例
+        bool heightBasedDanger = heightRatio >= 0.5f; // 树木高度达到电塔50%时考虑危险
+        
+        // 计算基于高度的危险距离阈值
+        float heightBasedCriticalDistance = 0f;
+        float heightBasedWarningDistance = 0f;
+        float heightBasedSafeDistance = 0f;
+        
+        if (heightBasedDanger)
+        {
+            // 树木高度达到电塔50%以上时，根据高度比例调整危险距离
+            if (heightRatio >= 0.8f)
+            {
+                // 树木高度达到电塔80%以上，非常危险
+                heightBasedCriticalDistance = 5f;  // 5米内为危险
+                heightBasedWarningDistance = 15f;  // 15米内为警告
+                heightBasedSafeDistance = 25f;     // 25米内为安全
+            }
+            else if (heightRatio >= 0.6f)
+            {
+                // 树木高度达到电塔60%以上，危险
+                heightBasedCriticalDistance = 8f;  // 8米内为危险
+                heightBasedWarningDistance = 20f;  // 20米内为警告
+                heightBasedSafeDistance = 30f;     // 30米内为安全
+            }
+            else // heightRatio >= 0.5f
+            {
+                // 树木高度达到电塔50%以上，需要注意
+                heightBasedCriticalDistance = 12f; // 12米内为危险
+                heightBasedWarningDistance = 25f;  // 25米内为警告
+                heightBasedSafeDistance = 35f;     // 35米内为安全
+            }
+        }
+        else
+        {
+            // 树木高度较低时，使用原有的距离阈值
+            heightBasedCriticalDistance = criticalDistance;
+            heightBasedWarningDistance = warningDistance;
+            heightBasedSafeDistance = safeDistance;
+        }
+        
+        // 30天后的预测距离
         float timeToAssessment = 30f;
         float projectedHeight = treeHeight + (dangerInfo.growthRate * timeToAssessment / 365f);
         float projectedVerticalDistance = Mathf.Abs(projectedHeight - powerlineHeight);
         dangerInfo.projectedDistance = Mathf.Sqrt(horizontalDistance * horizontalDistance + projectedVerticalDistance * projectedVerticalDistance);
         
-        // 新增：一年后的预测
+        // 一年后的预测
         float oneYearHeight = treeHeight + (dangerInfo.growthRate * 1f);
         float oneYearVerticalDistance = Mathf.Abs(oneYearHeight - powerlineHeight);
         dangerInfo.oneYearDistance = Mathf.Sqrt(horizontalDistance * horizontalDistance + oneYearVerticalDistance * oneYearVerticalDistance);
-        dangerInfo.oneYearDangerLevel = DetermineDangerLevel(dangerInfo.oneYearDistance, dangerInfo.oneYearDistance, effectiveDangerDistance);
-        dangerInfo.oneYearRiskDescription = GenerateTimeBasedRiskDescription(dangerInfo.oneYearDistance, dangerInfo.oneYearDangerLevel, 1);
-        dangerInfo.willBeDangerousInOneYear = (dangerInfo.oneYearDangerLevel == TreeDangerLevel.Critical || 
-                                              dangerInfo.oneYearDangerLevel == TreeDangerLevel.Emergency);
         
-        // 新增：三年后的预测
+        // 三年后的预测
         float threeYearHeight = treeHeight + (dangerInfo.growthRate * 3f);
         float threeYearVerticalDistance = Mathf.Abs(threeYearHeight - powerlineHeight);
         dangerInfo.threeYearDistance = Mathf.Sqrt(horizontalDistance * horizontalDistance + threeYearVerticalDistance * threeYearVerticalDistance);
-        dangerInfo.threeYearDangerLevel = DetermineDangerLevel(dangerInfo.threeYearDistance, dangerInfo.threeYearDistance, effectiveDangerDistance);
+        
+        // 使用基于高度的距离阈值进行危险等级判定
+        dangerInfo.dangerLevel = DetermineDangerLevelWithHeightRatio(
+            dangerInfo.currentDistance, 
+            dangerInfo.projectedDistance, 
+            heightBasedCriticalDistance,
+            heightBasedWarningDistance,
+            heightBasedSafeDistance,
+            heightRatio
+        );
+        
+        // 预测未来危险等级
+        dangerInfo.oneYearDangerLevel = DetermineDangerLevelWithHeightRatio(
+            dangerInfo.oneYearDistance, 
+            dangerInfo.oneYearDistance, 
+            heightBasedCriticalDistance,
+            heightBasedWarningDistance,
+            heightBasedSafeDistance,
+            heightRatio
+        );
+        
+        dangerInfo.threeYearDangerLevel = DetermineDangerLevelWithHeightRatio(
+            dangerInfo.threeYearDistance, 
+            dangerInfo.threeYearDistance, 
+            heightBasedCriticalDistance,
+            heightBasedWarningDistance,
+            heightBasedSafeDistance,
+            heightRatio
+        );
+        
+        // 设置其他属性
+        dangerInfo.oneYearRiskDescription = GenerateTimeBasedRiskDescription(dangerInfo.oneYearDistance, dangerInfo.oneYearDangerLevel, 1);
         dangerInfo.threeYearRiskDescription = GenerateTimeBasedRiskDescription(dangerInfo.threeYearDistance, dangerInfo.threeYearDangerLevel, 3);
+        dangerInfo.willBeDangerousInOneYear = (dangerInfo.oneYearDangerLevel == TreeDangerLevel.Critical || 
+                                              dangerInfo.oneYearDangerLevel == TreeDangerLevel.Emergency);
         dangerInfo.willBeDangerousInThreeYears = (dangerInfo.threeYearDangerLevel == TreeDangerLevel.Critical || 
                                                   dangerInfo.threeYearDangerLevel == TreeDangerLevel.Emergency);
         
-        // 当前危险等级评估（考虑当前和短期预测）
-        dangerInfo.dangerLevel = DetermineDangerLevel(dangerInfo.currentDistance, dangerInfo.projectedDistance, effectiveDangerDistance);
         dangerInfo.dangerPoint = CalculateDangerPoint(treePos, powerlinePos, treeHeight, powerlineHeight);
-        dangerInfo.riskDescription = GenerateRiskDescription(dangerInfo);
+        dangerInfo.riskDescription = GenerateRiskDescriptionWithHeightRatio(dangerInfo, heightRatio, heightBasedDanger);
         
         return dangerInfo;
     }
@@ -817,24 +887,109 @@ public class TreeDangerMonitor : MonoBehaviour
         return baseGrowthRate * heightFactor * seasonalFactor * speciesFactor;
     }
     
-    TreeDangerLevel DetermineDangerLevel(float currentDistance, float projectedDistance, float effectiveDangerDistance)
+    /// <summary>
+    /// 基于高度比例的危险等级判定
+    /// </summary>
+    TreeDangerLevel DetermineDangerLevelWithHeightRatio(float currentDistance, float projectedDistance, 
+        float criticalDist, float warningDist, float safeDist, float heightRatio)
     {
-        if (currentDistance <= effectiveDangerDistance || projectedDistance <= effectiveDangerDistance)
+        // 如果当前距离或预测距离达到危险阈值，判定为相应等级
+        if (currentDistance <= criticalDist || projectedDistance <= criticalDist)
         {
-            return TreeDangerLevel.Emergency;
+            if (heightRatio >= 0.8f)
+            {
+                return TreeDangerLevel.Emergency; // 树木高度达到电塔80%以上，非常危险
+            }
+            else
+            {
+                return TreeDangerLevel.Critical;  // 危险
+            }
         }
-        else if (currentDistance <= warningDistance || projectedDistance <= warningDistance)
+        else if (currentDistance <= warningDist || projectedDistance <= warningDist)
         {
-            return TreeDangerLevel.Critical;
+            return TreeDangerLevel.Warning;       // 警告
         }
-        else if (currentDistance <= safeDistance || projectedDistance <= safeDistance)
+        else if (currentDistance <= safeDist || projectedDistance <= safeDist)
         {
-            return TreeDangerLevel.Warning;
+            return TreeDangerLevel.Warning;       // 仍然为警告，因为距离较近
         }
         else
         {
-            return TreeDangerLevel.Safe;
+            return TreeDangerLevel.Safe;          // 安全
         }
+    }
+    
+    /// <summary>
+    /// 基于高度比例的风险描述生成
+    /// </summary>
+    string GenerateRiskDescriptionWithHeightRatio(TreeDangerInfo dangerInfo, float heightRatio, bool heightBasedDanger)
+    {
+        string description = "";
+        
+        // 添加高度比例信息
+        if (heightBasedDanger)
+        {
+            description += $"⚠️ 树木高度已达到电塔高度的 {heightRatio * 100:F0}%，需要特别关注！\n";
+        }
+        
+        switch (dangerInfo.dangerLevel)
+        {
+            case TreeDangerLevel.Safe:
+                description += "安全状态，树木与电力线距离充足";
+                break;
+            case TreeDangerLevel.Warning:
+                if (heightBasedDanger)
+                {
+                    description += $"警告：树木高度较高({heightRatio * 100:F0}%)，当前距离电力线 {dangerInfo.currentDistance:F1}m，建议立即监测";
+                }
+                else
+                {
+                    description += $"警告：树木当前距离电力线 {dangerInfo.currentDistance:F1}m，建议定期监测";
+                }
+                break;
+            case TreeDangerLevel.Critical:
+                if (heightRatio >= 0.8f)
+                {
+                    description += $"紧急危险：树木高度已达到电塔高度的 {heightRatio * 100:F0}%，距离电力线仅 {dangerInfo.currentDistance:F1}m，需要立即处理！";
+                }
+                else
+                {
+                    description += $"危险：树木距离电力线过近 ({dangerInfo.currentDistance:F1}m)，需要立即处理";
+                }
+                break;
+            case TreeDangerLevel.Emergency:
+                description += $"紧急：树木高度已达到电塔高度的 {heightRatio * 100:F0}%，已接触或即将接触电力线！当前距离：{dangerInfo.currentDistance:F1}m";
+                break;
+        }
+        
+        // 添加生长预测信息
+        if (dangerInfo.growthRate > 0 && heightBasedDanger)
+        {
+            float daysToDanger = (dangerInfo.currentDistance - criticalDistance) / (dangerInfo.growthRate / 365f);
+            if (daysToDanger > 0 && daysToDanger < 365)
+            {
+                description += $"\n⚠️ 预计 {daysToDanger:F0} 天后可能达到危险距离！";
+            }
+        }
+        
+        // 添加高度建议
+        if (heightBasedDanger)
+        {
+            if (heightRatio >= 0.8f)
+            {
+                description += "\n🚨 建议：立即修剪或移除，防止电力线接触！";
+            }
+            else if (heightRatio >= 0.6f)
+            {
+                description += "\n⚠️ 建议：制定修剪计划，控制树木高度增长";
+            }
+            else
+            {
+                description += "\n💡 建议：定期监测，预防高度增长带来的风险";
+            }
+        }
+        
+        return description;
     }
     
     Vector3 CalculateDangerPoint(Vector3 treePos, Vector3 powerlinePos, float treeHeight, float powerlineHeight)
@@ -1441,5 +1596,41 @@ public class TreeDangerMonitor : MonoBehaviour
     {
         string report = GetDangerousTreesLocationReport();
         Debug.Log(report);
+    }
+
+    /// <summary>
+    /// 调试显示基于高度比例的危险判定信息
+    /// </summary>
+    [ContextMenu("调试高度比例判定")]
+    public void DebugHeightBasedAssessment()
+    {
+        Debug.Log("=== 基于高度比例的危险判定调试信息 ===");
+        
+        if (treeDangerList.Count == 0)
+        {
+            Debug.Log("暂无监测数据，请先执行监测");
+            return;
+        }
+        
+        foreach (var dangerInfo in treeDangerList)
+        {
+            if (dangerInfo == null || dangerInfo.powerline == null) continue;
+            
+            float powerlineHeight = GetPowerlineHeight(dangerInfo.powerline);
+            float heightRatio = dangerInfo.treeHeight / powerlineHeight;
+            bool heightBasedDanger = heightRatio >= 0.5f;
+            
+            Debug.Log($"树木: {dangerInfo.tree.name}");
+            Debug.Log($"  树木高度: {dangerInfo.treeHeight:F1}m");
+            Debug.Log($"  电塔高度: {powerlineHeight:F1}m");
+            Debug.Log($"  高度比例: {heightRatio * 100:F1}%");
+            Debug.Log($"  是否基于高度判定: {heightBasedDanger}");
+            Debug.Log($"  当前距离: {dangerInfo.currentDistance:F1}m");
+            Debug.Log($"  危险等级: {dangerInfo.dangerLevel}");
+            Debug.Log($"  风险描述: {dangerInfo.riskDescription}");
+            Debug.Log("  ---");
+        }
+        
+        Debug.Log("=== 调试信息结束 ===");
     }
 }
