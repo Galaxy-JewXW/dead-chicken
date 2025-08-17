@@ -6,6 +6,7 @@ using System.Text;
 using Process = System.Diagnostics.Process;
 using ProcessStartInfo = System.Diagnostics.ProcessStartInfo;
 using UI;
+using System.Threading.Tasks;
 
 namespace PowerlineSystem
 {
@@ -164,21 +165,23 @@ namespace PowerlineSystem
             };
             
             string extractDir = null;
-            string extractor4Path = null;
+            string workerPath = null;
             string towerCoordsPath = null;
             
             // 查找存在的extract目录
             foreach (string dir in possibleExtractDirs)
             {
                 string fullDir = Path.GetFullPath(dir);
-                string testExtractor4Path = Path.Combine(fullDir, "Extractor4.py");
+                string testWorkerPath = Path.Combine(fullDir, "worker.py");
                 string testTowerCoordsPath = Path.Combine(fullDir, "extract_tower_coordinates.py");
-                
-                if (File.Exists(testExtractor4Path) && File.Exists(testTowerCoordsPath))
+
+                // 需要 worker.py 和 extract_tower_coordinates.py 可选存在
+                if (File.Exists(testWorkerPath))
                 {
                     extractDir = fullDir;
-                    extractor4Path = testExtractor4Path;
-                    towerCoordsPath = testTowerCoordsPath;
+                    workerPath = testWorkerPath;
+                    // 如果存在 tower coords 脚本，则记录
+                    if (File.Exists(testTowerCoordsPath)) towerCoordsPath = testTowerCoordsPath;
                     Debug.Log($"找到extract目录: {extractDir}");
                     break;
                 }
@@ -206,22 +209,22 @@ namespace PowerlineSystem
             {
                 pythonOutputViewer.AddOutput("新的提取脚本准备完成");
                 pythonOutputViewer.AddOutput($"使用extract目录: {extractDir}");
-                pythonOutputViewer.AddOutput($"Extractor4.py路径: {extractor4Path}");
+                pythonOutputViewer.AddOutput($"worker.py路径: {workerPath}");
                 pythonOutputViewer.AddOutput($"extract_tower_coordinates.py路径: {towerCoordsPath}");
             }
             
-            // 3. 第一阶段：执行Extractor4.py
-            UpdateStatus("第一阶段：执行电力线提取...");
+            // 3. 第一阶段：执行 worker.py（生成 RAW + metadata + 提取电力线）
+            UpdateStatus("第一阶段：执行 worker.py 以生成地形 RAW 与电力线...");
             if (pythonOutputViewer != null)
             {
-                pythonOutputViewer.SetProgress(30f, "第一阶段：执行电力线提取...");
-                pythonOutputViewer.AddOutput("开始执行Extractor4.py电力线提取");
+                pythonOutputViewer.SetProgress(30f, "第一阶段：执行 worker.py ...");
+                pythonOutputViewer.AddOutput("开始执行 worker.py 以生成 RAW 与提取电力线");
             }
             
-            bool extractor4Success = false;
-            yield return StartCoroutine(ExecuteExtractor4Script(extractor4Path, (success) => extractor4Success = success));
+            bool workerSuccess = false;
+            yield return StartCoroutine(ExecuteWorkerScript(workerPath, (success) => workerSuccess = success, extractDir));
             
-            if (!extractor4Success)
+            if (!workerSuccess)
             {
                 isProcessing = false;
                 yield break;
@@ -230,6 +233,9 @@ namespace PowerlineSystem
             // 4. 检查第一阶段输出文件
             string fileName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
             string powerlineEndpointsPath = Path.Combine(extractDir, $"{fileName}_powerline_endpoints.json");
+
+            // 如果 worker 生成了 metadata.json（默认），也允许使用该文件
+            string metadataJsonPath = Path.Combine(extractDir, "metadata.json");
             
             if (!File.Exists(powerlineEndpointsPath))
             {
@@ -239,30 +245,38 @@ namespace PowerlineSystem
                 yield break;
             }
             
-            // 5. 第二阶段：执行extract_tower_coordinates.py
-            UpdateStatus("第二阶段：提取电力塔坐标...");
-            if (pythonOutputViewer != null)
-            {
-                pythonOutputViewer.SetProgress(70f, "第二阶段：提取电力塔坐标...");
-                pythonOutputViewer.AddOutput("开始执行电力塔坐标提取");
-            }
-            
-            bool towerCoordsSuccess = false;
-            yield return StartCoroutine(ExecuteTowerCoordsScript(towerCoordsPath, powerlineEndpointsPath, (success) => towerCoordsSuccess = success));
-            
-            if (!towerCoordsSuccess)
-            {
-                isProcessing = false;
-                yield break;
-            }
-            
-            // 6. 检查最终CSV输出
+            // 5. 第二阶段：提取电力塔坐标（如果存在脚本则执行，否则尝试直接使用 worker 生成的 CSV）
             string finalCsvPath = Path.Combine(extractDir, $"{fileName}_tower_coordinates.csv");
-            
+            if (!string.IsNullOrEmpty(towerCoordsPath) && File.Exists(towerCoordsPath))
+            {
+                UpdateStatus("第二阶段：提取电力塔坐标...");
+                if (pythonOutputViewer != null)
+                {
+                    pythonOutputViewer.SetProgress(70f, "第二阶段：提取电力塔坐标...");
+                    pythonOutputViewer.AddOutput("开始执行电力塔坐标提取");
+                }
+
+                bool towerCoordsSuccess = false;
+                yield return StartCoroutine(ExecuteTowerCoordsScript(towerCoordsPath, powerlineEndpointsPath, (success) => towerCoordsSuccess = success));
+                if (!towerCoordsSuccess)
+                {
+                    isProcessing = false;
+                    yield break;
+                }
+            }
+
+            // 如果脚本不存在，或脚本执行后，检查是否存在 CSV
             if (!File.Exists(finalCsvPath))
             {
-                UpdateStatus("错误：电力塔坐标提取未生成CSV文件");
-                OnError?.Invoke("未生成CSV文件");
+                // 也尝试在 StreamingAssets/extract 中查找
+                string saCsv = Path.Combine(Application.streamingAssetsPath, "extract", Path.GetFileName(finalCsvPath));
+                if (File.Exists(saCsv)) finalCsvPath = saCsv;
+            }
+
+            if (!File.Exists(finalCsvPath))
+            {
+                UpdateStatus("错误：电力塔坐标CSV未找到");
+                OnError?.Invoke("未找到CSV文件");
                 isProcessing = false;
                 yield break;
             }
@@ -289,7 +303,29 @@ namespace PowerlineSystem
                 pythonOutputViewer.AddOutput("电力线提取流程全部完成！");
             }
             
+            // 自动化：如果生成了 CSV 和 StreamingAssets 的 RAW/metadata，则自动导入地形并放置塔点
             OnExtractionCompleted?.Invoke(outputCsvPath);
+            try
+            {
+                // 确保在主线程中执行 Unity API
+                string baseName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
+                string streamingMeta = Path.Combine("extract", baseName + "_metadata.json");
+                string resourcesCsvName = Path.GetFileName(outputCsvPath);
+
+                // 查找或创建 RawTerrainImporter
+                RawTerrainImporter importer = FindObjectOfType<RawTerrainImporter>();
+                if (importer == null)
+                {
+                    GameObject go = new GameObject("RawTerrainImporter");
+                    importer = go.AddComponent<RawTerrainImporter>();
+                }
+
+                importer.ImportAndPlace(baseName, baseName + "_metadata.json", resourcesCsvName);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning($"自动导入地形失败: {ex.Message}");
+            }
             isProcessing = false;
         }
         
@@ -729,50 +765,13 @@ namespace PowerlineSystem
         }
         
         /// <summary>
-        /// 执行Extractor4.py脚本
+        /// 执行 worker.py 脚本，生成 RAW/metadata 和电力线提取结果
         /// </summary>
-        private IEnumerator ExecuteExtractor4Script(string scriptPath, System.Action<bool> onComplete)
+        private IEnumerator ExecuteWorkerScript(string scriptPath, System.Action<bool> onComplete, string extractDir)
         {
-            bool hasError = false;
-            System.Exception thrownException = null;
-            
-            // 将yield移到try-catch外面
-            IEnumerator coroutine = ExecuteExtractor4ScriptInternal(scriptPath, 
-                (success) => onComplete?.Invoke(success), 
-                (error) => {
-                    Debug.LogError($"Extractor4.py执行失败: {error.Message}");
-                    if (pythonOutputViewer != null)
-                    {
-                        pythonOutputViewer.AddOutput($"Extractor4.py执行失败: {error.Message}", true);
-                    }
-                    onComplete?.Invoke(false);
-                });
-            
-            // 将yield移到try-catch外面
-            yield return StartCoroutine(coroutine);
-            
-            // 异常处理移到yield之后
-            if (hasError && thrownException != null)
-            {
-                onComplete?.Invoke(false);
-            }
-        }
-        
-        /// <summary>
-        /// 执行Extractor4.py脚本内部实现
-        /// </summary>
-        private IEnumerator ExecuteExtractor4ScriptInternal(string scriptPath, System.Action<bool> onSuccess, System.Action<System.Exception> onError)
-        {
-            string scriptOutput = "";
-            string scriptError = "";
-            bool processFinished = false;
-            int exitCode = -1;
-            
-            // 尝试多个Python命令
+            // 复用 ExecutePythonScript 的流程，但需要传入额外参数 --output_raw 到 StreamingAssets
             string[] pythonCommands = { "python", "python3", "py" };
             string workingPythonCmd = null;
-            
-            // 找到可用的Python命令
             foreach (string cmd in pythonCommands)
             {
                 try
@@ -786,10 +785,9 @@ namespace PowerlineSystem
                         RedirectStandardError = true,
                         CreateNoWindow = true
                     };
-                    
                     using (Process testProcess = Process.Start(testInfo))
                     {
-                        testProcess.WaitForExit(3000); // 3秒超时
+                        testProcess.WaitForExit(3000);
                         if (testProcess.ExitCode == 0)
                         {
                             workingPythonCmd = cmd;
@@ -797,31 +795,28 @@ namespace PowerlineSystem
                         }
                     }
                 }
-                catch
-                {
-                    continue;
-                }
+                catch { continue; }
             }
-            
+
             if (workingPythonCmd == null)
             {
-                throw new System.Exception("未找到可用的Python解释器 (尝试了: python, python3, py)");
+                Debug.LogError("未找到可用的Python解释器");
+                onComplete?.Invoke(false);
+                yield break;
             }
-            
-            Debug.Log($"使用Python命令: {workingPythonCmd}");
-            if (pythonOutputViewer != null)
-            {
-                pythonOutputViewer.AddOutput($"使用Python命令: {workingPythonCmd}");
-            }
-            
-            // 构建Extractor4.py的参数
-            string fileName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
-            string extractDir = Path.GetDirectoryName(scriptPath);
-            
+
+            // 准备输出路径到 StreamingAssets
+            string streamingDir = Path.Combine(Application.streamingAssetsPath, "extract");
+            if (!Directory.Exists(streamingDir)) Directory.CreateDirectory(streamingDir);
+            string baseName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
+            string rawOutPath = Path.Combine(streamingDir, baseName + ".raw");
+            string jsonOutPath = Path.Combine(streamingDir, baseName + "_metadata.json");
+
+            // 启动进程
             ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 FileName = workingPythonCmd,
-                Arguments = $"-u \"{scriptPath}\" \"{selectedLasFilePath}\" --min_line_points {minLinePoints} --min_line_length {minLineLength} --length_method {lengthMethod} --reference_point_method {referencePointMethod}",
+                Arguments = $"-u \"{scriptPath}\" --input \"{selectedLasFilePath}\" --output_raw \"{rawOutPath}\" --output_json \"{jsonOutPath}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -830,183 +825,92 @@ namespace PowerlineSystem
                 StandardOutputEncoding = Encoding.UTF8,
                 StandardErrorEncoding = Encoding.UTF8
             };
-            
-            // 设置环境变量确保Python输出使用UTF-8编码
             startInfo.EnvironmentVariables["PYTHONIOENCODING"] = "utf-8";
             startInfo.EnvironmentVariables["PYTHONUTF8"] = "1";
-            
+
             Process process = null;
-            
-            try
-            {
-                process = Process.Start(startInfo);
-                if (process == null)
-                {
-                    throw new System.Exception("无法启动Python进程");
-                }
-            }
+            try { process = Process.Start(startInfo); }
             catch (System.Exception ex)
             {
-                Debug.LogError($"Python进程启动失败: {ex.Message}");
-                throw;
+                Debug.LogError($"启动 worker.py 失败: {ex.Message}");
+                onComplete?.Invoke(false);
+                yield break;
             }
-            
-            // 使用同步方式读取输出，避免线程问题
-            string outputBuffer = "";
-            string errorBuffer = "";
-            
-            // 开始异步读取
-            process.OutputDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    outputBuffer += e.Data + "\n";
-                }
-            };
-            
-            process.ErrorDataReceived += (sender, e) => {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    errorBuffer += e.Data + "\n";
-                }
-            };
-            
-            process.BeginOutputReadLine();
-            process.BeginErrorReadLine();
-            
-            // 等待进程完成，并处理输出
-            float timeout = 1800f; // 30分钟超时（Extractor4.py可能需要更长时间）
-            float elapsed = 0f;
-            string lastOutputBuffer = "";
-            string lastErrorBuffer = "";
-            
+
+            // 读取输出
+            string outputBuffer = ""; string errorBuffer = "";
+            process.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) outputBuffer += e.Data + "\n"; };
+            process.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) errorBuffer += e.Data + "\n"; };
+            process.BeginOutputReadLine(); process.BeginErrorReadLine();
+
+            float timeout = 1800f; float elapsed = 0f;
+            string lastOut = "", lastErr = "";
             while (!process.HasExited && elapsed < timeout)
             {
                 yield return new WaitForSeconds(0.5f);
                 elapsed += 0.5f;
-                
-                // 处理新的输出
-                if (outputBuffer != lastOutputBuffer)
+
+                if (outputBuffer != lastOut)
                 {
-                    string newOutput = outputBuffer.Substring(lastOutputBuffer.Length);
-                    string[] lines = newOutput.Split('\n');
-                    
-                    foreach (string line in lines)
+                    string newOut = outputBuffer.Substring(lastOut.Length);
+                    foreach (string line in newOut.Split('\n'))
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            scriptOutput += line + "\n";
-                            Debug.Log($"Extractor4.py输出: {line}");
-                            UpdateStatus($"Extractor4.py处理中: {line}");
-                            
-                            if (pythonOutputViewer != null)
-                            {
-                                pythonOutputViewer.AddOutput($"[Extractor4] {line}", false);
-                                
-                                // 解析进度信息
-                                float progress = ParseProgressFromOutput(line);
-                                if (progress >= 0)
-                                {
-                                    pythonOutputViewer.SetProgress(30f + progress * 0.3f, line); // 30%-60%进度范围
-                                }
-                            }
+                            Debug.Log($"worker.py: {line}");
+                            UpdateStatus(line);
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[worker] {line}", false);
                         }
                     }
-                    lastOutputBuffer = outputBuffer;
+                    lastOut = outputBuffer;
                 }
-                
-                // 处理新的错误
-                if (errorBuffer != lastErrorBuffer)
+
+                if (errorBuffer != lastErr)
                 {
-                    string newError = errorBuffer.Substring(lastErrorBuffer.Length);
-                    string[] lines = newError.Split('\n');
-                    
-                    foreach (string line in lines)
+                    string newErr = errorBuffer.Substring(lastErr.Length);
+                    foreach (string line in newErr.Split('\n'))
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            // 检查是否是tqdm进度条输出（正常行为，不是错误）
-                            if (IsTqdmProgressOutput(line))
-                            {
-                                // tqdm进度条输出到stderr是正常的，当作普通输出处理
-                                scriptOutput += line + "\n";
-                                Debug.Log($"Extractor4.py进度: {line}");
-                                
-                                if (pythonOutputViewer != null)
-                                {
-                                    pythonOutputViewer.AddOutput($"[Extractor4] {line}", false);
-                                    
-                                    // 解析进度信息
-                                    float progress = ParseProgressFromOutput(line);
-                                    if (progress >= 0)
-                                    {
-                                        pythonOutputViewer.SetProgress(30f + progress * 0.3f, line);
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                // 真正的错误
-                                scriptError += line + "\n";
-                                Debug.LogWarning($"Extractor4.py错误: {line}");
-                                
-                                if (pythonOutputViewer != null)
-                                {
-                                    pythonOutputViewer.AddOutput($"[Extractor4错误] {line}", true);
-                                }
-                            }
+                            Debug.LogWarning($"worker.py err: {line}");
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[worker err] {line}", true);
                         }
                     }
-                    lastErrorBuffer = errorBuffer;
-                }
-                
-                // 更新超时进度
-                if (pythonOutputViewer != null && elapsed % 10f < 0.5f) // 每10秒更新一次
-                {
-                    pythonOutputViewer.AddOutput($"Extractor4.py执行中... ({elapsed:F0}s / {timeout:F0}s)");
+                    lastErr = errorBuffer;
                 }
             }
-            
+
             if (!process.HasExited)
             {
-                // 超时，强制结束进程
-                try
-                {
-                    process.Kill();
-                }
-                catch { }
-                
-                yield return new WaitForSeconds(1f);
-                
+                try { process.Kill(); } catch { }
                 process?.Dispose();
-                throw new System.Exception($"Extractor4.py脚本执行超时 ({timeout}秒)");
+                Debug.LogError("worker.py 超时");
+                onComplete?.Invoke(false);
+                yield break;
             }
-            
-            process.WaitForExit();
-            exitCode = process.ExitCode;
-            processFinished = true;
-            process.Dispose();
-            
-            if (processFinished)
+
+            process.WaitForExit(); int exitCode = process.ExitCode; process.Dispose();
+            if (exitCode != 0)
             {
-                if (exitCode == 0)
-                {
-                    Debug.Log("Extractor4.py执行成功");
-                    if (pythonOutputViewer != null)
-                    {
-                        pythonOutputViewer.AddOutput("Extractor4.py执行成功");
-                    }
-                    onSuccess?.Invoke(true);
-                }
-                else
-                {
-                    string errorMsg = $"Extractor4.py执行失败，退出码: {exitCode}";
-                    if (!string.IsNullOrEmpty(scriptError))
-                    {
-                        errorMsg += $"\n错误输出: {scriptError}";
-                    }
-                    throw new System.Exception(errorMsg);
-                }
+                Debug.LogError($"worker.py 退出码: {exitCode}");
+                onComplete?.Invoke(false);
+                yield break;
             }
+
+            // 成功后：尝试把 powerline 输出（如 *_tower_coordinates.csv）复制到 Resources
+            string producedCsv = Path.Combine(extractDir, baseName + "_tower_coordinates.csv");
+            if (File.Exists(producedCsv))
+            {
+                string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", Path.GetFileName(producedCsv));
+                try { File.Copy(producedCsv, resourcesCsvPath, true); Debug.Log($"复制CSV到Resources: {resourcesCsvPath}"); }
+                catch (System.Exception ex) { Debug.LogWarning($"复制CSV失败: {ex.Message}"); }
+            }
+
+            // 确保 raw/json 在 StreamingAssets 下
+            if (File.Exists(rawOutPath)) Debug.Log($"RAW输出: {rawOutPath}");
+            if (File.Exists(jsonOutPath)) Debug.Log($"JSON输出: {jsonOutPath}");
+
+            onComplete?.Invoke(true);
         }
         
         /// <summary>
