@@ -316,38 +316,43 @@ public class AIAssistantManager : MonoBehaviour
         rootElement.style.left = 0;
         // 使用BringToFront()来确保在最上层，而不是zIndex
         
-        // 创建聊天面板 - 全屏显示优化
+        // 创建聊天面板 - 优化尺寸和布局
         chatPanel = new VisualElement();
-        chatPanel.style.width = Length.Percent(90); // 全屏宽度
-        chatPanel.style.height = Length.Percent(90); // 全屏高度
+        chatPanel.style.width = Length.Percent(85); // 适中的宽度
+        chatPanel.style.height = Length.Percent(85); // 适中的高度
         chatPanel.style.position = Position.Absolute;
-        chatPanel.style.top = Length.Percent(5);
-        chatPanel.style.left = Length.Percent(5);
-        chatPanel.style.right = Length.Percent(5);
-        chatPanel.style.bottom = Length.Percent(5);
+        chatPanel.style.top = Length.Percent(7.5f);
+        chatPanel.style.left = Length.Percent(7.5f);
+        chatPanel.style.right = Length.Percent(7.5f);
+        chatPanel.style.bottom = Length.Percent(7.5f);
         chatPanel.style.justifyContent = Justify.Center;
         chatPanel.style.alignItems = Align.Center;
-        chatPanel.style.backgroundColor = backgroundColor;
-        chatPanel.style.borderTopLeftRadius = 20;
-        chatPanel.style.borderTopRightRadius = 20;
-        chatPanel.style.borderBottomLeftRadius = 20;
-        chatPanel.style.borderBottomRightRadius = 20;
-        chatPanel.style.paddingTop = 25;
-        chatPanel.style.paddingBottom = 25;
-        chatPanel.style.paddingLeft = 30;
-        chatPanel.style.paddingRight = 30;
+        chatPanel.style.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.95f); // 更深的背景色
+        chatPanel.style.borderTopLeftRadius = 25;
+        chatPanel.style.borderTopRightRadius = 25;
+        chatPanel.style.borderBottomLeftRadius = 25;
+        chatPanel.style.borderBottomRightRadius = 25;
+        chatPanel.style.paddingTop = 30;
+        chatPanel.style.paddingBottom = 30;
+        chatPanel.style.paddingLeft = 35;
+        chatPanel.style.paddingRight = 35;
         chatPanel.style.display = DisplayStyle.None; // 默认隐藏
-        // 使用BringToFront()来确保聊天面板在最上层，而不是zIndex
         
-        // 添加边框
-        chatPanel.style.borderTopWidth = 1;
-        chatPanel.style.borderBottomWidth = 1;
-        chatPanel.style.borderLeftWidth = 1;
-        chatPanel.style.borderRightWidth = 1;
-        chatPanel.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-        chatPanel.style.borderBottomColor = new Color(0.1f, 0.1f, 0.15f, 0.5f);
-        chatPanel.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-        chatPanel.style.borderRightColor = new Color(0.1f, 0.1f, 0.15f, 0.5f);
+        // 添加现代化边框和阴影效果
+        chatPanel.style.borderTopWidth = 2;
+        chatPanel.style.borderBottomWidth = 2;
+        chatPanel.style.borderLeftWidth = 2;
+        chatPanel.style.borderRightWidth = 2;
+        chatPanel.style.borderTopColor = new Color(0.4f, 0.4f, 0.6f, 0.8f);
+        chatPanel.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.8f);
+        chatPanel.style.borderLeftColor = new Color(0.4f, 0.4f, 0.6f, 0.8f);
+        chatPanel.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.8f);
+        
+        // 添加内阴影效果（通过多层边框实现）
+        chatPanel.style.borderTopWidth = 3;
+        chatPanel.style.borderBottomWidth = 3;
+        chatPanel.style.borderLeftWidth = 3;
+        chatPanel.style.borderRightWidth = 3;
         
         // 创建标题栏
         CreateTitleBar();
@@ -395,52 +400,67 @@ public class AIAssistantManager : MonoBehaviour
         titleBar.style.flexDirection = FlexDirection.Row;
         titleBar.style.justifyContent = Justify.SpaceBetween;
         titleBar.style.alignItems = Align.Center;
-        titleBar.style.marginBottom = 15;
-        titleBar.style.paddingTop = 8;
-        titleBar.style.paddingBottom = 8;
-        titleBar.style.paddingLeft = 12;
-        titleBar.style.paddingRight = 12;
+        titleBar.style.marginBottom = 20;
+        titleBar.style.paddingTop = 15;
+        titleBar.style.paddingBottom = 15;
+        titleBar.style.paddingLeft = 20;
+        titleBar.style.paddingRight = 20;
         
-        // 添加渐变背景
-        titleBar.style.backgroundImage = new StyleBackground(
-            new Texture2D(1, 1) // 这里可以替换为实际的渐变纹理
-        );
-        titleBar.style.backgroundColor = new Color(0.15f, 0.15f, 0.2f, 0.8f);
-        titleBar.style.borderTopLeftRadius = 10;
-        titleBar.style.borderTopRightRadius = 10;
-        titleBar.style.borderBottomLeftRadius = 10;
-        titleBar.style.borderBottomRightRadius = 10;
+        // 现代化标题栏背景
+        titleBar.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.95f);
+        titleBar.style.borderTopLeftRadius = 15;
+        titleBar.style.borderTopRightRadius = 15;
+        titleBar.style.borderBottomLeftRadius = 15;
+        titleBar.style.borderBottomRightRadius = 15;
         
-        // 创建标题标签
-        var titleLabel = new Label(assistantName);
-        titleLabel.style.color = assistantColor;
-        titleLabel.style.fontSize = 20;
+        // 添加边框效果
+        titleBar.style.borderTopWidth = 1;
+        titleBar.style.borderBottomWidth = 1;
+        titleBar.style.borderLeftWidth = 1;
+        titleBar.style.borderRightWidth = 1;
+        titleBar.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        titleBar.style.borderBottomColor = new Color(0.1f, 0.1f, 0.2f, 0.6f);
+        titleBar.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        titleBar.style.borderRightColor = new Color(0.1f, 0.1f, 0.2f, 0.6f);
+        
+        // 创建标题标签 - 改进样式
+        var titleLabel = new Label("🤖 " + assistantName);
+        titleLabel.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        titleLabel.style.fontSize = 22;
         titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginLeft = 5;
+        titleLabel.style.marginLeft = 8;
         
-        // 创建关闭按钮 - 改进样式
+        // 创建关闭按钮 - 现代化样式
         var closeButton = new Button(() => ToggleChatPanel(false));
-        closeButton.text = "×";
-        closeButton.style.width = 32;
-        closeButton.style.height = 32;
-        closeButton.style.backgroundColor = new Color(0.8f, 0.2f, 0.2f, 0.8f);
+        closeButton.text = "✕";
+        closeButton.style.width = 36;
+        closeButton.style.height = 36;
+        closeButton.style.backgroundColor = new Color(0.7f, 0.2f, 0.2f, 0.9f);
         closeButton.style.color = Color.white;
         closeButton.style.borderTopWidth = 0;
         closeButton.style.borderBottomWidth = 0;
         closeButton.style.borderLeftWidth = 0;
         closeButton.style.borderRightWidth = 0;
-        closeButton.style.fontSize = 22;
-        closeButton.style.borderTopLeftRadius = 16;
-        closeButton.style.borderTopRightRadius = 16;
-        closeButton.style.borderBottomLeftRadius = 16;
-        closeButton.style.borderBottomRightRadius = 16;
+        closeButton.style.fontSize = 18;
+        closeButton.style.borderTopLeftRadius = 18;
+        closeButton.style.borderTopRightRadius = 18;
+        closeButton.style.borderBottomLeftRadius = 18;
+        closeButton.style.borderBottomRightRadius = 18;
         
-        // 添加悬停效果
+        // 添加悬停和点击效果
         closeButton.RegisterCallback<MouseEnterEvent>(evt => {
-            closeButton.style.backgroundColor = new Color(1f, 0.3f, 0.3f, 0.9f);
+            closeButton.style.backgroundColor = new Color(0.9f, 0.3f, 0.3f, 1f);
+            closeButton.style.scale = new Scale(new Vector3(1.1f, 1.1f, 1f));
         });
         closeButton.RegisterCallback<MouseLeaveEvent>(evt => {
-            closeButton.style.backgroundColor = new Color(0.8f, 0.2f, 0.2f, 0.8f);
+            closeButton.style.backgroundColor = new Color(0.7f, 0.2f, 0.2f, 0.9f);
+            closeButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        });
+        closeButton.RegisterCallback<MouseDownEvent>(evt => {
+            closeButton.style.scale = new Scale(new Vector3(0.95f, 0.95f, 1f));
+        });
+        closeButton.RegisterCallback<MouseUpEvent>(evt => {
+            closeButton.style.scale = new Scale(new Vector3(1.1f, 1.1f, 1f));
         });
         
         titleBar.Add(titleLabel);
@@ -456,41 +476,33 @@ public class AIAssistantManager : MonoBehaviour
     {
         chatContainer = new ScrollView();
         chatContainer.style.flexGrow = 1;
-        chatContainer.style.marginBottom = 20;
-        chatContainer.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.6f);
-        chatContainer.style.borderTopLeftRadius = 15;
-        chatContainer.style.borderTopRightRadius = 15;
-        chatContainer.style.borderBottomLeftRadius = 15;
-        chatContainer.style.borderBottomRightRadius = 15;
+        chatContainer.style.marginBottom = 25;
+        chatContainer.style.backgroundColor = new Color(0.1f, 0.1f, 0.15f, 0.7f);
+        chatContainer.style.borderTopLeftRadius = 18;
+        chatContainer.style.borderTopRightRadius = 18;
+        chatContainer.style.borderBottomLeftRadius = 18;
+        chatContainer.style.borderBottomRightRadius = 18;
         chatContainer.style.paddingTop = 20;
         chatContainer.style.paddingBottom = 20;
         chatContainer.style.paddingLeft = 20;
         chatContainer.style.paddingRight = 20;
+        chatContainer.style.minHeight = 300; // 设置最小高度
         
-        // 添加边框
+        // 添加现代化边框
         chatContainer.style.borderTopWidth = 1;
         chatContainer.style.borderBottomWidth = 1;
         chatContainer.style.borderLeftWidth = 1;
         chatContainer.style.borderRightWidth = 1;
-        chatContainer.style.borderTopColor = new Color(0.25f, 0.25f, 0.35f, 0.3f);
-        chatContainer.style.borderBottomColor = new Color(0.1f, 0.1f, 0.15f, 0.3f);
-        chatContainer.style.borderLeftColor = new Color(0.25f, 0.25f, 0.35f, 0.3f);
-        chatContainer.style.borderRightColor = new Color(0.1f, 0.1f, 0.15f, 0.3f);
+        chatContainer.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.4f);
+        chatContainer.style.borderBottomColor = new Color(0.15f, 0.15f, 0.2f, 0.4f);
+        chatContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.4f);
+        chatContainer.style.borderRightColor = new Color(0.15f, 0.15f, 0.2f, 0.4f);
         
-        // 自定义滚动条样式 - 使用兼容的方式
-        // chatContainer.verticalScroller.style.backgroundColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
-        // chatContainer.verticalScroller.style.width = 8;
-        // chatContainer.verticalScroller.style.borderTopLeftRadius = 4;
-        // chatContainer.verticalScroller.style.borderTopRightRadius = 4;
-        // chatContainer.verticalScroller.style.borderBottomLeftRadius = 4;
-        // chatContainer.verticalScroller.style.borderBottomRightRadius = 4;
-        
-        // 滚动条滑块样式
-        // chatContainer.verticalScroller.slider.style.backgroundColor = new Color(0.4f, 0.4f, 0.6f, 0.8f);
-        // chatContainer.verticalScroller.slider.style.borderTopLeftRadius = 4;
-        // chatContainer.verticalScroller.slider.style.borderTopRightRadius = 4;
-        // chatContainer.verticalScroller.slider.style.borderBottomLeftRadius = 4;
-        // chatContainer.verticalScroller.slider.style.borderBottomRightRadius = 4;
+        // 添加内阴影效果
+        chatContainer.style.borderTopWidth = 2;
+        chatContainer.style.borderBottomWidth = 2;
+        chatContainer.style.borderLeftWidth = 2;
+        chatContainer.style.borderRightWidth = 2;
         
         chatPanel.Add(chatContainer);
     }
@@ -504,45 +516,88 @@ public class AIAssistantManager : MonoBehaviour
         inputArea.style.flexDirection = FlexDirection.Row;
         inputArea.style.alignItems = Align.Center;
         inputArea.style.marginTop = 20;
-        
-        // 创建输入框 - 改进样式
-        inputField = new TextField();
-        inputField.style.flexGrow = 1;
-        inputField.style.backgroundColor = new Color(0.18f, 0.18f, 0.25f, 0.9f);
-        inputField.style.color = Color.white;
-        inputField.style.borderTopLeftRadius = 8;
-        inputField.style.borderTopRightRadius = 8;
-        inputField.style.borderBottomLeftRadius = 8;
-        inputField.style.borderBottomRightRadius = 8;
-        inputField.style.paddingLeft = 16;
-        inputField.style.paddingRight = 16;
-        inputField.style.paddingTop = 12;
-        inputField.style.paddingBottom = 12;
-        inputField.style.marginRight = 15;
-        inputField.style.fontSize = 16;
+        inputArea.style.paddingTop = 15;
+        inputArea.style.paddingBottom = 15;
+        inputArea.style.paddingLeft = 20;
+        inputArea.style.paddingRight = 20;
+        inputArea.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.8f);
+        inputArea.style.borderTopLeftRadius = 15;
+        inputArea.style.borderTopRightRadius = 15;
+        inputArea.style.borderBottomLeftRadius = 15;
+        inputArea.style.borderBottomRightRadius = 15;
+        inputArea.style.minHeight = 60; // 设置最小高度
         
         // 添加边框
-        inputField.style.borderTopWidth = 1;
-        inputField.style.borderBottomWidth = 1;
-        inputField.style.borderLeftWidth = 1;
-        inputField.style.borderRightWidth = 1;
-        inputField.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-        inputField.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
-        inputField.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-        inputField.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
+        inputArea.style.borderTopWidth = 1;
+        inputArea.style.borderBottomWidth = 1;
+        inputArea.style.borderLeftWidth = 1;
+        inputArea.style.borderRightWidth = 1;
+        inputArea.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
+        inputArea.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
+        inputArea.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
+        inputArea.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
+        
+        // 创建输入框 - 现代化样式
+        inputField = new TextField();
+        inputField.style.flexGrow = 1;
+        inputField.style.backgroundColor = new Color(0.15f, 0.15f, 0.22f, 0.95f);
+        inputField.style.color = new Color(0.95f, 0.95f, 1f, 1f);
+        inputField.style.borderTopLeftRadius = 12;
+        inputField.style.borderTopRightRadius = 12;
+        inputField.style.borderBottomLeftRadius = 12;
+        inputField.style.borderBottomRightRadius = 12;
+        inputField.style.paddingLeft = 20;
+        inputField.style.paddingRight = 20;
+        inputField.style.paddingTop = 15;
+        inputField.style.paddingBottom = 15;
+        inputField.style.marginRight = 20;
+        inputField.style.fontSize = 16;
+        
+        // 添加占位符效果
+        inputField.RegisterCallback<FocusInEvent>(evt => {
+            if (inputField.value == "输入您的问题...")
+            {
+                inputField.value = "";
+                inputField.style.color = new Color(0.95f, 0.95f, 1f, 1f);
+            }
+        });
+        
+        inputField.RegisterCallback<FocusOutEvent>(evt => {
+            if (string.IsNullOrEmpty(inputField.value))
+            {
+                inputField.value = "输入您的问题...";
+                inputField.style.color = new Color(0.6f, 0.6f, 0.7f, 0.8f);
+            }
+        });
+        
+        // 设置初始占位符
+        inputField.value = "输入您的问题...";
+        inputField.style.color = new Color(0.6f, 0.6f, 0.7f, 0.8f);
+        
+        // 添加现代化边框
+        inputField.style.borderTopWidth = 2;
+        inputField.style.borderBottomWidth = 2;
+        inputField.style.borderLeftWidth = 2;
+        inputField.style.borderRightWidth = 2;
+        inputField.style.borderTopColor = new Color(0.4f, 0.4f, 0.5f, 0.6f);
+        inputField.style.borderBottomColor = new Color(0.25f, 0.25f, 0.35f, 0.6f);
+        inputField.style.borderLeftColor = new Color(0.4f, 0.4f, 0.5f, 0.6f);
+        inputField.style.borderRightColor = new Color(0.25f, 0.25f, 0.35f, 0.6f);
         
         // 添加焦点效果
         inputField.RegisterCallback<FocusInEvent>(evt => {
-            inputField.style.borderTopColor = assistantColor;
-            inputField.style.borderBottomColor = assistantColor;
-            inputField.style.borderLeftColor = assistantColor;
-            inputField.style.borderRightColor = assistantColor;
+            inputField.style.borderTopColor = new Color(0.6f, 0.6f, 0.8f, 0.8f);
+            inputField.style.borderBottomColor = new Color(0.6f, 0.6f, 0.8f, 0.8f);
+            inputField.style.borderLeftColor = new Color(0.6f, 0.6f, 0.8f, 0.8f);
+            inputField.style.borderRightColor = new Color(0.6f, 0.6f, 0.8f, 0.8f);
+            inputField.style.backgroundColor = new Color(0.18f, 0.18f, 0.25f, 0.98f);
         });
         inputField.RegisterCallback<FocusOutEvent>(evt => {
-            inputField.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-            inputField.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
-            inputField.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.5f);
-            inputField.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.5f);
+            inputField.style.borderTopColor = new Color(0.4f, 0.4f, 0.5f, 0.6f);
+            inputField.style.borderBottomColor = new Color(0.25f, 0.25f, 0.35f, 0.6f);
+            inputField.style.borderLeftColor = new Color(0.4f, 0.4f, 0.5f, 0.6f);
+            inputField.style.borderRightColor = new Color(0.25f, 0.25f, 0.35f, 0.6f);
+            inputField.style.backgroundColor = new Color(0.15f, 0.15f, 0.22f, 0.95f);
         });
         
         // 添加回车键发送功能
@@ -550,46 +605,46 @@ public class AIAssistantManager : MonoBehaviour
         {
             if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
             {
-                SendMessage();
+                // 检查是否是占位符文本
+                if (inputField.value != "输入您的问题...")
+                {
+                    SendMessage();
+                }
             }
         });
         
-        // 创建发送按钮 - 改进样式
+        // 创建发送按钮 - 现代化样式
         sendButton = new Button(SendMessage);
         sendButton.text = "发送";
-        sendButton.style.width = 90;
-        sendButton.style.height = 48;
+        sendButton.style.width = 100;
+        sendButton.style.height = 52;
         
         // 现代化发送按钮样式
-        sendButton.style.backgroundImage = new StyleBackground(CreateSendButtonGradient());
-        sendButton.style.backgroundColor = assistantColor; // 备用颜色
-        
+        sendButton.style.backgroundColor = new Color(0.4f, 0.6f, 0.9f, 0.95f);
         sendButton.style.color = Color.white;
-        sendButton.style.borderTopLeftRadius = 21;
-        sendButton.style.borderTopRightRadius = 21;
-        sendButton.style.borderBottomLeftRadius = 21;
-        sendButton.style.borderBottomRightRadius = 21;
+        sendButton.style.borderTopLeftRadius = 26;
+        sendButton.style.borderTopRightRadius = 26;
+        sendButton.style.borderBottomLeftRadius = 26;
+        sendButton.style.borderBottomRightRadius = 26;
         sendButton.style.unityFontStyleAndWeight = FontStyle.Bold;
         sendButton.style.fontSize = 16;
         sendButton.style.unityTextAlign = TextAnchor.MiddleCenter;
         
         // 内边距
-        sendButton.style.paddingTop = 12;
-        sendButton.style.paddingBottom = 12;
-        sendButton.style.paddingLeft = 18;
-        sendButton.style.paddingRight = 18;
+        sendButton.style.paddingTop = 15;
+        sendButton.style.paddingBottom = 15;
+        sendButton.style.paddingLeft = 20;
+        sendButton.style.paddingRight = 20;
         
-        // 添加悬停效果
+        // 添加悬停和点击效果
         sendButton.RegisterCallback<MouseEnterEvent>(evt => {
-            sendButton.style.backgroundImage = new StyleBackground(CreateSendButtonHoverGradient());
+            sendButton.style.backgroundColor = new Color(0.5f, 0.7f, 1f, 1f);
             sendButton.style.scale = new Scale(new Vector3(1.05f, 1.05f, 1f));
         });
         sendButton.RegisterCallback<MouseLeaveEvent>(evt => {
-            sendButton.style.backgroundImage = new StyleBackground(CreateSendButtonGradient());
+            sendButton.style.backgroundColor = new Color(0.4f, 0.6f, 0.9f, 0.95f);
             sendButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
         });
-        
-        // 添加点击效果
         sendButton.RegisterCallback<MouseDownEvent>(evt => {
             sendButton.style.scale = new Scale(new Vector3(0.95f, 0.95f, 1f));
         });
@@ -890,25 +945,91 @@ public class AIAssistantManager : MonoBehaviour
         Debug.Log($"切换聊天面板显示状态: {newState}");
         Debug.Log($"当前显示状态: {chatPanel.style.display}");
         
-        chatPanel.style.display = newState ? DisplayStyle.Flex : DisplayStyle.None;
-        
-        // 确保面板在最上层
-        if (newState && rootElement != null)
-        {
-            rootElement.BringToFront();
-            chatPanel.BringToFront();
-            
-            // 强制刷新UI
-            rootElement.MarkDirtyRepaint();
-            chatPanel.MarkDirtyRepaint();
-            
-            Debug.Log("聊天面板已显示并置顶");
-        }
-        
         if (newState)
         {
+            // 显示面板时添加动画效果
+            chatPanel.style.display = DisplayStyle.Flex;
+            chatPanel.style.opacity = 0f;
+            chatPanel.style.scale = new Scale(new Vector3(0.9f, 0.9f, 1f));
+            
+            // 启动显示动画
+            StartCoroutine(AnimatePanelShow());
+            
+            // 确保面板在最上层
+            if (rootElement != null)
+            {
+                rootElement.BringToFront();
+                chatPanel.BringToFront();
+                
+                // 强制刷新UI
+                rootElement.MarkDirtyRepaint();
+                chatPanel.MarkDirtyRepaint();
+                
+                Debug.Log("聊天面板已显示并置顶");
+            }
+            
             inputField?.Focus();
         }
+        else
+        {
+            // 隐藏面板时添加动画效果
+            StartCoroutine(AnimatePanelHide());
+        }
+    }
+    
+    /// <summary>
+    /// 面板显示动画
+    /// </summary>
+    private IEnumerator AnimatePanelShow()
+    {
+        float duration = 0.3f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            
+            // 使用缓动函数
+            float easeOut = 1f - Mathf.Pow(1f - t, 3f);
+            
+            chatPanel.style.opacity = easeOut;
+            chatPanel.style.scale = new Scale(new Vector3(0.9f + (0.1f * easeOut), 0.9f + (0.1f * easeOut), 1f));
+            
+            yield return null;
+        }
+        
+        // 确保最终状态
+        chatPanel.style.opacity = 1f;
+        chatPanel.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+    }
+    
+    /// <summary>
+    /// 面板隐藏动画
+    /// </summary>
+    private IEnumerator AnimatePanelHide()
+    {
+        float duration = 0.2f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float t = elapsed / duration;
+            
+            // 使用缓动函数
+            float easeIn = t * t;
+            
+            chatPanel.style.opacity = 1f - easeIn;
+            chatPanel.style.scale = new Scale(new Vector3(1f - (0.1f * easeIn), 1f - (0.1f * easeIn), 1f));
+            
+            yield return null;
+        }
+        
+        // 隐藏面板
+        chatPanel.style.display = DisplayStyle.None;
+        chatPanel.style.opacity = 1f;
+        chatPanel.style.scale = new Scale(new Vector3(1f, 1f, 1f));
     }
     
     /// <summary>
@@ -917,7 +1038,7 @@ public class AIAssistantManager : MonoBehaviour
     private void SendMessage()
     {
         string message = inputField.value?.Trim();
-        if (string.IsNullOrEmpty(message) || isTyping)
+        if (string.IsNullOrEmpty(message) || message == "输入您的问题..." || isTyping)
             return;
         
         // 添加用户消息
@@ -1332,8 +1453,10 @@ public class AIAssistantManager : MonoBehaviour
     {
         var messageElement = new VisualElement();
         messageElement.style.flexDirection = FlexDirection.Row;
-        messageElement.style.marginBottom = 20;
+        messageElement.style.marginBottom = 25; // 增加消息间距
+        messageElement.style.marginTop = 10; // 添加上边距
         messageElement.style.alignItems = Align.FlexStart;
+        messageElement.style.minHeight = 60; // 设置最小高度防止重叠
         
         if (message.isUser)
         {
@@ -1347,10 +1470,11 @@ public class AIAssistantManager : MonoBehaviour
         // 创建消息容器
         var messageContainer = new VisualElement();
         messageContainer.style.flexDirection = FlexDirection.Column;
-        messageContainer.style.maxWidth = Length.Percent(75);
+        messageContainer.style.maxWidth = Length.Percent(70); // 稍微减小最大宽度
         messageContainer.style.alignItems = message.isUser ? Align.FlexEnd : Align.FlexStart;
-        messageContainer.style.marginLeft = message.isUser ? 0 : 12;
-        messageElement.style.marginRight = message.isUser ? 12 : 0;
+        messageContainer.style.marginLeft = message.isUser ? 0 : 15;
+        messageContainer.style.marginRight = message.isUser ? 15 : 0;
+        messageContainer.style.flexGrow = 1; // 确保容器能够正确扩展
         
         // 创建消息气泡
         var bubble = CreateMessageBubble(message);
@@ -1373,7 +1497,8 @@ public class AIAssistantManager : MonoBehaviour
         // 滚动到底部
         if (chatContainer is ScrollView scrollView)
         {
-            scrollView.scrollOffset = new Vector2(0, scrollView.scrollOffset.y + 100);
+            // 延迟滚动，确保消息已经完全渲染
+            StartCoroutine(ScrollToBottomDelayed(scrollView));
         }
     }
     
@@ -1383,30 +1508,46 @@ public class AIAssistantManager : MonoBehaviour
     private VisualElement CreateAvatar(ChatMessage message)
     {
         var avatar = new VisualElement();
-        avatar.style.width = 36;
-        avatar.style.height = 36;
-        avatar.style.borderTopLeftRadius = 18;
-        avatar.style.borderTopRightRadius = 18;
-        avatar.style.borderBottomLeftRadius = 18;
-        avatar.style.borderBottomRightRadius = 18;
-        avatar.style.marginRight = message.isUser ? 12 : 0;
-        avatar.style.marginLeft = message.isUser ? 0 : 12;
+        avatar.style.width = 40;
+        avatar.style.height = 40;
+        avatar.style.borderTopLeftRadius = 20;
+        avatar.style.borderTopRightRadius = 20;
+        avatar.style.borderBottomLeftRadius = 20;
+        avatar.style.borderBottomRightRadius = 20;
+        avatar.style.marginRight = message.isUser ? 15 : 0;
+        avatar.style.marginLeft = message.isUser ? 0 : 15;
         
         if (message.isUser)
         {
-            // 用户头像 - 蓝色渐变
-            avatar.style.backgroundImage = new StyleBackground(CreateUserAvatarGradient());
+            // 用户头像 - 现代化蓝色渐变
+            avatar.style.backgroundColor = new Color(0.4f, 0.6f, 0.9f, 0.95f);
+            avatar.style.borderTopWidth = 2;
+            avatar.style.borderBottomWidth = 2;
+            avatar.style.borderLeftWidth = 2;
+            avatar.style.borderRightWidth = 2;
+            avatar.style.borderTopColor = new Color(0.5f, 0.7f, 1f, 0.8f);
+            avatar.style.borderBottomColor = new Color(0.3f, 0.5f, 0.8f, 0.8f);
+            avatar.style.borderLeftColor = new Color(0.5f, 0.7f, 1f, 0.8f);
+            avatar.style.borderRightColor = new Color(0.3f, 0.5f, 0.8f, 0.8f);
         }
         else
         {
-            // AI头像 - 使用助手颜色
-            avatar.style.backgroundImage = new StyleBackground(CreateAIAvatarGradient());
+            // AI头像 - 现代化紫色渐变
+            avatar.style.backgroundColor = new Color(0.6f, 0.4f, 0.8f, 0.95f);
+            avatar.style.borderTopWidth = 2;
+            avatar.style.borderBottomWidth = 2;
+            avatar.style.borderLeftWidth = 2;
+            avatar.style.borderRightWidth = 2;
+            avatar.style.borderTopColor = new Color(0.7f, 0.5f, 0.9f, 0.8f);
+            avatar.style.borderBottomColor = new Color(0.5f, 0.3f, 0.7f, 0.8f);
+            avatar.style.borderLeftColor = new Color(0.7f, 0.5f, 0.9f, 0.8f);
+            avatar.style.borderRightColor = new Color(0.5f, 0.3f, 0.7f, 0.8f);
         }
         
         // 添加头像文字
-        var avatarText = new Label(message.isUser ? "您" : "AI");
+        var avatarText = new Label(message.isUser ? "您" : "🤖");
         avatarText.style.color = Color.white;
-        avatarText.style.fontSize = 12;
+        avatarText.style.fontSize = 14;
         avatarText.style.unityFontStyleAndWeight = FontStyle.Bold;
         avatarText.style.unityTextAlign = TextAnchor.MiddleCenter;
         avatarText.style.position = Position.Absolute;
@@ -1425,42 +1566,79 @@ public class AIAssistantManager : MonoBehaviour
     private VisualElement CreateMessageBubble(ChatMessage message)
     {
         var bubble = new VisualElement();
-        bubble.style.paddingTop = 12;
-        bubble.style.paddingBottom = 12;
-        bubble.style.paddingLeft = 16;
-        bubble.style.paddingRight = 16;
-        bubble.style.marginBottom = 6;
+        bubble.style.paddingTop = 16;
+        bubble.style.paddingBottom = 16;
+        bubble.style.paddingLeft = 20;
+        bubble.style.paddingRight = 20;
+        bubble.style.marginBottom = 8;
         
         // 根据消息类型设置样式
         if (message.isUser)
         {
-            // 用户消息 - 蓝色渐变
-            bubble.style.backgroundImage = new StyleBackground(CreateUserBubbleGradient());
-            bubble.style.borderTopLeftRadius = 20;
+            // 用户消息 - 现代化蓝色渐变
+            bubble.style.backgroundColor = new Color(0.3f, 0.5f, 0.9f, 0.95f);
+            bubble.style.borderTopLeftRadius = 22;
             bubble.style.borderTopRightRadius = 8;
-            bubble.style.borderBottomLeftRadius = 20;
-            bubble.style.borderBottomRightRadius = 20;
+            bubble.style.borderBottomLeftRadius = 22;
+            bubble.style.borderBottomRightRadius = 22;
+            
+            // 添加边框效果
+            bubble.style.borderTopWidth = 1;
+            bubble.style.borderBottomWidth = 1;
+            bubble.style.borderLeftWidth = 1;
+            bubble.style.borderRightWidth = 1;
+            bubble.style.borderTopColor = new Color(0.4f, 0.6f, 1f, 0.8f);
+            bubble.style.borderBottomColor = new Color(0.2f, 0.4f, 0.8f, 0.8f);
+            bubble.style.borderLeftColor = new Color(0.4f, 0.6f, 1f, 0.8f);
+            bubble.style.borderRightColor = new Color(0.2f, 0.4f, 0.8f, 0.8f);
         }
         else
         {
-            // AI消息 - 深色渐变
-            bubble.style.backgroundImage = new StyleBackground(CreateAIBubbleGradient());
+            // AI消息 - 现代化深色渐变
+            bubble.style.backgroundColor = new Color(0.2f, 0.25f, 0.35f, 0.95f);
             bubble.style.borderTopLeftRadius = 8;
-            bubble.style.borderTopRightRadius = 20;
-            bubble.style.borderBottomLeftRadius = 20;
-            bubble.style.borderBottomRightRadius = 20;
+            bubble.style.borderTopRightRadius = 22;
+            bubble.style.borderBottomLeftRadius = 22;
+            bubble.style.borderBottomRightRadius = 22;
+            
+            // 添加边框效果
+            bubble.style.borderTopWidth = 1;
+            bubble.style.borderBottomWidth = 1;
+            bubble.style.borderLeftWidth = 1;
+            bubble.style.borderRightWidth = 1;
+            bubble.style.borderTopColor = new Color(0.3f, 0.35f, 0.45f, 0.8f);
+            bubble.style.borderBottomColor = new Color(0.15f, 0.2f, 0.3f, 0.8f);
+            bubble.style.borderLeftColor = new Color(0.3f, 0.35f, 0.45f, 0.8f);
+            bubble.style.borderRightColor = new Color(0.15f, 0.2f, 0.3f, 0.8f);
         }
         
         // 创建消息文本
         var textLabel = new Label(message.content);
-        textLabel.style.color = Color.white;
+        textLabel.style.color = new Color(0.95f, 0.95f, 1f, 1f);
         textLabel.style.whiteSpace = WhiteSpace.Normal;
         textLabel.style.unityTextAlign = TextAnchor.UpperLeft;
-        textLabel.style.fontSize = 14;
-        // textLabel.style.lineHeight = 20; // 移除不兼容的行高设置
+        textLabel.style.fontSize = 15;
+        textLabel.style.marginTop = 2;
+        textLabel.style.marginBottom = 2;
+        textLabel.style.minHeight = 20; // 设置最小高度
         
         bubble.Add(textLabel);
         return bubble;
+    }
+    
+    /// <summary>
+    /// 延迟滚动到底部
+    /// </summary>
+    private IEnumerator ScrollToBottomDelayed(ScrollView scrollView)
+    {
+        yield return new WaitForEndOfFrame();
+        
+        // 计算内容高度并滚动到底部
+        float contentHeight = scrollView.contentContainer.worldBound.height;
+        float viewportHeight = scrollView.worldBound.height;
+        float maxScrollOffset = Mathf.Max(0, contentHeight - viewportHeight);
+        
+        scrollView.scrollOffset = new Vector2(0, maxScrollOffset);
     }
     
     /// <summary>
@@ -1469,11 +1647,12 @@ public class AIAssistantManager : MonoBehaviour
     private Label CreateTimestampLabel(ChatMessage message)
     {
         var timestampLabel = new Label(message.timestamp.ToString("HH:mm"));
-        timestampLabel.style.color = new Color(0.6f, 0.6f, 0.7f, 0.8f);
-        timestampLabel.style.fontSize = 11;
-        timestampLabel.style.marginTop = 4;
-        timestampLabel.style.marginLeft = message.isUser ? 0 : 8;
-        timestampLabel.style.marginRight = message.isUser ? 8 : 0;
+        timestampLabel.style.color = new Color(0.7f, 0.7f, 0.8f, 0.7f);
+        timestampLabel.style.fontSize = 12;
+        timestampLabel.style.marginTop = 6;
+        timestampLabel.style.marginLeft = message.isUser ? 0 : 10;
+        timestampLabel.style.marginRight = message.isUser ? 10 : 0;
+        timestampLabel.style.unityFontStyleAndWeight = FontStyle.Normal;
         
         return timestampLabel;
     }
@@ -1483,7 +1662,7 @@ public class AIAssistantManager : MonoBehaviour
     /// </summary>
     private void AddWelcomeMessage()
     {
-        string welcomeMessage = $"欢迎使用{assistantName}！\n\n我可以帮助您：\n• 了解系统功能\n• 提供操作指导\n• 解答技术问题\n• 查询系统状态\n\n有什么可以帮助您的吗？";
+        string welcomeMessage = $"🎉 欢迎使用{assistantName}！\n\n我可以帮助您：\n• 📚 了解系统功能和使用方法\n• 🎯 提供操作指导和技术支持\n• 🔧 解答技术问题和故障排除\n• 📊 查询系统状态和配置信息\n\n💬 有什么可以帮助您的吗？";
         AddMessage(welcomeMessage, false);
         
         // 添加快捷操作按钮
@@ -1497,24 +1676,42 @@ public class AIAssistantManager : MonoBehaviour
     {
         var quickActionsContainer = new VisualElement();
         quickActionsContainer.style.flexDirection = FlexDirection.Row;
-        // quickActionsContainer.style.justifyContent = Justify.SpaceEvenly; // 移除不兼容的布局
-        quickActionsContainer.style.justifyContent = Justify.SpaceAround; // 使用兼容的布局方式
-        quickActionsContainer.style.marginTop = 15;
-        quickActionsContainer.style.marginBottom = 10;
+        quickActionsContainer.style.justifyContent = Justify.SpaceAround;
+        quickActionsContainer.style.marginTop = 20;
+        quickActionsContainer.style.marginBottom = 15;
+        quickActionsContainer.style.paddingTop = 15;
+        quickActionsContainer.style.paddingBottom = 15;
+        quickActionsContainer.style.paddingLeft = 20;
+        quickActionsContainer.style.paddingRight = 20;
+        quickActionsContainer.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.6f);
+        quickActionsContainer.style.borderTopLeftRadius = 12;
+        quickActionsContainer.style.borderTopRightRadius = 12;
+        quickActionsContainer.style.borderBottomLeftRadius = 12;
+        quickActionsContainer.style.borderBottomRightRadius = 12;
+        
+        // 添加边框
+        quickActionsContainer.style.borderTopWidth = 1;
+        quickActionsContainer.style.borderBottomWidth = 1;
+        quickActionsContainer.style.borderLeftWidth = 1;
+        quickActionsContainer.style.borderRightWidth = 1;
+        quickActionsContainer.style.borderTopColor = new Color(0.3f, 0.3f, 0.4f, 0.4f);
+        quickActionsContainer.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        quickActionsContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.4f, 0.4f);
+        quickActionsContainer.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
         
         // 系统帮助按钮
-        var helpButton = CreateQuickActionButton("系统帮助", "了解系统基本功能", () => {
-            AddMessage("系统主要功能包括：\n• 电力线可视化和管理\n• 多视角相机控制\n• 危险监测和预警\n• 无人机巡检管理\n• 地形适配和优化", false);
+        var helpButton = CreateQuickActionButton("📚 系统帮助", "了解系统基本功能", () => {
+            AddMessage("📋 系统主要功能包括：\n• 🔌 电力线可视化和管理\n• 📷 多视角相机控制\n• ⚠️ 危险监测和预警\n• 🚁 无人机巡检管理\n• 🗺️ 地形适配和优化", false);
         });
         
         // 操作指南按钮
-        var guideButton = CreateQuickActionButton("操作指南", "获取操作指导", () => {
-            AddMessage("基本操作步骤：\n1. 使用WASD键移动相机\n2. 鼠标滚轮缩放场景\n3. 右键拖拽旋转视角\n4. 点击电塔查看信息\n5. 使用工具栏切换功能", false);
+        var guideButton = CreateQuickActionButton("🎯 操作指南", "获取操作指导", () => {
+            AddMessage("🎮 基本操作步骤：\n1. 使用WASD键移动相机\n2. 鼠标滚轮缩放场景\n3. 右键拖拽旋转视角\n4. 点击电塔查看信息\n5. 使用工具栏切换功能", false);
         });
         
         // 故障排除按钮
-        var troubleshootButton = CreateQuickActionButton("故障排除", "常见问题解答", () => {
-            AddMessage("常见问题及解决方案：\n• 电塔位置不准确：使用位置修正功能\n• 连接线显示异常：检查数据格式\n• 性能问题：启用LOD优化\n• 材质问题：检查材质设置", false);
+        var troubleshootButton = CreateQuickActionButton("🔧 故障排除", "常见问题解答", () => {
+            AddMessage("🔍 常见问题及解决方案：\n• 电塔位置不准确：使用位置修正功能\n• 连接线显示异常：检查数据格式\n• 性能问题：启用LOD优化\n• 材质问题：检查材质设置", false);
         });
         
         quickActionsContainer.Add(helpButton);
@@ -1710,39 +1907,45 @@ public class AIAssistantManager : MonoBehaviour
     {
         var button = new Button(onClick);
         button.text = text;
-        button.style.width = 120;
-        button.style.height = 40;
+        button.style.width = 130;
+        button.style.height = 45;
         
         // 现代化快捷操作按钮样式
-        button.style.backgroundImage = new StyleBackground(CreateQuickActionGradient());
-        button.style.backgroundColor = secondaryColor; // 备用颜色
-        
+        button.style.backgroundColor = new Color(0.3f, 0.4f, 0.6f, 0.9f);
         button.style.color = Color.white;
-        button.style.borderTopLeftRadius = 20;
-        button.style.borderTopRightRadius = 20;
-        button.style.borderBottomLeftRadius = 20;
-        button.style.borderBottomRightRadius = 20;
-        button.style.fontSize = 13;
+        button.style.borderTopLeftRadius = 22;
+        button.style.borderTopRightRadius = 22;
+        button.style.borderBottomLeftRadius = 22;
+        button.style.borderBottomRightRadius = 22;
+        button.style.fontSize = 14;
         button.style.unityFontStyleAndWeight = FontStyle.Bold;
         button.style.unityTextAlign = TextAnchor.MiddleCenter;
         
         // 内边距
-        button.style.paddingTop = 8;
-        button.style.paddingBottom = 8;
-        button.style.paddingLeft = 12;
-        button.style.paddingRight = 12;
+        button.style.paddingTop = 10;
+        button.style.paddingBottom = 10;
+        button.style.paddingLeft = 15;
+        button.style.paddingRight = 15;
         
-        // 添加悬停效果
+        // 添加边框
+        button.style.borderTopWidth = 1;
+        button.style.borderBottomWidth = 1;
+        button.style.borderLeftWidth = 1;
+        button.style.borderRightWidth = 1;
+        button.style.borderTopColor = new Color(0.4f, 0.5f, 0.7f, 0.8f);
+        button.style.borderBottomColor = new Color(0.2f, 0.3f, 0.5f, 0.8f);
+        button.style.borderLeftColor = new Color(0.4f, 0.5f, 0.7f, 0.8f);
+        button.style.borderRightColor = new Color(0.2f, 0.3f, 0.5f, 0.8f);
+        
+        // 添加悬停和点击效果
         button.RegisterCallback<MouseEnterEvent>(evt => {
-            button.style.backgroundImage = new StyleBackground(CreateQuickActionHoverGradient());
+            button.style.backgroundColor = new Color(0.4f, 0.5f, 0.7f, 1f);
             button.style.scale = new Scale(new Vector3(1.05f, 1.05f, 1f));
         });
         button.RegisterCallback<MouseLeaveEvent>(evt => {
-            button.style.backgroundImage = new StyleBackground(CreateQuickActionGradient());
+            button.style.backgroundColor = new Color(0.3f, 0.4f, 0.6f, 0.9f);
             button.style.scale = new Scale(new Vector3(1f, 1f, 1f));
         });
-        
-        // 添加点击效果
         button.RegisterCallback<MouseDownEvent>(evt => {
             button.style.scale = new Scale(new Vector3(0.95f, 0.95f, 1f));
         });
@@ -1895,58 +2098,38 @@ public class AIAssistantManager : MonoBehaviour
     /// </summary>
     private IEnumerator AnimateMessageAppearance(VisualElement messageElement)
     {
-        float duration = 0.3f;
+        float duration = 0.4f;
         float elapsed = 0f;
         
-        // 设置初始状态 - 主要使用透明度动画
-        if (enableScaleAnimation)
-        {
-            try
-            {
-                SetElementScale(messageElement, 0.8f);
-            }
-            catch
-            {
-                Debug.Log("跳过缩放动画，使用透明度动画");
-            }
-        }
-        SetElementOpacity(messageElement, 0f);
+        // 设置初始状态
+        messageElement.style.opacity = 0f;
+        messageElement.style.scale = new Scale(new Vector3(0.9f, 0.9f, 1f));
+        
+        // 添加轻微的位移动画（使用兼容的方式）
+        // messageElement.style.translate = new StyleTranslate(new Length(0, LengthUnit.Pixel), new Length(20, LengthUnit.Pixel));
         
         while (elapsed < duration)
         {
             elapsed += Time.deltaTime;
             float progress = elapsed / duration;
-            float easeProgress = 1f - Mathf.Pow(1f - progress, 3f); // 缓出效果
             
-            if (enableScaleAnimation)
-            {
-                try
-                {
-                    SetElementScale(messageElement, 0.8f + (0.2f * easeProgress));
-                }
-                catch
-                {
-                    // 如果缩放失败，只使用透明度动画
-                }
-            }
-            SetElementOpacity(messageElement, easeProgress);
+            // 使用更平滑的缓动函数
+            float easeProgress = 1f - Mathf.Pow(1f - progress, 4f); // 更强的缓出效果
+            
+            messageElement.style.opacity = easeProgress;
+            messageElement.style.scale = new Scale(new Vector3(0.9f + (0.1f * easeProgress), 0.9f + (0.1f * easeProgress), 1f));
+            
+            // 位移动画（使用兼容的方式）
+            // float translateY = 20f * (1f - easeProgress);
+            // messageElement.style.translate = new StyleTranslate(new Length(0, LengthUnit.Pixel), new Length(translateY, LengthUnit.Pixel));
             
             yield return null;
         }
         
         // 确保最终状态
-        if (enableScaleAnimation)
-        {
-            try
-            {
-                SetElementScale(messageElement, 1f);
-            }
-            catch
-            {
-                Debug.Log("跳过最终缩放设置");
-            }
-        }
-        SetElementOpacity(messageElement, 1f);
+        messageElement.style.opacity = 1f;
+        messageElement.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        // messageElement.style.translate = new StyleTranslate(new Length(0, LengthUnit.Pixel), new Length(0, LengthUnit.Pixel));
     }
     
     /// <summary>

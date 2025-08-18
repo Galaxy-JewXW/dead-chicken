@@ -1735,23 +1735,17 @@ public class SimpleUIToolkitManager : MonoBehaviour
         var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
         if (aiAssistantManager != null)
         {
-            Debug.Log("找到AI助手管理器，尝试显示聊天面板");
+            Debug.Log("找到AI助手管理器，创建全屏AI助手对话框");
             
-            // 检查聊天面板状态
-            aiAssistantManager.CheckChatPanelStatus();
-            
-            // 直接显示AIAssistantManager的聊天面板
-            aiAssistantManager.ToggleChatPanel(true);
-            
-            // 隐藏侧边栏，让AI助手聊天面板全屏显示
+            // 隐藏侧边栏，让AI助手对话框全屏显示
             if (sidebar != null)
             {
                 sidebar.style.display = DisplayStyle.None;
                 Debug.Log("侧边栏已隐藏");
             }
             
-            // 再次检查状态
-            StartCoroutine(CheckAIPanelStatusDelayed(aiAssistantManager));
+            // 创建全屏AI助手对话框
+            CreateAIAssistantFullScreenDialog(aiAssistantManager);
         }
         else
         {
@@ -1798,6 +1792,1015 @@ public class SimpleUIToolkitManager : MonoBehaviour
         }
         
         Debug.Log("=== 显示AI助手面板完成 ===");
+    }
+    
+    /// <summary>
+    /// 刷新AI助手面板
+    /// </summary>
+    private IEnumerator RefreshAIAssistantPanel()
+    {
+        yield return new WaitForSeconds(0.5f);
+        
+        var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
+        if (aiAssistantManager != null)
+        {
+            Debug.Log("AI助手已创建，刷新面板");
+            ShowAIAssistantPanel();
+        }
+    }
+    
+    /// <summary>
+    /// 创建全屏AI助手对话框
+    /// </summary>
+    private void CreateAIAssistantFullScreenDialog(AIAssistantManager aiAssistantManager)
+    {
+        // 清除现有的AI助手对话框
+        var existingDialog = rootElement.Q("aiAssistantFullScreenDialog");
+        if (existingDialog != null)
+        {
+            existingDialog.RemoveFromHierarchy();
+        }
+        
+        // 创建全屏覆盖层 - 现代化背景
+        var fullScreenOverlay = new VisualElement();
+        fullScreenOverlay.name = "aiAssistantFullScreenDialog";
+        fullScreenOverlay.style.position = Position.Absolute;
+        fullScreenOverlay.style.top = 0;
+        fullScreenOverlay.style.left = 0;
+        fullScreenOverlay.style.width = Length.Percent(100);
+        fullScreenOverlay.style.height = Length.Percent(100);
+        fullScreenOverlay.style.backgroundColor = new Color(0, 0, 0, 0.85f);
+        
+        // 创建主对话框 - 现代化设计
+        var mainDialog = new VisualElement();
+        mainDialog.style.position = Position.Absolute;
+        mainDialog.style.top = Length.Percent(5);
+        mainDialog.style.left = Length.Percent(10);
+        mainDialog.style.width = Length.Percent(80);
+        mainDialog.style.height = Length.Percent(90);
+        
+        // 现代化背景和边框
+        mainDialog.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.98f);
+        mainDialog.style.borderTopLeftRadius = 22;
+        mainDialog.style.borderTopRightRadius = 22;
+        mainDialog.style.borderBottomLeftRadius = 22;
+        mainDialog.style.borderBottomRightRadius = 22;
+        
+        // 现代化边框效果
+        mainDialog.style.borderTopWidth = 2;
+        mainDialog.style.borderBottomWidth = 2;
+        mainDialog.style.borderLeftWidth = 2;
+        mainDialog.style.borderRightWidth = 2;
+        mainDialog.style.borderTopColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+        mainDialog.style.borderBottomColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+        mainDialog.style.borderLeftColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+        mainDialog.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+        
+        // 内边距优化
+        mainDialog.style.paddingTop = 15;
+        mainDialog.style.paddingBottom = 15; // 减少底部内边距
+        mainDialog.style.paddingLeft = 25;
+        mainDialog.style.paddingRight = 25;
+        mainDialog.style.flexDirection = FlexDirection.Column;
+        
+        // 创建标题栏 - 现代化设计
+        var titleBar = new VisualElement();
+        titleBar.style.flexDirection = FlexDirection.Row;
+        titleBar.style.justifyContent = Justify.SpaceBetween;
+        titleBar.style.alignItems = Align.Center;
+        titleBar.style.marginBottom = 15; // 减少标题栏底部边距
+        titleBar.style.paddingTop = 12;
+        titleBar.style.paddingBottom = 12;
+        titleBar.style.paddingLeft = 20;
+        titleBar.style.paddingRight = 20;
+        
+        // 现代化标题栏背景
+        titleBar.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.9f);
+        titleBar.style.borderTopLeftRadius = 18;
+        titleBar.style.borderTopRightRadius = 18;
+        titleBar.style.borderBottomLeftRadius = 18;
+        titleBar.style.borderBottomRightRadius = 18;
+        
+        // 添加边框效果
+        titleBar.style.borderTopWidth = 1;
+        titleBar.style.borderBottomWidth = 1;
+        titleBar.style.borderLeftWidth = 1;
+        titleBar.style.borderRightWidth = 1;
+        titleBar.style.borderTopColor = new Color(0.8f, 0.4f, 0.8f, 0.6f);
+        titleBar.style.borderBottomColor = new Color(0.6f, 0.2f, 0.8f, 0.6f);
+        titleBar.style.borderLeftColor = new Color(0.8f, 0.4f, 0.8f, 0.6f);
+        titleBar.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.6f);
+        
+        // 现代化标题标签
+        var titleLabel = new Label("AI智能助手 - 您的专属技术顾问");
+        titleLabel.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        titleLabel.style.fontSize = 26;
+        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        titleLabel.style.marginLeft = 10;
+        ApplyFont(titleLabel);
+        
+        // 现代化关闭按钮
+        var closeButton = new Button(() => {
+            // 关闭对话框
+            fullScreenOverlay.RemoveFromHierarchy();
+            // 显示侧边栏
+            if (sidebar != null)
+            {
+                sidebar.style.display = DisplayStyle.Flex;
+            }
+            // 返回正常模式
+            SwitchMode(UIMode.Normal);
+        });
+        closeButton.text = "X";
+        closeButton.style.width = 40;
+        closeButton.style.height = 40;
+        closeButton.style.backgroundColor = new Color(0.8f, 0.2f, 0.2f, 0.9f);
+        closeButton.style.color = Color.white;
+        closeButton.style.borderTopLeftRadius = 20;
+        closeButton.style.borderTopRightRadius = 20;
+        closeButton.style.borderBottomLeftRadius = 20;
+        closeButton.style.borderBottomRightRadius = 20;
+        closeButton.style.fontSize = 20;
+        closeButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        closeButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        
+        // 添加悬停效果
+        closeButton.RegisterCallback<MouseEnterEvent>(evt => {
+            closeButton.style.backgroundColor = new Color(0.9f, 0.3f, 0.3f, 1f);
+            closeButton.style.scale = new Scale(new Vector3(1.1f, 1.1f, 1f));
+        });
+        closeButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            closeButton.style.backgroundColor = new Color(0.8f, 0.2f, 0.2f, 0.9f);
+            closeButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        });
+        
+        ApplyFont(closeButton);
+        
+        titleBar.Add(titleLabel);
+        titleBar.Add(closeButton);
+        mainDialog.Add(titleBar);
+        
+                // 创建聊天容器 - 现代化设计
+        var chatContainer = new ScrollView();
+        chatContainer.style.flexGrow = 1;
+        chatContainer.style.marginBottom = 10; // 减少底部边距
+        chatContainer.style.minHeight = 450; // 增加最小高度，扩大对话区域
+        chatContainer.style.maxHeight = 600; // 增加最大高度，扩大对话区域
+        
+        // 设置滚动模式和其他重要属性
+        chatContainer.mode = ScrollViewMode.Vertical;
+        chatContainer.scrollDecelerationRate = 0.9f;
+        chatContainer.style.overflow = Overflow.Hidden;
+        
+        // 设置内容容器属性 - 参考PythonOutputViewer的成功实现
+        chatContainer.contentContainer.style.flexDirection = FlexDirection.Column; // 确保消息垂直排列
+        chatContainer.contentContainer.style.flexWrap = Wrap.NoWrap; // 防止水平换行
+        chatContainer.contentContainer.style.overflow = Overflow.Hidden;
+        chatContainer.contentContainer.style.width = Length.Percent(100);
+        chatContainer.contentContainer.style.alignItems = Align.Stretch; // 拉伸对齐，确保子元素占满宽度
+        chatContainer.contentContainer.style.minWidth = 0; // 允许收缩到0
+        
+        // 设置焦点支持
+        chatContainer.focusable = true;
+        
+        // 启用滚轮支持
+        chatContainer.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+        chatContainer.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        
+        // 当内容高度发生变化（新增消息等）时，自动滚动到底部
+        chatContainer.contentContainer.RegisterCallback<GeometryChangedEvent>(evt =>
+        {
+            if (evt.newRect.height > evt.oldRect.height)
+            {
+                StartCoroutine(ScrollToBottomDelayed(chatContainer));
+            }
+        });
+        
+        // 添加滚轮事件处理，提升滚动体验 - 参考PythonOutputViewer的实现
+        chatContainer.RegisterCallback<WheelEvent>(evt =>
+        {
+            if (chatContainer.verticalScroller != null)
+            {
+                float currentValue = chatContainer.verticalScroller.value;
+                float newValue = currentValue + (evt.delta.y * 300f); // 增加滚动速度
+                newValue = Mathf.Clamp(newValue, chatContainer.verticalScroller.lowValue, chatContainer.verticalScroller.highValue);
+                chatContainer.verticalScroller.value = newValue;
+                evt.StopPropagation();
+            }
+        }, TrickleDown.TrickleDown);
+        
+        // 添加键盘事件处理，支持PageUp/PageDown滚动
+        chatContainer.RegisterCallback<KeyDownEvent>(evt =>
+        {
+            if (chatContainer.verticalScroller != null)
+            {
+                float currentValue = chatContainer.verticalScroller.value;
+                float pageSize = chatContainer.verticalScroller.highValue * 0.8f;
+                
+                switch (evt.keyCode)
+                {
+                    case KeyCode.PageUp:
+                        float newValueUp = currentValue - pageSize;
+                        newValueUp = Mathf.Clamp(newValueUp, chatContainer.verticalScroller.lowValue, chatContainer.verticalScroller.highValue);
+                        chatContainer.verticalScroller.value = newValueUp;
+                        evt.StopPropagation();
+                        break;
+                        
+                    case KeyCode.PageDown:
+                        float newValueDown = currentValue + pageSize;
+                        newValueDown = Mathf.Clamp(newValueDown, chatContainer.verticalScroller.lowValue, chatContainer.verticalScroller.highValue);
+                        chatContainer.verticalScroller.value = newValueDown;
+                        evt.StopPropagation();
+                        break;
+                        
+                    case KeyCode.Home:
+                        chatContainer.verticalScroller.value = chatContainer.verticalScroller.lowValue;
+                        evt.StopPropagation();
+                        break;
+                        
+                    case KeyCode.End:
+                        chatContainer.verticalScroller.value = chatContainer.verticalScroller.highValue;
+                        evt.StopPropagation();
+                        break;
+                }
+            }
+        });
+        
+        // 现代化聊天容器背景 - 参考PythonOutputViewer的成功实现
+        chatContainer.style.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.8f);
+        chatContainer.style.borderTopLeftRadius = 18;
+        chatContainer.style.borderTopRightRadius = 18;
+        chatContainer.style.borderBottomLeftRadius = 18;
+        chatContainer.style.borderBottomRightRadius = 18;
+        
+        // 添加边框效果
+        chatContainer.style.borderTopWidth = 1;
+        chatContainer.style.borderBottomWidth = 1;
+        chatContainer.style.borderLeftWidth = 1;
+        chatContainer.style.borderRightWidth = 1;
+        chatContainer.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        chatContainer.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        chatContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        chatContainer.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        
+        chatContainer.style.paddingTop = 12;
+        chatContainer.style.paddingBottom = 12;
+        chatContainer.style.paddingLeft = 15;
+        chatContainer.style.paddingRight = 15;
+        
+        // 确保聊天容器可以正确接收滚轮事件
+        chatContainer.style.flexShrink = 1; // 允许收缩
+        chatContainer.style.flexGrow = 1; // 允许增长
+        
+        // 现代化欢迎消息
+        var welcomeMessage = new Label("欢迎使用AI智能助手！\n\n我可以为您提供以下服务：\n\n• 回答各种知识性问题\n• 解决技术问题和编程\n• 提供生活建议和指导\n• 创意写作和内容创作\n• 数学计算和数据分析\n• 语言翻译和学习辅导\n• 其他任何您需要帮助的问题\n\n请在下方输入框中输入您的问题，我将为您提供专业的帮助！");
+        welcomeMessage.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        welcomeMessage.style.fontSize = 16;
+        welcomeMessage.style.whiteSpace = WhiteSpace.Normal;
+        welcomeMessage.style.marginBottom = 10; // 减少底部边距
+        welcomeMessage.style.paddingTop = 12; // 减少内边距
+        welcomeMessage.style.paddingBottom = 12; // 减少内边距
+        welcomeMessage.style.paddingLeft = 15;
+        welcomeMessage.style.paddingRight = 15;
+        welcomeMessage.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.6f);
+        welcomeMessage.style.borderTopLeftRadius = 12;
+        welcomeMessage.style.borderTopRightRadius = 12;
+        welcomeMessage.style.borderBottomLeftRadius = 12;
+        welcomeMessage.style.borderBottomRightRadius = 12;
+        welcomeMessage.style.minHeight = 25; // 减少最小高度
+        welcomeMessage.style.maxWidth = Length.Percent(95); // 确保不超出容器宽度
+        welcomeMessage.style.flexShrink = 0; // 防止被压缩
+        welcomeMessage.style.flexGrow = 0; // 不自动增长
+        ApplyFont(welcomeMessage);
+        chatContainer.Add(welcomeMessage);
+        
+        // 设置滚动条样式 - 参考PythonOutputViewer的成功实现
+        if (chatContainer.verticalScroller != null)
+        {
+            chatContainer.verticalScroller.style.width = 16;
+            chatContainer.verticalScroller.style.backgroundColor = new Color(0.2f, 0.2f, 0.25f, 0.8f);
+            chatContainer.verticalScroller.style.borderTopLeftRadius = 8;
+            chatContainer.verticalScroller.style.borderTopRightRadius = 8;
+            chatContainer.verticalScroller.style.borderBottomLeftRadius = 8;
+            chatContainer.verticalScroller.style.borderBottomRightRadius = 8;
+        }
+        
+        mainDialog.Add(chatContainer);
+        
+        // 创建输入区域 - 现代化设计
+        var inputContainer = new VisualElement();
+        inputContainer.style.flexDirection = FlexDirection.Row;
+        inputContainer.style.alignItems = Align.Center;
+        inputContainer.style.marginBottom = 10; // 减少底部边距
+        inputContainer.style.paddingTop = 10; // 减少内边距
+        inputContainer.style.paddingBottom = 10; // 减少内边距
+        inputContainer.style.paddingLeft = 15;
+        inputContainer.style.paddingRight = 15;
+        inputContainer.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.6f);
+        inputContainer.style.borderTopLeftRadius = 15;
+        inputContainer.style.borderTopRightRadius = 15;
+        inputContainer.style.borderBottomLeftRadius = 15;
+        inputContainer.style.borderBottomRightRadius = 15;
+        inputContainer.style.minHeight = 55; // 稍微减少输入区域高度
+        
+        // 添加边框效果
+        inputContainer.style.borderTopWidth = 1;
+        inputContainer.style.borderBottomWidth = 1;
+        inputContainer.style.borderLeftWidth = 1;
+        inputContainer.style.borderRightWidth = 1;
+        inputContainer.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        inputContainer.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        inputContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        inputContainer.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        
+        // 现代化输入框
+        var inputField = new TextField();
+        inputField.label = "输入您的问题...";
+        inputField.style.flexGrow = 1;
+        inputField.style.marginRight = 15;
+        inputField.style.height = 45; // 稍微减少输入框高度
+        inputField.style.fontSize = 18;
+        
+        // 现代化输入框样式
+        inputField.style.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.9f);
+        inputField.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        inputField.style.borderTopLeftRadius = 10;
+        inputField.style.borderTopRightRadius = 10;
+        inputField.style.borderBottomLeftRadius = 10;
+        inputField.style.borderBottomRightRadius = 10;
+        inputField.style.borderTopWidth = 2;
+        inputField.style.borderBottomWidth = 2;
+        inputField.style.borderLeftWidth = 2;
+        inputField.style.borderRightWidth = 2;
+        inputField.style.borderTopColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+        inputField.style.borderBottomColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+        inputField.style.borderLeftColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+        inputField.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+        inputField.style.paddingTop = 12;
+        inputField.style.paddingBottom = 12;
+        inputField.style.paddingLeft = 18;
+        inputField.style.paddingRight = 18;
+        
+        // 设置输入框的文本样式
+        inputField.style.unityFontStyleAndWeight = FontStyle.Normal;
+        
+        // 添加焦点效果
+        inputField.RegisterCallback<FocusInEvent>(evt => {
+            inputField.style.borderTopColor = new Color(0.9f, 0.5f, 0.9f, 1f);
+            inputField.style.borderBottomColor = new Color(0.7f, 0.3f, 0.9f, 1f);
+            inputField.style.borderLeftColor = new Color(0.9f, 0.5f, 0.9f, 1f);
+            inputField.style.borderRightColor = new Color(0.7f, 0.3f, 0.9f, 1f);
+        });
+        inputField.RegisterCallback<FocusOutEvent>(evt => {
+            inputField.style.borderTopColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+            inputField.style.borderBottomColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+            inputField.style.borderLeftColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
+            inputField.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+        });
+        
+        // 添加回车键发送功能
+        inputField.RegisterCallback<KeyDownEvent>(evt => {
+            if (evt.keyCode == KeyCode.Return || evt.keyCode == KeyCode.KeypadEnter)
+            {
+                string message = inputField.value?.Trim();
+                if (!string.IsNullOrEmpty(message))
+                {
+                    // 添加用户消息
+                    AddUserMessageToChat(chatContainer, message);
+                    
+                    // 清空输入框
+                    inputField.value = "";
+                    
+                    // 显示加载状态
+                    AddLoadingMessage(chatContainer);
+                    
+                    // 确保AIAPIManager可用
+                    EnsureAIAPIManagerAvailable();
+                    
+                    // 使用AI API生成回复
+                    if (AIAPIManager.Instance != null)
+                    {
+                        AIAPIManager.Instance.SendMessage(message, 
+                            (response) => {
+                                // 移除加载消息并添加AI回复
+                                RemoveLoadingMessage(chatContainer);
+                                AddAIMessageToChat(chatContainer, response);
+                            },
+                            (error) => {
+                                // 移除加载消息并显示错误
+                                RemoveLoadingMessage(chatContainer);
+                                AddAIMessageToChat(chatContainer, $"抱歉，AI服务暂时不可用：{error}");
+                            });
+                    }
+                    else
+                    {
+                        // 如果AI API管理器不可用，使用本地回复
+                        RemoveLoadingMessage(chatContainer);
+                        string response = GenerateAIResponse(message);
+                        AddAIMessageToChat(chatContainer, response);
+                    }
+                }
+            }
+        });
+        
+        ApplyFont(inputField);
+        
+        // 现代化发送按钮
+        var sendButton = new Button(() => {
+            // 处理发送消息
+            string message = inputField.value?.Trim();
+            if (!string.IsNullOrEmpty(message))
+            {
+                // 添加用户消息
+                AddUserMessageToChat(chatContainer, message);
+                
+                // 清空输入框
+                inputField.value = "";
+                
+                // 显示加载状态
+                AddLoadingMessage(chatContainer);
+                
+                // 确保AIAPIManager可用
+                EnsureAIAPIManagerAvailable();
+                
+                // 使用AI API生成回复
+                if (AIAPIManager.Instance != null)
+                {
+                    AIAPIManager.Instance.SendMessage(message, 
+                        (response) => {
+                            // 移除加载消息并添加AI回复
+                            RemoveLoadingMessage(chatContainer);
+                            AddAIMessageToChat(chatContainer, response);
+                        },
+                        (error) => {
+                            // 移除加载消息并显示错误
+                            RemoveLoadingMessage(chatContainer);
+                            AddAIMessageToChat(chatContainer, $"抱歉，AI服务暂时不可用：{error}");
+                        });
+                }
+                else
+                {
+                    // 如果AI API管理器不可用，使用本地回复
+                    RemoveLoadingMessage(chatContainer);
+                    string response = GenerateAIResponse(message);
+                    AddAIMessageToChat(chatContainer, response);
+                }
+            }
+        });
+        sendButton.text = "发送";
+        sendButton.style.width = 100;
+        sendButton.style.height = 45; // 稍微减少发送按钮高度
+        sendButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.9f);
+        sendButton.style.color = Color.white;
+        sendButton.style.borderTopLeftRadius = 10;
+        sendButton.style.borderTopRightRadius = 10;
+        sendButton.style.borderBottomLeftRadius = 10;
+        sendButton.style.borderBottomRightRadius = 10;
+        sendButton.style.fontSize = 16;
+        sendButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        sendButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        
+        // 添加悬停效果
+        sendButton.RegisterCallback<MouseEnterEvent>(evt => {
+            sendButton.style.backgroundColor = new Color(0.9f, 0.5f, 0.9f, 1f);
+            sendButton.style.scale = new Scale(new Vector3(1.05f, 1.05f, 1f));
+        });
+        sendButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            sendButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.9f);
+            sendButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        });
+        
+        ApplyFont(sendButton);
+        
+        inputContainer.Add(inputField);
+        inputContainer.Add(sendButton);
+        mainDialog.Add(inputContainer);
+        
+        // 创建快速操作按钮 - 现代化设计
+        var quickActionsContainer = new VisualElement();
+        quickActionsContainer.style.flexDirection = FlexDirection.Row;
+        quickActionsContainer.style.justifyContent = Justify.Center;
+        quickActionsContainer.style.flexWrap = Wrap.Wrap;
+        quickActionsContainer.style.marginTop = 10; // 减少顶部边距
+        quickActionsContainer.style.paddingTop = 10; // 减少内边距
+        quickActionsContainer.style.paddingBottom = 10; // 减少内边距
+        quickActionsContainer.style.paddingLeft = 20;
+        quickActionsContainer.style.paddingRight = 20;
+        quickActionsContainer.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.6f);
+        quickActionsContainer.style.borderTopLeftRadius = 15;
+        quickActionsContainer.style.borderTopRightRadius = 15;
+        quickActionsContainer.style.borderBottomLeftRadius = 15;
+        quickActionsContainer.style.borderBottomRightRadius = 15;
+        
+        // 添加边框效果
+        quickActionsContainer.style.borderTopWidth = 1;
+        quickActionsContainer.style.borderBottomWidth = 1;
+        quickActionsContainer.style.borderLeftWidth = 1;
+        quickActionsContainer.style.borderRightWidth = 1;
+        quickActionsContainer.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        quickActionsContainer.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        quickActionsContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
+        quickActionsContainer.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
+        
+        var quickActionButtons = new (string text, System.Action action)[] {
+            ("知识问答", () => ShowSystemHelp(chatContainer)),
+            ("技术帮助", () => ShowOperationGuide(chatContainer)),
+            ("创意助手", () => ShowTroubleshooting(chatContainer))
+        };
+        
+        foreach (var buttonInfo in quickActionButtons)
+        {
+            var quickButton = new Button(buttonInfo.action);
+            quickButton.text = buttonInfo.text;
+            quickButton.style.marginRight = 12;
+            quickButton.style.marginBottom = 8;
+            quickButton.style.width = 120;
+            quickButton.style.height = 40; // 稍微减少按钮高度
+            quickButton.style.backgroundColor = new Color(0.6f, 0.4f, 0.8f, 0.9f);
+            quickButton.style.color = Color.white;
+            quickButton.style.borderTopLeftRadius = 10;
+            quickButton.style.borderTopRightRadius = 10;
+            quickButton.style.borderBottomLeftRadius = 10;
+            quickButton.style.borderBottomRightRadius = 10;
+            quickButton.style.fontSize = 15;
+            quickButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            quickButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            
+            // 添加悬停效果
+            quickButton.RegisterCallback<MouseEnterEvent>(evt => {
+                quickButton.style.backgroundColor = new Color(0.7f, 0.5f, 0.9f, 1f);
+                quickButton.style.scale = new Scale(new Vector3(1.05f, 1.05f, 1f));
+            });
+            quickButton.RegisterCallback<MouseLeaveEvent>(evt => {
+                quickButton.style.backgroundColor = new Color(0.6f, 0.4f, 0.8f, 0.9f);
+                quickButton.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+            });
+            
+            ApplyFont(quickButton);
+            
+            quickActionsContainer.Add(quickButton);
+        }
+        
+        mainDialog.Add(quickActionsContainer);
+        
+        // 添加到覆盖层
+        fullScreenOverlay.Add(mainDialog);
+        
+        // 添加到根元素
+        rootElement.Add(fullScreenOverlay);
+        
+        // 确保在最上层
+        fullScreenOverlay.BringToFront();
+        mainDialog.BringToFront();
+        
+        // 添加显示动画效果
+        StartCoroutine(AnimateDialogShow(mainDialog));
+        
+        // 点击覆盖层关闭对话框
+        fullScreenOverlay.RegisterCallback<ClickEvent>(evt => {
+            if (evt.target == fullScreenOverlay)
+            {
+                fullScreenOverlay.RemoveFromHierarchy();
+                if (sidebar != null)
+                {
+                    sidebar.style.display = DisplayStyle.Flex;
+                }
+                SwitchMode(UIMode.Normal);
+            }
+        });
+        
+        Debug.Log("全屏AI助手对话框已创建");
+    }
+    
+    /// <summary>
+    /// 添加用户消息到聊天 - 现代化设计
+    /// </summary>
+    private void AddUserMessageToChat(ScrollView chatContainer, string message)
+    {
+        var messageContainer = new VisualElement();
+        messageContainer.style.flexDirection = FlexDirection.Row;
+        messageContainer.style.justifyContent = Justify.FlexEnd;
+        messageContainer.style.marginBottom = 20; // 减少消息间距
+        messageContainer.style.marginTop = 12; // 减少上边距
+        messageContainer.style.minHeight = 55; // 减少最小高度
+        messageContainer.style.width = Length.Percent(100); // 确保容器占满宽度
+        messageContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        
+        // 创建用户头像
+        var userAvatar = new Label("用户");
+        userAvatar.style.width = 36;
+        userAvatar.style.height = 36;
+        userAvatar.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.9f);
+        userAvatar.style.color = Color.white;
+        userAvatar.style.borderTopLeftRadius = 18;
+        userAvatar.style.borderTopRightRadius = 18;
+        userAvatar.style.borderBottomLeftRadius = 18;
+        userAvatar.style.borderBottomRightRadius = 18;
+        userAvatar.style.fontSize = 11;
+        userAvatar.style.unityTextAlign = TextAnchor.MiddleCenter;
+        userAvatar.style.marginRight = 12;
+        userAvatar.style.borderTopWidth = 1;
+        userAvatar.style.borderBottomWidth = 1;
+        userAvatar.style.borderLeftWidth = 1;
+        userAvatar.style.borderRightWidth = 1;
+        userAvatar.style.borderTopColor = new Color(0.9f, 0.5f, 0.9f, 0.8f);
+        userAvatar.style.borderBottomColor = new Color(0.7f, 0.3f, 0.9f, 0.8f);
+        userAvatar.style.borderLeftColor = new Color(0.9f, 0.5f, 0.9f, 0.8f);
+        userAvatar.style.borderRightColor = new Color(0.7f, 0.3f, 0.9f, 0.8f);
+        ApplyFont(userAvatar);
+        
+        // 现代化用户消息气泡
+        var messageBubble = new Label(message);
+        messageBubble.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.9f);
+        messageBubble.style.color = Color.white;
+        messageBubble.style.paddingTop = 12;
+        messageBubble.style.paddingBottom = 12;
+        messageBubble.style.paddingLeft = 18;
+        messageBubble.style.paddingRight = 18;
+        messageBubble.style.borderTopLeftRadius = 18;
+        messageBubble.style.borderTopRightRadius = 18;
+        messageBubble.style.borderBottomLeftRadius = 18;
+        messageBubble.style.borderBottomRightRadius = 18;
+        messageBubble.style.fontSize = 15;
+        messageBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
+        messageBubble.style.whiteSpace = WhiteSpace.Normal;
+        messageBubble.style.minHeight = 18; // 减少最小高度
+        messageBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
+        messageBubble.style.flexShrink = 0; // 防止气泡被压缩
+        messageBubble.style.flexGrow = 0; // 不自动增长
+        
+        // 添加边框效果
+        messageBubble.style.borderTopWidth = 1;
+        messageBubble.style.borderBottomWidth = 1;
+        messageBubble.style.borderLeftWidth = 1;
+        messageBubble.style.borderRightWidth = 1;
+        messageBubble.style.borderTopColor = new Color(0.9f, 0.5f, 0.9f, 0.8f);
+        messageBubble.style.borderBottomColor = new Color(0.7f, 0.3f, 0.9f, 0.8f);
+        messageBubble.style.borderLeftColor = new Color(0.9f, 0.5f, 0.9f, 0.8f);
+        messageBubble.style.borderRightColor = new Color(0.7f, 0.3f, 0.9f, 0.8f);
+        
+        ApplyFont(messageBubble);
+        
+        messageContainer.Add(userAvatar);
+        messageContainer.Add(messageBubble);
+        chatContainer.Add(messageContainer);
+        
+        // 滚动到底部（使用延迟滚动确保元素已添加）
+        StartCoroutine(ScrollToBottomDelayed(chatContainer));
+    }
+    
+    /// <summary>
+    /// 添加AI消息到聊天 - 现代化设计
+    /// </summary>
+    private void AddAIMessageToChat(ScrollView chatContainer, string response)
+    {
+        var messageContainer = new VisualElement();
+        messageContainer.style.flexDirection = FlexDirection.Row;
+        messageContainer.style.justifyContent = Justify.FlexStart;
+        messageContainer.style.marginBottom = 20; // 减少消息间距
+        messageContainer.style.marginTop = 12; // 减少上边距
+        messageContainer.style.minHeight = 55; // 减少最小高度
+        messageContainer.style.width = Length.Percent(100); // 确保容器占满宽度
+        messageContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        
+        // 创建AI头像
+        var aiAvatar = new Label("AI");
+        aiAvatar.style.width = 36;
+        aiAvatar.style.height = 36;
+        aiAvatar.style.backgroundColor = new Color(0.4f, 0.6f, 0.8f, 0.9f);
+        aiAvatar.style.color = Color.white;
+        aiAvatar.style.borderTopLeftRadius = 18;
+        aiAvatar.style.borderTopRightRadius = 18;
+        aiAvatar.style.borderBottomLeftRadius = 18;
+        aiAvatar.style.borderBottomRightRadius = 18;
+        aiAvatar.style.fontSize = 13;
+        aiAvatar.style.unityTextAlign = TextAnchor.MiddleCenter;
+        aiAvatar.style.marginRight = 12;
+        aiAvatar.style.borderTopWidth = 1;
+        aiAvatar.style.borderBottomWidth = 1;
+        aiAvatar.style.borderLeftWidth = 1;
+        aiAvatar.style.borderRightWidth = 1;
+        aiAvatar.style.borderTopColor = new Color(0.5f, 0.7f, 0.9f, 0.8f);
+        aiAvatar.style.borderBottomColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
+        aiAvatar.style.borderLeftColor = new Color(0.5f, 0.7f, 0.9f, 0.8f);
+        aiAvatar.style.borderRightColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
+        ApplyFont(aiAvatar);
+        
+        // 现代化AI消息气泡
+        var messageBubble = new Label(response);
+        messageBubble.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.8f);
+        messageBubble.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        messageBubble.style.paddingTop = 12;
+        messageBubble.style.paddingBottom = 12;
+        messageBubble.style.paddingLeft = 18;
+        messageBubble.style.paddingRight = 18;
+        messageBubble.style.borderTopLeftRadius = 18;
+        messageBubble.style.borderTopRightRadius = 18;
+        messageBubble.style.borderBottomLeftRadius = 18;
+        messageBubble.style.borderBottomRightRadius = 18;
+        messageBubble.style.fontSize = 15;
+        messageBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
+        messageBubble.style.whiteSpace = WhiteSpace.Normal;
+        messageBubble.style.minHeight = 18; // 减少最小高度
+        messageBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
+        messageBubble.style.flexShrink = 0; // 防止气泡被压缩
+        messageBubble.style.flexGrow = 0; // 不自动增长
+        
+        // 添加边框效果
+        messageBubble.style.borderTopWidth = 1;
+        messageBubble.style.borderBottomWidth = 1;
+        messageBubble.style.borderLeftWidth = 1;
+        messageBubble.style.borderRightWidth = 1;
+        messageBubble.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        messageBubble.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.6f);
+        messageBubble.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        messageBubble.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.6f);
+        
+        ApplyFont(messageBubble);
+        
+        messageContainer.Add(aiAvatar);
+        messageContainer.Add(messageBubble);
+        chatContainer.Add(messageContainer);
+        
+        // 滚动到底部（使用延迟滚动确保元素已添加）
+        StartCoroutine(ScrollToBottomDelayed(chatContainer));
+    }
+    
+    /// <summary>
+    /// 显示知识问答帮助 - 现代化设计
+    /// </summary>
+    private void ShowSystemHelp(ScrollView chatContainer)
+    {
+        string helpText = "知识问答功能\n\n" +
+                          "我可以帮助您回答各种问题：\n" +
+                          "• 科学知识：物理、化学、生物等\n" +
+                          "• 历史地理：历史事件、地理知识\n" +
+                          "• 文学艺术：文学作品、艺术鉴赏\n" +
+                          "• 数学计算：数学问题、公式推导\n" +
+                          "• 语言学习：语法、词汇、翻译\n" +
+                          "• 生活常识：健康、饮食、旅游\n" +
+                          "• 时事新闻：最新资讯、热点话题\n" +
+                          "• 其他任何您感兴趣的问题\n\n" +
+                          "请直接输入您的问题，我会尽力为您解答！";
+        
+        AddAIMessageToChat(chatContainer, helpText);
+    }
+    
+    /// <summary>
+    /// 显示技术帮助 - 现代化设计
+    /// </summary>
+    private void ShowOperationGuide(ScrollView chatContainer)
+    {
+        string guideText = "技术帮助功能\n\n" +
+                          "我可以帮助您解决各种技术问题：\n" +
+                          "• 编程问题：代码调试、算法优化\n" +
+                          "• 软件开发：架构设计、最佳实践\n" +
+                          "• 系统配置：环境搭建、参数调优\n" +
+                          "• 网络技术：协议、安全、性能\n" +
+                          "• 数据库：SQL查询、数据建模\n" +
+                          "• 人工智能：机器学习、深度学习\n" +
+                          "• 硬件问题：设备故障、性能优化\n" +
+                          "• 其他技术相关问题\n\n" +
+                          "请详细描述您遇到的技术问题，我会为您提供解决方案！";
+        
+        AddAIMessageToChat(chatContainer, guideText);
+    }
+    
+    /// <summary>
+    /// 显示创意助手 - 现代化设计
+    /// </summary>
+    private void ShowTroubleshooting(ScrollView chatContainer)
+    {
+        string troubleshootingText = "创意助手功能\n\n" +
+                                    "我可以帮助您进行各种创意创作：\n\n" +
+                                    "写作创作：\n" +
+                                    "• 故事创作：小说、剧本、诗歌\n" +
+                                    "• 内容写作：文章、报告、演讲稿\n" +
+                                    "• 创意文案：广告、宣传、营销\n" +
+                                    "• 学术写作：论文、研究报告\n\n" +
+                                    "创意设计：\n" +
+                                    "• 产品设计：功能、外观、用户体验\n" +
+                                    "• 活动策划：方案、流程、创意\n" +
+                                    "• 品牌策划：定位、形象、传播\n" +
+                                    "• 艺术创作：概念、风格、表达\n\n" +
+                                    "其他创意：\n" +
+                                    "• 头脑风暴：想法、方案、创新\n" +
+                                    "• 问题解决：思路、方法、策略\n" +
+                                    "• 学习规划：方法、计划、目标\n\n" +
+                                    "请告诉我您的创意需求，我会为您提供灵感和建议！";
+        
+        AddAIMessageToChat(chatContainer, troubleshootingText);
+    }
+    
+    /// <summary>
+    /// 确保AIAPIManager可用
+    /// </summary>
+    private void EnsureAIAPIManagerAvailable()
+    {
+        if (AIAPIManager.Instance == null)
+        {
+            Debug.LogWarning("[SimpleUI] AIAPIManager未找到，尝试自动创建...");
+            
+            // 尝试查找AIAPIManagerInitializer
+            var initializer = FindObjectOfType<AIAPIManagerInitializer>();
+            if (initializer != null)
+            {
+                initializer.InitializeAIAPI();
+                Debug.Log("[SimpleUI] 通过AIAPIManagerInitializer初始化AIAPIManager");
+            }
+            else
+            {
+                // 如果没有找到初始化器，直接创建AIAPIManager
+                GameObject apiObject = new GameObject("AI API Manager");
+                var apiManager = apiObject.AddComponent<AIAPIManager>();
+                Debug.Log("[SimpleUI] 直接创建了AIAPIManager");
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 生成AI回复
+    /// </summary>
+    private string GenerateAIResponse(string userMessage)
+    {
+        // 获取AI助手管理器
+        var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
+        if (aiAssistantManager != null && aiAssistantManager.config != null)
+        {
+            // 使用配置文件的知识库
+            var knowledgeEntry = aiAssistantManager.config.FindKnowledgeEntry(userMessage);
+            if (knowledgeEntry != null)
+            {
+                return knowledgeEntry.response;
+            }
+            
+            // 使用快速回复
+            var quickResponse = aiAssistantManager.config.GetQuickResponse(userMessage);
+            if (!string.IsNullOrEmpty(quickResponse))
+            {
+                return quickResponse;
+            }
+        }
+        
+        // 默认回复
+        var responses = new[] {
+            "我理解您的问题，让我为您提供帮助。",
+            "这是一个很好的问题，我来为您解答。",
+            "根据您的问题，我建议您尝试以下方法...",
+            "我可以帮助您解决这个问题，请告诉我更多细节。",
+            "这个问题很有趣，让我为您分析一下。"
+        };
+        
+        return responses[UnityEngine.Random.Range(0, responses.Length)];
+    }
+    
+    /// <summary>
+    /// 延迟滚动到底部
+    /// </summary>
+    private IEnumerator ScrollToBottomDelayed(ScrollView chatContainer)
+    {
+        // 等待两帧，确保布局与滚动条数值都已更新
+        yield return null;
+        yield return new WaitForEndOfFrame();
+
+        // 参考PythonOutputViewer的成功实现
+        if (chatContainer?.verticalScroller != null)
+        {
+            chatContainer.verticalScroller.value = chatContainer.verticalScroller.highValue;
+        }
+
+        // 使用schedule确保在下一帧执行，进一步保证滚动到底部
+        chatContainer.schedule.Execute(() => {
+            if (chatContainer?.verticalScroller != null)
+            {
+                chatContainer.verticalScroller.value = chatContainer.verticalScroller.highValue;
+            }
+        }).ExecuteLater(1);
+    }
+    
+    /// <summary>
+    /// 弹窗显示动画
+    /// </summary>
+    private IEnumerator AnimateDialogShow(VisualElement dialog)
+    {
+        // 初始状态：缩小和透明
+        dialog.style.scale = new Scale(new Vector3(0.8f, 0.8f, 1f));
+        dialog.style.opacity = 0f;
+        
+        float duration = 0.3f;
+        float elapsed = 0f;
+        
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            float progress = elapsed / duration;
+            
+            // 缓动函数
+            float easeOut = 1f - Mathf.Pow(1f - progress, 3f);
+            
+            // 更新缩放和透明度
+            float scale = Mathf.Lerp(0.8f, 1f, easeOut);
+            float opacity = Mathf.Lerp(0f, 1f, easeOut);
+            
+            dialog.style.scale = new Scale(new Vector3(scale, scale, 1f));
+            dialog.style.opacity = opacity;
+            
+            yield return null;
+        }
+        
+        // 确保最终状态
+        dialog.style.scale = new Scale(new Vector3(1f, 1f, 1f));
+        dialog.style.opacity = 1f;
+    }
+    
+    /// <summary>
+    /// 添加加载消息
+    /// </summary>
+    private void AddLoadingMessage(ScrollView chatContainer)
+    {
+        var loadingContainer = new VisualElement();
+        loadingContainer.name = "loadingMessage";
+        loadingContainer.style.flexDirection = FlexDirection.Row;
+        loadingContainer.style.justifyContent = Justify.FlexStart;
+        loadingContainer.style.marginBottom = 20; // 减少消息间距
+        loadingContainer.style.marginTop = 12; // 减少上边距
+        loadingContainer.style.minHeight = 55; // 减少最小高度
+        loadingContainer.style.width = Length.Percent(100); // 确保容器占满宽度
+        loadingContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        
+        // 创建AI头像
+        var aiAvatar = new Label("AI");
+        aiAvatar.style.width = 36;
+        aiAvatar.style.height = 36;
+        aiAvatar.style.backgroundColor = new Color(0.4f, 0.6f, 0.8f, 0.9f);
+        aiAvatar.style.color = Color.white;
+        aiAvatar.style.borderTopLeftRadius = 18;
+        aiAvatar.style.borderTopRightRadius = 18;
+        aiAvatar.style.borderBottomLeftRadius = 18;
+        aiAvatar.style.borderBottomRightRadius = 18;
+        aiAvatar.style.fontSize = 14;
+        aiAvatar.style.unityTextAlign = TextAnchor.MiddleCenter;
+        aiAvatar.style.marginRight = 12;
+        aiAvatar.style.borderTopWidth = 1;
+        aiAvatar.style.borderBottomWidth = 1;
+        aiAvatar.style.borderLeftWidth = 1;
+        aiAvatar.style.borderRightWidth = 1;
+        aiAvatar.style.borderTopColor = new Color(0.5f, 0.7f, 0.9f, 0.8f);
+        aiAvatar.style.borderBottomColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
+        aiAvatar.style.borderLeftColor = new Color(0.5f, 0.7f, 0.9f, 0.8f);
+        aiAvatar.style.borderRightColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
+        ApplyFont(aiAvatar);
+        
+        // 创建加载消息气泡
+        var loadingBubble = new Label("正在思考中...");
+        loadingBubble.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.8f);
+        loadingBubble.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        loadingBubble.style.paddingTop = 12;
+        loadingBubble.style.paddingBottom = 12;
+        loadingBubble.style.paddingLeft = 18;
+        loadingBubble.style.paddingRight = 18;
+        loadingBubble.style.borderTopLeftRadius = 18;
+        loadingBubble.style.borderTopRightRadius = 18;
+        loadingBubble.style.borderBottomLeftRadius = 18;
+        loadingBubble.style.borderBottomRightRadius = 18;
+        loadingBubble.style.fontSize = 15;
+        loadingBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
+        loadingBubble.style.whiteSpace = WhiteSpace.Normal;
+        loadingBubble.style.minHeight = 18; // 减少最小高度
+        loadingBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
+        loadingBubble.style.flexShrink = 0; // 防止气泡被压缩
+        loadingBubble.style.flexGrow = 0; // 不自动增长
+        
+        // 添加边框效果
+        loadingBubble.style.borderTopWidth = 1;
+        loadingBubble.style.borderBottomWidth = 1;
+        loadingBubble.style.borderLeftWidth = 1;
+        loadingBubble.style.borderRightWidth = 1;
+        loadingBubble.style.borderTopColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        loadingBubble.style.borderBottomColor = new Color(0.2f, 0.2f, 0.3f, 0.6f);
+        loadingBubble.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.6f);
+        loadingBubble.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.6f);
+        
+        ApplyFont(loadingBubble);
+        
+        loadingContainer.Add(aiAvatar);
+        loadingContainer.Add(loadingBubble);
+        chatContainer.Add(loadingContainer);
+        
+        // 滚动到底部
+        StartCoroutine(ScrollToBottomDelayed(chatContainer));
+    }
+    
+    /// <summary>
+    /// 移除加载消息
+    /// </summary>
+    private void RemoveLoadingMessage(ScrollView chatContainer)
+    {
+        var loadingMessage = chatContainer.Q("loadingMessage");
+        if (loadingMessage != null)
+        {
+            loadingMessage.RemoveFromHierarchy();
+        }
     }
     
     /// <summary>
@@ -2038,6 +3041,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         var chatContainer = new ScrollView();
         chatContainer.style.height = 400;
         chatContainer.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
+        chatContainer.contentContainer.style.flexDirection = FlexDirection.Column; // 确保消息垂直排列
         chatContainer.style.borderTopLeftRadius = 10;
         chatContainer.style.borderTopRightRadius = 10;
         chatContainer.style.borderBottomLeftRadius = 10;
@@ -2364,40 +3368,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         return fullScreenOverlay;
     }
     
-    /// <summary>
-    /// 生成AI回复
-    /// </summary>
-    string GenerateAIResponse(string userMessage)
-    {
-        string lowerMessage = userMessage.ToLower();
-        
-        // 基于关键词的智能回复
-        if (lowerMessage.Contains("如何") || lowerMessage.Contains("怎么"))
-        {
-            return "关于操作指导，您可以：\n• 询问具体功能的使用方法\n• 查看系统帮助文档\n• 使用快捷键操作\n• 参考操作示例";
-        }
-        else if (lowerMessage.Contains("问题") || lowerMessage.Contains("错误"))
-        {
-            return "如果遇到问题，建议您：\n• 检查输入数据格式\n• 确认组件配置正确\n• 查看控制台错误信息\n• 重启相关功能模块";
-        }
-        else if (lowerMessage.Contains("功能") || lowerMessage.Contains("特性"))
-        {
-            return "系统主要功能包括：\n• 电力线可视化和管理\n• 多视角相机控制\n• 危险监测和预警\n• 无人机巡检管理\n• 地形适配和优化";
-        }
-        else
-        {
-            return "我理解您的问题，但可能需要更具体的信息。您可以：\n• 询问特定功能的使用方法\n• 了解系统配置选项\n• 获取操作指导\n• 查看常见问题解答";
-        }
-    }
-    
-    /// <summary>
-    /// 刷新AI助手面板
-    /// </summary>
-    System.Collections.IEnumerator RefreshAIAssistantPanel()
-    {
-        yield return new WaitForSeconds(0.5f);
-        ShowAIAssistantPanel();
-    }
+
     
     VisualElement CreatePanel(string title)
     {
@@ -4031,36 +5002,6 @@ public class SimpleUIToolkitManager : MonoBehaviour
         });
         
         parent.Add(aiAssistantButton);
-        
-        // 添加测试按钮
-        var testButton = new Button(() => {
-            Debug.Log("=== 测试AI助手面板显示 ===");
-            var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
-            if (aiAssistantManager != null)
-            {
-                aiAssistantManager.CheckChatPanelStatus();
-                aiAssistantManager.ToggleChatPanel(true);
-            }
-            else
-            {
-                Debug.LogError("未找到AI助手管理器！");
-            }
-        });
-        testButton.text = "测试";
-        testButton.style.marginRight = 3;
-        testButton.style.width = 50;
-        testButton.style.height = 42;
-        testButton.style.backgroundColor = new Color(0.3f, 0.7f, 0.3f, 1f);
-        testButton.style.color = Color.white;
-        testButton.style.borderTopLeftRadius = 8;
-        testButton.style.borderTopRightRadius = 8;
-        testButton.style.borderBottomLeftRadius = 8;
-        testButton.style.borderBottomRightRadius = 8;
-        testButton.style.fontSize = 12;
-        testButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        ApplyFont(testButton);
-        
-        parent.Add(testButton);
     }
     
     /// <summary>

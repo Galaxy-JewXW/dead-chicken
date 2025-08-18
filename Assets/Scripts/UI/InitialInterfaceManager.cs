@@ -1724,10 +1724,11 @@ public class InitialInterfaceManager : MonoBehaviour
     System.Collections.IEnumerator CheckPythonEnvironmentCoroutine()
     {
         bool pythonAvailable = false;
-        bool laspyAvailable = false;
-        bool numpyAvailable = false;
-        bool scipyAvailable = false;
-        bool sklearnAvailable = false;
+        // 这些变量在后续版本中可能会用到，暂时注释掉以避免警告
+        // bool laspyAvailable = false;
+        // bool numpyAvailable = false;
+        // bool scipyAvailable = false;
+        // bool sklearnAvailable = false;
         
         try
         {
