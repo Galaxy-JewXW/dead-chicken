@@ -1729,22 +1729,34 @@ public class SimpleUIToolkitManager : MonoBehaviour
     
     void ShowAIAssistantPanel()
     {
+        Debug.Log("=== 开始显示AI助手面板 ===");
+        
         // 获取或创建AI助手管理器
         var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
         if (aiAssistantManager != null)
         {
-            // 显示全屏聊天界面
-            var chatContent = CreateAIAssistantChatContent(aiAssistantManager);
-            if (chatContent != null && rootElement != null)
+            Debug.Log("找到AI助手管理器，尝试显示聊天面板");
+            
+            // 检查聊天面板状态
+            aiAssistantManager.CheckChatPanelStatus();
+            
+            // 直接显示AIAssistantManager的聊天面板
+            aiAssistantManager.ToggleChatPanel(true);
+            
+            // 隐藏侧边栏，让AI助手聊天面板全屏显示
+            if (sidebar != null)
             {
-                // 直接添加到根元素，实现全屏弹窗效果
-                rootElement.Add(chatContent);
-                // 将聊天界面置于最上层
-                chatContent.BringToFront();
+                sidebar.style.display = DisplayStyle.None;
+                Debug.Log("侧边栏已隐藏");
             }
+            
+            // 再次检查状态
+            StartCoroutine(CheckAIPanelStatusDelayed(aiAssistantManager));
         }
         else
         {
+            Debug.LogWarning("未找到AI助手管理器，在侧边栏显示创建选项");
+            
             // 如果没有找到AI助手管理器，在侧边栏显示创建选项
             sidebar.Clear();
             
@@ -1784,6 +1796,18 @@ public class SimpleUIToolkitManager : MonoBehaviour
             
             sidebar.Add(panel);
         }
+        
+        Debug.Log("=== 显示AI助手面板完成 ===");
+    }
+    
+    /// <summary>
+    /// 延迟检查AI面板状态
+    /// </summary>
+    private IEnumerator CheckAIPanelStatusDelayed(AIAssistantManager aiAssistantManager)
+    {
+        yield return new WaitForSeconds(0.1f);
+        Debug.Log("=== 延迟检查AI面板状态 ===");
+        aiAssistantManager.CheckChatPanelStatus();
     }
     
     /// <summary>
@@ -1908,45 +1932,64 @@ public class SimpleUIToolkitManager : MonoBehaviour
         fullScreenOverlay.style.top = 0;
         fullScreenOverlay.style.right = 0;
         fullScreenOverlay.style.bottom = 0;
-        fullScreenOverlay.style.backgroundColor = new Color(0, 0, 0, 0.8f); // 半透明黑色背景
-        // 通过添加到根元素的最上层来确保在最前面显示
+        fullScreenOverlay.style.backgroundColor = new Color(0, 0, 0, 0.85f); // 稍微加深背景
         
-        // 创建主弹窗容器
+        // 创建主弹窗容器 - 现代化设计
         var mainDialog = new VisualElement();
         mainDialog.style.position = Position.Absolute;
-        mainDialog.style.left = 50;
-        mainDialog.style.top = 50;
-        mainDialog.style.right = 50;
-        mainDialog.style.bottom = 50;
-        mainDialog.style.backgroundColor = Color.white;
-        mainDialog.style.borderTopLeftRadius = 15;
-        mainDialog.style.borderTopRightRadius = 15;
-        mainDialog.style.borderBottomLeftRadius = 15;
-        mainDialog.style.borderBottomRightRadius = 15;
-        mainDialog.style.borderLeftWidth = 2;
-        mainDialog.style.borderRightWidth = 2;
-        mainDialog.style.borderTopWidth = 2;
-        mainDialog.style.borderBottomWidth = 2;
-        mainDialog.style.borderLeftColor = primaryColor;
-        mainDialog.style.borderRightColor = primaryColor;
-        mainDialog.style.borderTopColor = primaryColor;
-        mainDialog.style.borderBottomColor = primaryColor;
-        mainDialog.style.paddingTop = 20;
-        mainDialog.style.paddingBottom = 20;
-        mainDialog.style.paddingLeft = 25;
-        mainDialog.style.paddingRight = 25;
+        mainDialog.style.left = 40;
+        mainDialog.style.top = 40;
+        mainDialog.style.right = 40;
+        mainDialog.style.bottom = 40;
         
-        // 标题栏
+        // 使用渐变背景纹理
+        mainDialog.style.backgroundImage = new StyleBackground(CreateAIChatGradientTexture());
+        mainDialog.style.backgroundColor = new Color(0.95f, 0.97f, 1f, 1f); // 备用颜色
+        
+        mainDialog.style.borderTopLeftRadius = 20;
+        mainDialog.style.borderTopRightRadius = 20;
+        mainDialog.style.borderBottomLeftRadius = 20;
+        mainDialog.style.borderBottomRightRadius = 20;
+        
+        // 现代化边框
+        mainDialog.style.borderLeftWidth = 3;
+        mainDialog.style.borderRightWidth = 3;
+        mainDialog.style.borderTopWidth = 3;
+        mainDialog.style.borderBottomWidth = 3;
+        mainDialog.style.borderLeftColor = new Color(0.6f, 0.3f, 0.8f, 1f);
+        mainDialog.style.borderRightColor = new Color(0.6f, 0.3f, 0.8f, 1f);
+        mainDialog.style.borderTopColor = new Color(0.8f, 0.4f, 0.9f, 1f);
+        mainDialog.style.borderBottomColor = new Color(0.4f, 0.2f, 0.7f, 1f);
+        
+        mainDialog.style.paddingTop = 25;
+        mainDialog.style.paddingBottom = 25;
+        mainDialog.style.paddingLeft = 30;
+        mainDialog.style.paddingRight = 30;
+        
+        // 标题栏 - 现代化设计
         var titleBar = new VisualElement();
         titleBar.style.flexDirection = FlexDirection.Row;
         titleBar.style.justifyContent = Justify.SpaceBetween;
         titleBar.style.alignItems = Align.Center;
-        titleBar.style.marginBottom = 20;
+        titleBar.style.marginBottom = 25;
+        titleBar.style.paddingTop = 15;
+        titleBar.style.paddingBottom = 15;
+        titleBar.style.paddingLeft = 20;
+        titleBar.style.paddingRight = 20;
+        
+        // 标题栏渐变背景
+        titleBar.style.backgroundImage = new StyleBackground(CreateTitleBarGradientTexture());
+        titleBar.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.1f); // 备用颜色
+        titleBar.style.borderTopLeftRadius = 15;
+        titleBar.style.borderTopRightRadius = 15;
+        titleBar.style.borderBottomLeftRadius = 15;
+        titleBar.style.borderBottomRightRadius = 15;
         
         var titleLabel = new Label("🤖 AI智能助手");
-        titleLabel.style.color = new Color(0.8f, 0.4f, 0.8f, 1f);
-        titleLabel.style.fontSize = 24;
+        titleLabel.style.color = new Color(0.7f, 0.3f, 0.8f, 1f);
+        titleLabel.style.fontSize = 26;
         titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        titleLabel.style.marginLeft = 10;
         ApplyFont(titleLabel);
         
         var closeButton = new Button(() => {
@@ -1958,16 +2001,33 @@ public class SimpleUIToolkitManager : MonoBehaviour
             }
         });
         closeButton.text = "✕";
-        closeButton.style.width = 40;
-        closeButton.style.height = 40;
-        closeButton.style.backgroundColor = new Color(0.9f, 0.3f, 0.3f, 1f);
+        closeButton.style.width = 44;
+        closeButton.style.height = 44;
+        
+        // 现代化关闭按钮样式
+        closeButton.style.backgroundImage = new StyleBackground(CreateCloseButtonGradientTexture());
+        closeButton.style.backgroundColor = new Color(0.9f, 0.3f, 0.3f, 1f); // 备用颜色
+        
         closeButton.style.color = Color.white;
-        closeButton.style.borderTopLeftRadius = 20;
-        closeButton.style.borderTopRightRadius = 20;
-        closeButton.style.borderBottomLeftRadius = 20;
-        closeButton.style.borderBottomRightRadius = 20;
-        closeButton.style.fontSize = 18;
+        closeButton.style.borderTopLeftRadius = 22;
+        closeButton.style.borderTopRightRadius = 22;
+        closeButton.style.borderBottomLeftRadius = 22;
+        closeButton.style.borderBottomRightRadius = 22;
+        closeButton.style.fontSize = 20;
         closeButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        closeButton.style.borderTopWidth = 0;
+        closeButton.style.borderBottomWidth = 0;
+        closeButton.style.borderLeftWidth = 0;
+        closeButton.style.borderRightWidth = 0;
+        
+        // 添加悬停效果
+        closeButton.RegisterCallback<MouseEnterEvent>(evt => {
+            closeButton.style.backgroundImage = new StyleBackground(CreateCloseButtonHoverGradientTexture());
+        });
+        closeButton.RegisterCallback<MouseLeaveEvent>(evt => {
+            closeButton.style.backgroundImage = new StyleBackground(CreateCloseButtonGradientTexture());
+        });
+        
         ApplyFont(closeButton);
         
         titleBar.Add(titleLabel);
@@ -3916,45 +3976,91 @@ public class SimpleUIToolkitManager : MonoBehaviour
     void CreateAIAssistantButton(VisualElement parent)
     {
         var aiAssistantButton = new Button(() => {
-            SwitchMode(UIMode.AIAssistant);
+            // 检查是否已经在AI助手模式
+            if (currentMode == UIMode.AIAssistant)
+            {
+                // 如果已经在AI助手模式，返回主界面
+                SwitchMode(UIMode.Normal);
+                // 显示侧边栏
+                if (sidebar != null)
+                {
+                    sidebar.style.display = DisplayStyle.Flex;
+                }
+            }
+            else
+            {
+                // 切换到AI助手模式
+                SwitchMode(UIMode.AIAssistant);
+            }
         });
         aiAssistantButton.text = "AI助手";
         aiAssistantButton.style.marginRight = 3;
-        aiAssistantButton.style.width = 80;
-        aiAssistantButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f); // 紫色
+        aiAssistantButton.style.width = 85;
+        
+        // 现代化渐变背景
+        aiAssistantButton.style.backgroundImage = new StyleBackground(CreateAIAssistantButtonGradient());
+        aiAssistantButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f); // 备用颜色
+        
         aiAssistantButton.style.color = Color.white;
-        aiAssistantButton.style.borderBottomLeftRadius = 5;
-        aiAssistantButton.style.borderBottomRightRadius = 5;
-        aiAssistantButton.style.borderTopLeftRadius = 5;
-        aiAssistantButton.style.borderTopRightRadius = 5;
-        aiAssistantButton.style.borderBottomWidth = 1;
-        aiAssistantButton.style.borderTopWidth = 1;
-        aiAssistantButton.style.borderLeftWidth = 1;
-        aiAssistantButton.style.borderRightWidth = 1;
-        aiAssistantButton.style.borderBottomColor = new Color(0.6f, 0.2f, 0.6f, 1f);
-        aiAssistantButton.style.borderTopColor = new Color(0.6f, 0.2f, 0.6f, 1f);
-        aiAssistantButton.style.borderLeftColor = new Color(0.6f, 0.2f, 0.6f, 1f);
-        aiAssistantButton.style.borderRightColor = new Color(0.6f, 0.2f, 0.6f, 1f);
-        aiAssistantButton.style.paddingLeft = 8;
-        aiAssistantButton.style.paddingRight = 8;
-        aiAssistantButton.style.paddingTop = 6;
-        aiAssistantButton.style.paddingBottom = 6;
-        aiAssistantButton.style.height = 40;
-        aiAssistantButton.style.fontSize = 13;
+        aiAssistantButton.style.borderTopLeftRadius = 8;
+        aiAssistantButton.style.borderTopRightRadius = 8;
+        aiAssistantButton.style.borderBottomLeftRadius = 8;
+        aiAssistantButton.style.borderBottomRightRadius = 8;
+        aiAssistantButton.style.borderTopWidth = 0;
+        aiAssistantButton.style.borderBottomWidth = 0;
+        aiAssistantButton.style.borderLeftWidth = 0;
+        aiAssistantButton.style.borderRightWidth = 0;
+        aiAssistantButton.style.paddingLeft = 10;
+        aiAssistantButton.style.paddingRight = 10;
+        aiAssistantButton.style.paddingTop = 8;
+        aiAssistantButton.style.paddingBottom = 8;
+        aiAssistantButton.style.height = 42;
+        aiAssistantButton.style.fontSize = 14;
+        aiAssistantButton.style.unityFontStyleAndWeight = FontStyle.Bold;
         aiAssistantButton.style.unityTextAlign = TextAnchor.MiddleCenter;
         aiAssistantButton.style.whiteSpace = WhiteSpace.NoWrap;
         ApplyFont(aiAssistantButton);
         
         // 添加悬停效果
         aiAssistantButton.RegisterCallback<MouseEnterEvent>(evt => {
-            aiAssistantButton.style.backgroundColor = new Color(0.6f, 0.2f, 0.6f, 1f);
+            aiAssistantButton.style.backgroundImage = new StyleBackground(CreateAIAssistantButtonHoverGradient());
         });
         
         aiAssistantButton.RegisterCallback<MouseLeaveEvent>(evt => {
-            aiAssistantButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 1f);
+            aiAssistantButton.style.backgroundImage = new StyleBackground(CreateAIAssistantButtonGradient());
         });
         
         parent.Add(aiAssistantButton);
+        
+        // 添加测试按钮
+        var testButton = new Button(() => {
+            Debug.Log("=== 测试AI助手面板显示 ===");
+            var aiAssistantManager = FindObjectOfType<AIAssistantManager>();
+            if (aiAssistantManager != null)
+            {
+                aiAssistantManager.CheckChatPanelStatus();
+                aiAssistantManager.ToggleChatPanel(true);
+            }
+            else
+            {
+                Debug.LogError("未找到AI助手管理器！");
+            }
+        });
+        testButton.text = "测试";
+        testButton.style.marginRight = 3;
+        testButton.style.width = 50;
+        testButton.style.height = 42;
+        testButton.style.backgroundColor = new Color(0.3f, 0.7f, 0.3f, 1f);
+        testButton.style.color = Color.white;
+        testButton.style.borderTopLeftRadius = 8;
+        testButton.style.borderTopRightRadius = 8;
+        testButton.style.borderBottomLeftRadius = 8;
+        testButton.style.borderBottomRightRadius = 8;
+        testButton.style.fontSize = 12;
+        testButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+        ApplyFont(testButton);
+        
+        parent.Add(testButton);
     }
     
     /// <summary>
@@ -4204,5 +4310,155 @@ public class SimpleUIToolkitManager : MonoBehaviour
         // 在构建的应用程序中退出
         Application.Quit();
         #endif
+    }
+    
+    /// <summary>
+    /// 创建AI助手按钮渐变纹理
+    /// </summary>
+    private Texture2D CreateAIAssistantButtonGradient()
+    {
+        int width = 256;
+        int height = 64;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(0.8f, 0.4f, 0.8f, 1f), // 紫色
+                    new Color(0.6f, 0.2f, 0.6f, 1f), t); // 深紫色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
+    }
+    
+    /// <summary>
+    /// 创建AI助手按钮悬停渐变纹理
+    /// </summary>
+    private Texture2D CreateAIAssistantButtonHoverGradient()
+    {
+        int width = 256;
+        int height = 64;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(0.9f, 0.5f, 0.9f, 1f), // 亮紫色
+                    new Color(0.7f, 0.3f, 0.7f, 1f), t); // 中紫色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
+    }
+    
+    /// <summary>
+    /// 创建AI聊天渐变纹理
+    /// </summary>
+    private Texture2D CreateAIChatGradientTexture()
+    {
+        int width = 256;
+        int height = 256;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(0.95f, 0.97f, 1f, 1f), // 浅蓝白色
+                    new Color(0.9f, 0.93f, 0.98f, 1f), t); // 稍深的蓝白色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
+    }
+    
+    /// <summary>
+    /// 创建标题栏渐变纹理
+    /// </summary>
+    private Texture2D CreateTitleBarGradientTexture()
+    {
+        int width = 256;
+        int height = 64;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(0.8f, 0.4f, 0.8f, 0.1f), // 浅紫色
+                    new Color(0.6f, 0.2f, 0.6f, 0.05f), t); // 更浅的紫色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
+    }
+    
+    /// <summary>
+    /// 创建关闭按钮渐变纹理
+    /// </summary>
+    private Texture2D CreateCloseButtonGradientTexture()
+    {
+        int width = 64;
+        int height = 64;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(0.9f, 0.3f, 0.3f, 1f), // 红色
+                    new Color(0.7f, 0.2f, 0.2f, 1f), t); // 深红色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
+    }
+    
+    /// <summary>
+    /// 创建关闭按钮悬停渐变纹理
+    /// </summary>
+    private Texture2D CreateCloseButtonHoverGradientTexture()
+    {
+        int width = 64;
+        int height = 64;
+        Texture2D texture = new Texture2D(width, height);
+        
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                float t = (float)y / height;
+                Color color = Color.Lerp(
+                    new Color(1f, 0.4f, 0.4f, 1f), // 亮红色
+                    new Color(0.8f, 0.3f, 0.3f, 1f), t); // 中红色
+                texture.SetPixel(x, y, color);
+            }
+        }
+        
+        texture.Apply();
+        return texture;
     }
 } 
