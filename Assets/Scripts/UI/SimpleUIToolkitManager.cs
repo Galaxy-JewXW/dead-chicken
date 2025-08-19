@@ -46,6 +46,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         TowerOverview,
         SceneOverview, // 添加场景总览模式
         PointCloud, // 添加点云模式
+        StatisticsDashboard, // 添加统计大屏模式
         TreeDanger, // 添加树木危险监测模式
         AIAssistant // 添加AI助手模式
     }
@@ -66,6 +67,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
     
     // 电力线标记系统
     private PowerlineMarkingSystem powerlineMarkingSystem;
+    
+    // 统计大屏管理器
+    private StatisticsDashboardManager statisticsDashboardManager;
 
 
     
@@ -126,6 +130,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         // 初始化电力线标记系统
         InitializePowerlineMarkingSystem();
+        
+        // 初始化统计大屏系统
+        InitializeStatisticsDashboard();
         
         // 初始化天空盒恢复器
         InitializeSkyboxRestorer();
@@ -288,6 +295,23 @@ public class SimpleUIToolkitManager : MonoBehaviour
             GameObject markingSystemObj = new GameObject("PowerlineMarkingSystem");
             powerlineMarkingSystem = markingSystemObj.AddComponent<PowerlineMarkingSystem>();
             Debug.Log("已创建电力线标记系统");
+        }
+    }
+    
+    /// <summary>
+    /// 初始化统计大屏系统
+    /// </summary>
+    void InitializeStatisticsDashboard()
+    {
+        // 查找现有的统计大屏管理器
+        statisticsDashboardManager = FindObjectOfType<StatisticsDashboardManager>();
+        
+        if (statisticsDashboardManager == null)
+        {
+            // 创建统计大屏管理器
+            GameObject statisticsObj = new GameObject("StatisticsDashboardManager");
+            statisticsDashboardManager = statisticsObj.AddComponent<StatisticsDashboardManager>();
+            Debug.Log("已创建统计大屏管理器");
         }
     }
     
@@ -477,6 +501,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         CreateStyledButton("电力线", () => SwitchMode(UIMode.Powerline), buttonContainer);
         CreateStyledButton("树木监测", () => SwitchMode(UIMode.TreeDanger), buttonContainer);
         CreateStyledButton("点云", () => SwitchMode(UIMode.PointCloud), buttonContainer);
+        CreateStyledButton("统计大屏", () => SwitchMode(UIMode.StatisticsDashboard), buttonContainer);
         CreateDronePatrolButton(buttonContainer); // 创建特殊的无人机巡检按钮
         
         // 添加AI助手按钮
@@ -1018,14 +1043,17 @@ public class SimpleUIToolkitManager : MonoBehaviour
             ShowTreeDangerPanel();
             break;
                 case UIMode.SceneOverview:
-            // 场景总览使用独立弹窗，不需要侧边栏
-            break;
-        case UIMode.AIAssistant:
-            ShowAIAssistantPanel();
-            break;
-        default:
-            ShowNormalPanel();
-            break;
+                    // 场景总览使用独立弹窗，不需要侧边栏
+                    break;
+                case UIMode.StatisticsDashboard:
+                    ShowStatisticsDashboardPanel();
+                    break;
+                case UIMode.AIAssistant:
+                    ShowAIAssistantPanel();
+                    break;
+                default:
+                    ShowNormalPanel();
+                    break;
             }
             
             UpdateStatusBar($"模式: {mode}");
@@ -5381,6 +5409,95 @@ public class SimpleUIToolkitManager : MonoBehaviour
         // 在构建的应用程序中退出
         Application.Quit();
         #endif
+    }
+    
+    /// <summary>
+    /// 显示统计大屏面板
+    /// </summary>
+    void ShowStatisticsDashboardPanel()
+    {
+        Debug.Log("=== ShowStatisticsDashboardPanel方法开始执行 ===");
+        
+        // 清空主要内容区域，准备显示统计大屏
+        mainContent.Clear();
+        
+        // 查找现有的StatisticsDashboardController
+        var existingController = FindObjectOfType<StatisticsDashboardController>();
+        StatisticsDashboardController dashboardController = null;
+        
+        if (existingController != null)
+        {
+            Debug.Log("找到现有的StatisticsDashboardController，使用现有实例");
+            dashboardController = existingController;
+            
+            // 重要：设置正确的UIDocument引用！
+            if (uiDocument != null)
+            {
+                dashboardController.statisticsUIDocument = uiDocument;
+                Debug.Log("已设置正确的UIDocument引用到StatisticsDashboardController");
+            }
+            else
+            {
+                Debug.LogError("SimpleUIToolkitManager的uiDocument为null");
+            }
+        }
+        else
+        {
+            Debug.Log("未找到现有的StatisticsDashboardController，创建新实例");
+            // 创建统计大屏控制器GameObject
+            var dashboardGameObject = new GameObject("StatisticsDashboardController");
+            dashboardController = dashboardGameObject.AddComponent<StatisticsDashboardController>();
+            
+            // 设置引用
+            if (uiDocument != null)
+            {
+                dashboardController.statisticsUIDocument = uiDocument;
+                Debug.Log("已设置UIDocument引用到新创建的StatisticsDashboardController");
+            }
+            else
+            {
+                Debug.LogError("SimpleUIToolkitManager的uiDocument为null");
+            }
+            
+            if (statisticsDashboardManager != null)
+            {
+                dashboardController.statisticsManager = statisticsDashboardManager;
+                Debug.Log("已设置StatisticsDashboardManager引用");
+            }
+            else
+            {
+                Debug.LogWarning("StatisticsDashboardManager为null");
+            }
+        }
+        
+        // 调用统计大屏的显示方法
+        if (dashboardController != null)
+        {
+            Debug.Log("开始调用StatisticsDashboardController.ShowStatisticsDashboard()");
+            dashboardController.ShowStatisticsDashboard();
+            Debug.Log("StatisticsDashboardController.ShowStatisticsDashboard()调用完成");
+        }
+        else
+        {
+            Debug.LogError("StatisticsDashboardController创建失败");
+        }
+        
+        // 在侧边栏添加返回主界面按钮
+        sidebar.Clear();
+        var returnButton = new Button(() => {
+            Debug.Log("用户点击返回主界面按钮");
+            SwitchMode(UIMode.Normal);
+        });
+        returnButton.text = "返回主界面";
+        returnButton.style.width = 200;
+        returnButton.style.height = 40;
+        returnButton.style.backgroundColor = primaryColor;
+        returnButton.style.color = Color.white;
+        returnButton.style.marginTop = 10;
+        ApplyFont(returnButton);
+        sidebar.Add(returnButton);
+        
+        Debug.Log("=== ShowStatisticsDashboardPanel方法执行完成 ===");
     }
     
     /// <summary>
