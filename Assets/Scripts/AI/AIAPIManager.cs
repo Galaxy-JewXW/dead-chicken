@@ -68,6 +68,19 @@ public class AIAPIManager : MonoBehaviour
     private string GetAuthorizationHeader()
     {
         // 根据官方文档，直接使用API Key作为Bearer token
+        // 注意：智谱AI的API Key格式应该是 "Bearer {apiKey}"
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            Debug.LogError("[AIAPI] API密钥为空");
+            return null;
+        }
+        
+        // 检查API密钥格式
+        if (!apiKey.Contains("."))
+        {
+            Debug.LogWarning("[AIAPI] API密钥格式可能不正确，智谱AI的API密钥通常包含点号");
+        }
+        
         return $"Bearer {apiKey}";
     }
     
@@ -190,6 +203,15 @@ public class AIAPIManager : MonoBehaviour
         Debug.Log($"[AIAPI] 模型: {model}");
         Debug.Log($"[AIAPI] 消息数量: {request.messages.Count}");
         
+        // 验证API密钥
+        if (string.IsNullOrEmpty(apiKey))
+        {
+            string errorMsg = "API密钥为空，无法发送请求";
+            Debug.LogError($"[AIAPI] {errorMsg}");
+            onError?.Invoke(errorMsg);
+            yield break;
+        }
+        
         using (UnityWebRequest webRequest = new UnityWebRequest(apiUrl, "POST"))
         {
             webRequest.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -203,16 +225,20 @@ public class AIAPIManager : MonoBehaviour
             if (!string.IsNullOrEmpty(authHeader))
             {
                 webRequest.SetRequestHeader("Authorization", authHeader);
+                Debug.Log($"[AIAPI] 认证头已设置: {authHeader.Substring(0, Math.Min(20, authHeader.Length))}...");
             }
             else
             {
-                onError?.Invoke("生成认证头失败");
+                string errorMsg = "生成认证头失败";
+                Debug.LogError($"[AIAPI] {errorMsg}");
+                onError?.Invoke(errorMsg);
                 yield break;
             }
             
             webRequest.timeout = 30;
             
             Debug.Log($"[AIAPI] 发送请求到: {apiUrl}");
+            Debug.Log($"[AIAPI] 请求超时设置: {webRequest.timeout}秒");
             
             yield return webRequest.SendWebRequest();
             
@@ -247,12 +273,16 @@ public class AIAPIManager : MonoBehaviour
                     }
                     else
                     {
-                        onError?.Invoke("响应格式错误");
+                        string errorMsg = "响应格式错误";
+                        Debug.LogError($"[AIAPI] {errorMsg}");
+                        Debug.LogError($"[AIAPI] 响应内容: {responseText}");
+                        onError?.Invoke(errorMsg);
                     }
                 }
                 catch (Exception ex)
                 {
                     Debug.LogError($"[AIAPI] 解析响应失败: {ex.Message}");
+                    Debug.LogError($"[AIAPI] 原始响应: {responseText}");
                     onError?.Invoke($"解析失败: {ex.Message}");
                 }
             }
@@ -267,7 +297,29 @@ public class AIAPIManager : MonoBehaviour
                 // 添加更多调试信息
                 Debug.LogError($"[AIAPI] {errorMessage}");
                 Debug.LogError($"[AIAPI] 响应码: {webRequest.responseCode}");
-                Debug.LogError($"[AIAPI] 请求头: Authorization = {webRequest.GetRequestHeader("Authorization")}");
+                Debug.LogError($"[AIAPI] 请求结果: {webRequest.result}");
+                
+                // 修复：正确获取Authorization头信息
+                try
+                {
+                    string currentAuthHeader = GetAuthorizationHeader();
+                    if (!string.IsNullOrEmpty(currentAuthHeader))
+                    {
+                        // 只显示前20个字符，避免泄露完整密钥
+                        string maskedAuth = currentAuthHeader.Length > 20 ? 
+                            currentAuthHeader.Substring(0, 20) + "..." : currentAuthHeader;
+                        Debug.LogError($"[AIAPI] 使用的认证头: {maskedAuth}");
+                    }
+                    else
+                    {
+                        Debug.LogError("[AIAPI] 认证头生成失败");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[AIAPI] 获取认证头信息时出错: {ex.Message}");
+                }
+                
                 onError?.Invoke(errorMessage);
             }
         }
@@ -292,13 +344,76 @@ public class AIAPIManager : MonoBehaviour
         // 强制重置为默认配置
         ResetToDefaultConfiguration();
         
+        // 先测试基本配置
+        Debug.Log("[AIAPI] 测试基本配置...");
+        if (!ValidateAPIKey())
+        {
+            Debug.LogError("[AIAPI] ❌ API密钥验证失败");
+            return;
+        }
+        
+        Debug.Log($"[AIAPI] ✅ API密钥验证通过");
+        Debug.Log($"[AIAPI] 测试URL: {apiUrl}");
+        Debug.Log($"[AIAPI] 测试模型: {model}");
+        
         SendMessage("你好，请简单介绍一下自己", 
             (response) => {
                 Debug.Log($"[AIAPI] ✅ 测试成功: {response}");
             },
             (error) => {
                 Debug.LogError($"[AIAPI] ❌ 测试失败: {error}");
+                // 提供更多诊断信息
+                Debug.LogError($"[AIAPI] 请检查以下项目:");
+                Debug.LogError($"[AIAPI] 1. 网络连接是否正常");
+                Debug.LogError($"[AIAPI] 2. API密钥是否正确");
+                Debug.LogError($"[AIAPI] 3. API端点是否可访问");
+                Debug.LogError($"[AIAPI] 4. 防火墙设置是否允许HTTPS请求");
             });
+    }
+    
+    /// <summary>
+    /// 测试网络连接
+    /// </summary>
+    public void TestNetworkConnection()
+    {
+        Debug.Log("[AIAPI] 开始测试网络连接...");
+        StartCoroutine(TestNetworkConnectionCoroutine());
+    }
+    
+    private IEnumerator TestNetworkConnectionCoroutine()
+    {
+        // 测试基本网络连接
+        using (UnityWebRequest testRequest = UnityWebRequest.Get("https://www.baidu.com"))
+        {
+            testRequest.timeout = 10;
+            yield return testRequest.SendWebRequest();
+            
+            if (testRequest.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log("[AIAPI] ✅ 基本网络连接正常");
+            }
+            else
+            {
+                Debug.LogError($"[AIAPI] ❌ 基本网络连接失败: {testRequest.error}");
+            }
+        }
+        
+        // 测试API端点连接
+        using (UnityWebRequest apiTestRequest = UnityWebRequest.Head(apiUrl))
+        {
+            apiTestRequest.timeout = 15;
+            yield return apiTestRequest.SendWebRequest();
+            
+            if (apiTestRequest.result == UnityWebRequest.Result.Success)
+            {
+                Debug.Log($"[AIAPI] ✅ API端点 {apiUrl} 可访问");
+            }
+            else
+            {
+                Debug.LogError($"[AIAPI] ❌ API端点 {apiUrl} 不可访问: {apiTestRequest.error}");
+                Debug.LogError($"[AIAPI] 响应码: {apiTestRequest.responseCode}");
+            }
+        }
     }
     
     /// <summary>
@@ -331,6 +446,66 @@ public class AIAPIManager : MonoBehaviour
         Debug.Log($"[AIAPI] Temperature: {temperature}");
         Debug.Log($"[AIAPI] Max Tokens: {maxTokens}");
         Debug.Log("================================");
+        
+        // 验证配置
+        ValidateConfiguration();
+    }
+    
+    /// <summary>
+    /// 验证当前配置
+    /// </summary>
+    private void ValidateConfiguration()
+    {
+        Debug.Log("[AIAPI] 开始验证配置...");
+        
+        // 验证API密钥
+        if (ValidateAPIKey())
+        {
+            Debug.Log("[AIAPI] ✅ API密钥验证通过");
+        }
+        else
+        {
+            Debug.LogError("[AIAPI] ❌ API密钥验证失败");
+        }
+        
+        // 验证URL格式
+        if (Uri.TryCreate(apiUrl, UriKind.Absolute, out Uri uri))
+        {
+            Debug.Log($"[AIAPI] ✅ API URL格式正确: {uri.Scheme}://{uri.Host}");
+        }
+        else
+        {
+            Debug.LogError($"[AIAPI] ❌ API URL格式错误: {apiUrl}");
+        }
+        
+        // 验证模型名称
+        if (!string.IsNullOrEmpty(model))
+        {
+            Debug.Log($"[AIAPI] ✅ 模型名称已设置: {model}");
+        }
+        else
+        {
+            Debug.LogError("[AIAPI] ❌ 模型名称未设置");
+        }
+        
+        // 验证参数范围
+        if (temperature >= 0f && temperature <= 2f)
+        {
+            Debug.Log($"[AIAPI] ✅ Temperature值在有效范围内: {temperature}");
+        }
+        else
+        {
+            Debug.LogWarning($"[AIAPI] ⚠️ Temperature值可能超出推荐范围: {temperature}");
+        }
+        
+        if (maxTokens > 0 && maxTokens <= 4000)
+        {
+            Debug.Log($"[AIAPI] ✅ Max Tokens值在有效范围内: {maxTokens}");
+        }
+        else
+        {
+            Debug.LogWarning($"[AIAPI] ⚠️ Max Tokens值可能超出推荐范围: {maxTokens}");
+        }
     }
     
     /// <summary>
@@ -345,5 +520,77 @@ public class AIAPIManager : MonoBehaviour
         
         Debug.Log("[AIAPI] 配置已重置为默认值");
         RefreshConfiguration();
+    }
+    
+    /// <summary>
+    /// 手动测试API请求（详细诊断）
+    /// </summary>
+    [ContextMenu("详细API诊断")]
+    public void DetailedAPIDiagnostic()
+    {
+        Debug.Log("=== 开始详细API诊断 ===");
+        
+        // 1. 检查基本配置
+        Debug.Log("1. 检查基本配置...");
+        RefreshConfiguration();
+        
+        // 2. 测试网络连接
+        Debug.Log("2. 测试网络连接...");
+        TestNetworkConnection();
+        
+        // 3. 测试API请求格式
+        Debug.Log("3. 测试API请求格式...");
+        StartCoroutine(TestAPIRequestFormat());
+        
+        Debug.Log("=== 详细API诊断完成 ===");
+    }
+    
+    private IEnumerator TestAPIRequestFormat()
+    {
+        // 创建一个简单的测试请求
+        var testRequest = new ChatRequest
+        {
+            model = model,
+            messages = new List<ChatMessage>
+            {
+                new ChatMessage { role = "user", content = "你好" }
+            },
+            temperature = temperature,
+            max_tokens = maxTokens
+        };
+        
+        // 序列化请求
+        string jsonRequest = JsonUtility.ToJson(testRequest);
+        Debug.Log($"[AIAPI] 测试请求JSON: {jsonRequest}");
+        
+        // 检查JSON格式
+        try
+        {
+            var parsedRequest = JsonUtility.FromJson<ChatRequest>(jsonRequest);
+            Debug.Log("[AIAPI] ✅ JSON序列化/反序列化测试通过");
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[AIAPI] ❌ JSON序列化/反序列化测试失败: {ex.Message}");
+        }
+        
+        // 测试实际的API调用
+        Debug.Log("[AIAPI] 开始测试实际API调用...");
+        
+        SendMessage("测试消息", 
+            (response) => {
+                Debug.Log($"[AIAPI] ✅ API调用测试成功: {response}");
+            },
+            (error) => {
+                Debug.LogError($"[AIAPI] ❌ API调用测试失败: {error}");
+                Debug.LogError("[AIAPI] 请检查以下可能的问题:");
+                Debug.LogError("1. API密钥是否正确且未过期");
+                Debug.LogError("2. 网络连接是否正常");
+                Debug.LogError("3. API端点是否可访问");
+                Debug.LogError("4. 请求格式是否符合API要求");
+                Debug.LogError("5. 是否有防火墙或代理限制");
+            });
+        
+        yield return null;
     }
 }

@@ -1533,6 +1533,23 @@ public class SimpleUIToolkitManager : MonoBehaviour
         // 创建滚动视图
         var scrollView = new ScrollView();
         scrollView.style.height = 300;
+        scrollView.verticalScrollerVisibility = ScrollerVisibility.Auto;
+        scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        scrollView.scrollDecelerationRate = 0.9f;
+        
+        // 添加滚轮事件监听，确保鼠标滚轮可以滚动内容
+        scrollView.RegisterCallback<WheelEvent>(evt => {
+            // 阻止事件冒泡，确保滚动事件被正确处理
+            evt.StopPropagation();
+            
+            // 计算滚动偏移量
+            float scrollDelta = evt.delta.y;
+            Vector2 currentOffset = scrollView.scrollOffset;
+            Vector2 newOffset = new Vector2(currentOffset.x, currentOffset.y + scrollDelta);
+            
+            // 应用滚动偏移量
+            scrollView.scrollOffset = newOffset;
+        });
         
         // 显示所有标记
         if (powerlineMarkingSystem != null)
@@ -1834,10 +1851,10 @@ public class SimpleUIToolkitManager : MonoBehaviour
         // 创建主对话框 - 现代化设计
         var mainDialog = new VisualElement();
         mainDialog.style.position = Position.Absolute;
-        mainDialog.style.top = Length.Percent(5);
+        mainDialog.style.top = Length.Percent(3); // 减少顶部边距，给聊天区域更多空间
         mainDialog.style.left = Length.Percent(10);
         mainDialog.style.width = Length.Percent(80);
-        mainDialog.style.height = Length.Percent(90);
+        mainDialog.style.height = Length.Percent(94); // 增加高度，充分利用屏幕空间
         
         // 现代化背景和边框
         mainDialog.style.backgroundColor = new Color(0.12f, 0.12f, 0.18f, 0.98f);
@@ -1857,8 +1874,8 @@ public class SimpleUIToolkitManager : MonoBehaviour
         mainDialog.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
         
         // 内边距优化
-        mainDialog.style.paddingTop = 15;
-        mainDialog.style.paddingBottom = 15; // 减少底部内边距
+        mainDialog.style.paddingTop = 12; // 减少顶部内边距
+        mainDialog.style.paddingBottom = 12; // 减少底部内边距
         mainDialog.style.paddingLeft = 25;
         mainDialog.style.paddingRight = 25;
         mainDialog.style.flexDirection = FlexDirection.Column;
@@ -1944,21 +1961,23 @@ public class SimpleUIToolkitManager : MonoBehaviour
         var chatContainer = new ScrollView();
         chatContainer.style.flexGrow = 1;
         chatContainer.style.marginBottom = 10; // 减少底部边距
-        chatContainer.style.minHeight = 450; // 增加最小高度，扩大对话区域
-        chatContainer.style.maxHeight = 600; // 增加最大高度，扩大对话区域
+        chatContainer.style.minHeight = 600; // 增加最小高度，扩大对话区域
+        chatContainer.style.maxHeight = 800; // 增加最大高度，充分利用空间
         
         // 设置滚动模式和其他重要属性
         chatContainer.mode = ScrollViewMode.Vertical;
         chatContainer.scrollDecelerationRate = 0.9f;
         chatContainer.style.overflow = Overflow.Hidden;
         
-        // 设置内容容器属性 - 参考PythonOutputViewer的成功实现
+        // 设置内容容器属性 - 修复重叠问题
         chatContainer.contentContainer.style.flexDirection = FlexDirection.Column; // 确保消息垂直排列
         chatContainer.contentContainer.style.flexWrap = Wrap.NoWrap; // 防止水平换行
-        chatContainer.contentContainer.style.overflow = Overflow.Hidden;
+        chatContainer.contentContainer.style.overflow = Overflow.Visible; // 改为Visible防止裁剪
         chatContainer.contentContainer.style.width = Length.Percent(100);
         chatContainer.contentContainer.style.alignItems = Align.Stretch; // 拉伸对齐，确保子元素占满宽度
         chatContainer.contentContainer.style.minWidth = 0; // 允许收缩到0
+        chatContainer.contentContainer.style.flexGrow = 1; // 确保容器可以增长
+        chatContainer.contentContainer.style.flexShrink = 0; // 防止容器被压缩
         
         // 设置焦点支持
         chatContainer.focusable = true;
@@ -1976,18 +1995,12 @@ public class SimpleUIToolkitManager : MonoBehaviour
             }
         });
         
-        // 添加滚轮事件处理，提升滚动体验 - 参考PythonOutputViewer的实现
+        // 添加滚轮事件处理，参考电塔总览侧栏的实现
         chatContainer.RegisterCallback<WheelEvent>(evt =>
         {
-            if (chatContainer.verticalScroller != null)
-            {
-                float currentValue = chatContainer.verticalScroller.value;
-                float newValue = currentValue + (evt.delta.y * 300f); // 增加滚动速度
-                newValue = Mathf.Clamp(newValue, chatContainer.verticalScroller.lowValue, chatContainer.verticalScroller.highValue);
-                chatContainer.verticalScroller.value = newValue;
-                evt.StopPropagation();
-            }
-        }, TrickleDown.TrickleDown);
+            chatContainer.scrollOffset += new Vector2(0, evt.delta.y * 300f); // 增加滚动速度
+            evt.StopPropagation();
+        });
         
         // 添加键盘事件处理，支持PageUp/PageDown滚动
         chatContainer.RegisterCallback<KeyDownEvent>(evt =>
@@ -2052,12 +2065,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
         chatContainer.style.flexShrink = 1; // 允许收缩
         chatContainer.style.flexGrow = 1; // 允许增长
         
-        // 现代化欢迎消息
+        // 现代化欢迎消息 - 修复重叠问题
         var welcomeMessage = new Label("欢迎使用AI智能助手！\n\n我可以为您提供以下服务：\n\n• 回答各种知识性问题\n• 解决技术问题和编程\n• 提供生活建议和指导\n• 创意写作和内容创作\n• 数学计算和数据分析\n• 语言翻译和学习辅导\n• 其他任何您需要帮助的问题\n\n请在下方输入框中输入您的问题，我将为您提供专业的帮助！");
         welcomeMessage.style.color = new Color(0.9f, 0.9f, 1f, 1f);
         welcomeMessage.style.fontSize = 16;
         welcomeMessage.style.whiteSpace = WhiteSpace.Normal;
-        welcomeMessage.style.marginBottom = 10; // 减少底部边距
+        welcomeMessage.style.marginBottom = 15; // 增加底部边距，防止与后续消息重叠
+        welcomeMessage.style.marginTop = 8; // 减少上边距
         welcomeMessage.style.paddingTop = 12; // 减少内边距
         welcomeMessage.style.paddingBottom = 12; // 减少内边距
         welcomeMessage.style.paddingLeft = 15;
@@ -2067,10 +2081,12 @@ public class SimpleUIToolkitManager : MonoBehaviour
         welcomeMessage.style.borderTopRightRadius = 12;
         welcomeMessage.style.borderBottomLeftRadius = 12;
         welcomeMessage.style.borderBottomRightRadius = 12;
-        welcomeMessage.style.minHeight = 25; // 减少最小高度
+        welcomeMessage.style.minHeight = 30; // 最小高度
+        welcomeMessage.style.height = Length.Auto(); // 自动调整高度
         welcomeMessage.style.maxWidth = Length.Percent(95); // 确保不超出容器宽度
         welcomeMessage.style.flexShrink = 0; // 防止被压缩
         welcomeMessage.style.flexGrow = 0; // 不自动增长
+        welcomeMessage.style.alignSelf = Align.FlexStart; // 确保从顶部开始对齐
         ApplyFont(welcomeMessage);
         chatContainer.Add(welcomeMessage);
         
@@ -2113,17 +2129,17 @@ public class SimpleUIToolkitManager : MonoBehaviour
         inputContainer.style.borderLeftColor = new Color(0.3f, 0.3f, 0.5f, 0.4f);
         inputContainer.style.borderRightColor = new Color(0.2f, 0.2f, 0.3f, 0.4f);
         
-        // 现代化输入框
+        // 现代化输入框 - 修复占位符和字体大小
         var inputField = new TextField();
-        inputField.label = "输入您的问题...";
+        inputField.label = "输入您的问题..."; // 使用label作为占位符文本
         inputField.style.flexGrow = 1;
         inputField.style.marginRight = 15;
         inputField.style.height = 45; // 稍微减少输入框高度
-        inputField.style.fontSize = 18;
+        inputField.style.fontSize = 20; // 增大输入字体大小，提高可读性
         
-        // 现代化输入框样式
+        // 现代化输入框样式 - 优化占位符和输入文字显示
         inputField.style.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.9f);
-        inputField.style.color = new Color(0.9f, 0.9f, 1f, 1f);
+        inputField.style.color = new Color(0.9f, 0.9f, 1f, 1f); // 输入文字颜色
         inputField.style.borderTopLeftRadius = 10;
         inputField.style.borderTopRightRadius = 10;
         inputField.style.borderBottomLeftRadius = 10;
@@ -2141,21 +2157,62 @@ public class SimpleUIToolkitManager : MonoBehaviour
         inputField.style.paddingLeft = 18;
         inputField.style.paddingRight = 18;
         
+        // 设置占位符文字样式
+        inputField.style.unityTextOutlineColor = new Color(0.6f, 0.6f, 0.8f, 0.7f); // 占位符文字颜色
+        inputField.style.unityTextOutlineWidth = 0.5f; // 占位符文字轮廓宽度
+        
+        // 注意：unityTextSelectionColor 和 unityTextCursorColor 在当前Unity版本中不可用
+        // 如果需要自定义文本选择样式，需要使用其他方法
+        
         // 设置输入框的文本样式
         inputField.style.unityFontStyleAndWeight = FontStyle.Normal;
         
-        // 添加焦点效果
+        // 手动管理占位符文字的显示和隐藏
+        inputField.RegisterValueChangedCallback(evt => {
+            // 当输入框有内容时，隐藏占位符
+            if (!string.IsNullOrEmpty(evt.newValue))
+            {
+                inputField.label = ""; // 清空占位符
+                inputField.style.color = new Color(0.9f, 0.9f, 1f, 1f); // 输入文字颜色
+            }
+            else
+            {
+                inputField.label = "输入您的问题..."; // 恢复占位符
+                inputField.style.color = new Color(0.9f, 0.9f, 1f, 1f); // 保持一致的文字颜色
+            }
+        });
+        
+        // 添加焦点效果 - 手动管理占位符的显示
         inputField.RegisterCallback<FocusInEvent>(evt => {
+            // 获得焦点时，如果没有内容则隐藏占位符
+            if (string.IsNullOrEmpty(inputField.value))
+            {
+                inputField.label = "";
+            }
+            
             inputField.style.borderTopColor = new Color(0.9f, 0.5f, 0.9f, 1f);
             inputField.style.borderBottomColor = new Color(0.7f, 0.3f, 0.9f, 1f);
             inputField.style.borderLeftColor = new Color(0.9f, 0.5f, 0.9f, 1f);
             inputField.style.borderRightColor = new Color(0.7f, 0.3f, 0.9f, 1f);
+            
+            // 增强背景色，提供更好的视觉反馈
+            inputField.style.backgroundColor = new Color(0.1f, 0.1f, 0.15f, 0.95f);
         });
         inputField.RegisterCallback<FocusOutEvent>(evt => {
+            // 失去焦点时，如果没有内容则显示占位符
+            if (string.IsNullOrEmpty(inputField.value))
+            {
+                inputField.label = "输入您的问题...";
+            }
+            
+            // 恢复默认样式
             inputField.style.borderTopColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
             inputField.style.borderBottomColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
             inputField.style.borderLeftColor = new Color(0.8f, 0.4f, 0.8f, 0.8f);
             inputField.style.borderRightColor = new Color(0.6f, 0.2f, 0.8f, 0.8f);
+            
+            // 恢复默认背景色
+            inputField.style.backgroundColor = new Color(0.08f, 0.08f, 0.12f, 0.9f);
         });
         
         // 添加回车键发送功能
@@ -2380,11 +2437,15 @@ public class SimpleUIToolkitManager : MonoBehaviour
         var messageContainer = new VisualElement();
         messageContainer.style.flexDirection = FlexDirection.Row;
         messageContainer.style.justifyContent = Justify.FlexEnd;
-        messageContainer.style.marginBottom = 20; // 减少消息间距
-        messageContainer.style.marginTop = 12; // 减少上边距
-        messageContainer.style.minHeight = 55; // 减少最小高度
+        messageContainer.style.marginBottom = 15; // 减少消息间距，防止重叠
+        messageContainer.style.marginTop = 8; // 减少上边距，防止重叠
+        messageContainer.style.minHeight = 60; // 最小高度
+        messageContainer.style.height = Length.Auto(); // 自动调整高度
+        messageContainer.style.maxHeight = Length.None(); // 移除最大高度限制
         messageContainer.style.width = Length.Percent(100); // 确保容器占满宽度
         messageContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        messageContainer.style.flexShrink = 0; // 防止被压缩
+        messageContainer.style.flexGrow = 0; // 不自动增长
         
         // 创建用户头像
         var userAvatar = new Label("用户");
@@ -2409,7 +2470,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         userAvatar.style.borderRightColor = new Color(0.7f, 0.3f, 0.9f, 0.8f);
         ApplyFont(userAvatar);
         
-        // 现代化用户消息气泡
+        // 现代化用户消息气泡 - 完全支持长文本显示，无高度限制
         var messageBubble = new Label(message);
         messageBubble.style.backgroundColor = new Color(0.8f, 0.4f, 0.8f, 0.9f);
         messageBubble.style.color = Color.white;
@@ -2424,10 +2485,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
         messageBubble.style.fontSize = 15;
         messageBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
         messageBubble.style.whiteSpace = WhiteSpace.Normal;
-        messageBubble.style.minHeight = 18; // 减少最小高度
+        messageBubble.style.minHeight = 20; // 最小高度
+        messageBubble.style.height = Length.Auto(); // 自动调整高度
+        messageBubble.style.maxHeight = Length.None(); // 移除最大高度限制
         messageBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
         messageBubble.style.flexShrink = 0; // 防止气泡被压缩
         messageBubble.style.flexGrow = 0; // 不自动增长
+        messageBubble.style.alignSelf = Align.FlexStart; // 确保气泡从顶部开始对齐
         
         // 添加边框效果
         messageBubble.style.borderTopWidth = 1;
@@ -2457,11 +2521,15 @@ public class SimpleUIToolkitManager : MonoBehaviour
         var messageContainer = new VisualElement();
         messageContainer.style.flexDirection = FlexDirection.Row;
         messageContainer.style.justifyContent = Justify.FlexStart;
-        messageContainer.style.marginBottom = 20; // 减少消息间距
-        messageContainer.style.marginTop = 12; // 减少上边距
-        messageContainer.style.minHeight = 55; // 减少最小高度
+        messageContainer.style.marginBottom = 15; // 减少消息间距，防止重叠
+        messageContainer.style.marginTop = 8; // 减少上边距，防止重叠
+        messageContainer.style.minHeight = 60; // 最小高度
+        messageContainer.style.height = Length.Auto(); // 自动调整高度
+        messageContainer.style.maxHeight = Length.None(); // 移除最大高度限制
         messageContainer.style.width = Length.Percent(100); // 确保容器占满宽度
         messageContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        messageContainer.style.flexShrink = 0; // 防止被压缩
+        messageContainer.style.flexGrow = 0; // 不自动增长
         
         // 创建AI头像
         var aiAvatar = new Label("AI");
@@ -2486,7 +2554,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         aiAvatar.style.borderRightColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
         ApplyFont(aiAvatar);
         
-        // 现代化AI消息气泡
+        // 现代化AI消息气泡 - 完全支持长文本显示，无高度限制
         var messageBubble = new Label(response);
         messageBubble.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.8f);
         messageBubble.style.color = new Color(0.9f, 0.9f, 1f, 1f);
@@ -2501,10 +2569,14 @@ public class SimpleUIToolkitManager : MonoBehaviour
         messageBubble.style.fontSize = 15;
         messageBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
         messageBubble.style.whiteSpace = WhiteSpace.Normal;
-        messageBubble.style.minHeight = 18; // 减少最小高度
+        messageBubble.style.minHeight = 20; // 最小高度
+        messageBubble.style.height = Length.Auto(); // 自动调整高度
+        messageBubble.style.maxHeight = Length.None(); // 移除最大高度限制
         messageBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
         messageBubble.style.flexShrink = 0; // 防止气泡被压缩
         messageBubble.style.flexGrow = 0; // 不自动增长
+        messageBubble.style.alignSelf = Align.FlexStart; // 确保气泡从顶部开始对齐
+        messageBubble.style.overflow = Overflow.Visible; // 确保内容完全可见
         
         // 添加边框效果
         messageBubble.style.borderTopWidth = 1;
@@ -2655,27 +2727,41 @@ public class SimpleUIToolkitManager : MonoBehaviour
     }
     
     /// <summary>
-    /// 延迟滚动到底部
+    /// 延迟滚动到底部 - 修复重叠问题
     /// </summary>
     private IEnumerator ScrollToBottomDelayed(ScrollView chatContainer)
     {
-        // 等待两帧，确保布局与滚动条数值都已更新
+        // 等待三帧，确保布局完全更新
         yield return null;
         yield return new WaitForEndOfFrame();
+        yield return new WaitForEndOfFrame();
 
-        // 参考PythonOutputViewer的成功实现
-        if (chatContainer?.verticalScroller != null)
+        // 使用scrollOffset直接控制滚动位置，避免滚动条冲突
+        if (chatContainer != null)
         {
-            chatContainer.verticalScroller.value = chatContainer.verticalScroller.highValue;
+            // 计算内容高度并滚动到底部
+            float contentHeight = chatContainer.contentContainer.worldBound.height;
+            float viewportHeight = chatContainer.worldBound.height;
+            
+            if (contentHeight > viewportHeight)
+            {
+                chatContainer.scrollOffset = new Vector2(0, contentHeight - viewportHeight);
+            }
         }
 
         // 使用schedule确保在下一帧执行，进一步保证滚动到底部
         chatContainer.schedule.Execute(() => {
-            if (chatContainer?.verticalScroller != null)
+            if (chatContainer != null)
             {
-                chatContainer.verticalScroller.value = chatContainer.verticalScroller.highValue;
+                float contentHeight = chatContainer.contentContainer.worldBound.height;
+                float viewportHeight = chatContainer.worldBound.height;
+                
+                if (contentHeight > viewportHeight)
+                {
+                    chatContainer.scrollOffset = new Vector2(0, contentHeight - viewportHeight);
+                }
             }
-        }).ExecuteLater(1);
+        }).ExecuteLater(2);
     }
     
     /// <summary>
@@ -2722,11 +2808,15 @@ public class SimpleUIToolkitManager : MonoBehaviour
         loadingContainer.name = "loadingMessage";
         loadingContainer.style.flexDirection = FlexDirection.Row;
         loadingContainer.style.justifyContent = Justify.FlexStart;
-        loadingContainer.style.marginBottom = 20; // 减少消息间距
-        loadingContainer.style.marginTop = 12; // 减少上边距
-        loadingContainer.style.minHeight = 55; // 减少最小高度
+        loadingContainer.style.marginBottom = 15; // 减少消息间距，防止重叠
+        loadingContainer.style.marginTop = 8; // 减少上边距，防止重叠
+        loadingContainer.style.minHeight = 60; // 最小高度
+        loadingContainer.style.height = Length.Auto(); // 自动调整高度
+        loadingContainer.style.maxHeight = Length.None(); // 移除最大高度限制
         loadingContainer.style.width = Length.Percent(100); // 确保容器占满宽度
         loadingContainer.style.alignItems = Align.FlexStart; // 顶部对齐，防止拉伸
+        loadingContainer.style.flexShrink = 0; // 防止被压缩
+        loadingContainer.style.flexGrow = 0; // 不自动增长
         
         // 创建AI头像
         var aiAvatar = new Label("AI");
@@ -2751,7 +2841,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         aiAvatar.style.borderRightColor = new Color(0.3f, 0.5f, 0.7f, 0.8f);
         ApplyFont(aiAvatar);
         
-        // 创建加载消息气泡
+        // 创建加载消息气泡 - 完全支持长文本显示，无高度限制
         var loadingBubble = new Label("正在思考中...");
         loadingBubble.style.backgroundColor = new Color(0.15f, 0.15f, 0.25f, 0.8f);
         loadingBubble.style.color = new Color(0.9f, 0.9f, 1f, 1f);
@@ -2766,10 +2856,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
         loadingBubble.style.fontSize = 15;
         loadingBubble.style.maxWidth = Length.Percent(85); // 增加最大宽度，让气泡更大
         loadingBubble.style.whiteSpace = WhiteSpace.Normal;
-        loadingBubble.style.minHeight = 18; // 减少最小高度
+        loadingBubble.style.minHeight = 20; // 最小高度
+        loadingBubble.style.height = Length.Auto(); // 自动调整高度
+        loadingBubble.style.maxHeight = Length.None(); // 移除最大高度限制
         loadingBubble.style.flexWrap = Wrap.Wrap; // 确保文本换行
         loadingBubble.style.flexShrink = 0; // 防止气泡被压缩
         loadingBubble.style.flexGrow = 0; // 不自动增长
+        loadingBubble.style.alignSelf = Align.FlexStart; // 确保气泡从顶部开始对齐
         
         // 添加边框效果
         loadingBubble.style.borderTopWidth = 1;
@@ -3059,6 +3152,25 @@ public class SimpleUIToolkitManager : MonoBehaviour
         chatContainer.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         chatContainer.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         chatContainer.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        
+        // 启用滚轮滚动功能
+        chatContainer.mode = ScrollViewMode.Vertical;
+        chatContainer.verticalScrollerVisibility = ScrollerVisibility.Auto;
+        chatContainer.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+        
+        // 添加滚轮事件监听，确保鼠标滚轮可以滚动聊天内容
+        chatContainer.RegisterCallback<WheelEvent>(evt => {
+            // 阻止事件冒泡，确保滚动事件被正确处理
+            evt.StopPropagation();
+            
+            // 计算滚动偏移量
+            float scrollDelta = evt.delta.y;
+            Vector2 currentOffset = chatContainer.scrollOffset;
+            Vector2 newOffset = new Vector2(currentOffset.x, currentOffset.y + scrollDelta);
+            
+            // 应用滚动偏移量
+            chatContainer.scrollOffset = newOffset;
+        });
         
         // 添加欢迎消息
         var welcomeMessage = new Label("AI助手：您好！我是您的智能助手，有什么可以帮助您的吗？");
@@ -3971,6 +4083,23 @@ public class SimpleUIToolkitManager : MonoBehaviour
                 var scrollView = new ScrollView();
                 scrollView.style.height = 150;
                 scrollView.style.maxHeight = 150;
+                scrollView.verticalScrollerVisibility = ScrollerVisibility.Auto;
+                scrollView.horizontalScrollerVisibility = ScrollerVisibility.Hidden;
+                scrollView.scrollDecelerationRate = 0.9f;
+                
+                // 添加滚轮事件监听，确保鼠标滚轮可以滚动内容
+                scrollView.RegisterCallback<WheelEvent>(evt => {
+                    // 阻止事件冒泡，确保滚动事件被正确处理
+                    evt.StopPropagation();
+                    
+                    // 计算滚动偏移量
+                    float scrollDelta = evt.delta.y;
+                    Vector2 currentOffset = scrollView.scrollOffset;
+                    Vector2 newOffset = new Vector2(currentOffset.x, currentOffset.y + scrollDelta);
+                    
+                    // 应用滚动偏移量
+                    scrollView.scrollOffset = newOffset;
+                });
                 
                 foreach (var mark in powerlineMarks)
                 {
