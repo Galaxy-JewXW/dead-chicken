@@ -4,6 +4,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 using System.Text;
+using System.Diagnostics;
+using System.IO;
 
 [System.Serializable]
 public class ChatMessage
@@ -55,6 +57,17 @@ public class Usage
     public int total_tokens;
 }
 
+[System.Serializable]
+public class PythonResponse
+{
+    public bool success;
+    public string response;
+    public string error;
+    public Usage usage;
+    public string model;
+    public string id;
+}
+
 public class AIAPIManager : MonoBehaviour
 {
     [Header("API配置")]
@@ -63,7 +76,22 @@ public class AIAPIManager : MonoBehaviour
     [SerializeField] private string model = "glm-4.5";
     [SerializeField] private float temperature = 0.7f;
     [SerializeField] private int maxTokens = 1000;
-    
+
+    private string systemPrompt = @"你是一个名为“电网智询 (Grid-AI)”的智能助手，内嵌于一套“电力线三维重建与管理系统”中。你的核心任务是帮助电力行业的专业人员（如工程师、巡检员、管理人员）通过自然语言对话，快速、准确地从系统中获取信息、执行分析和进行可视化交互。
+
+[角色定义]
+1. 身份：你是电力数据分析专家和系统操作向导。
+2. 沟通风格：你的回答必须精确、简洁、专业。优先使用列表、表格等结构化方式呈现数据，确保信息清晰易读。
+3. 知识边界：你的所有知识严格限定于当前系统中加载和处理的数据。这些数据包括：原始点云数据 (分类后的地面、植被、建筑物、电力线等)、电力设施三维模型 (电力线、杆塔)、分析结果 (危险点、交叉跨越、对地距离、弧垂、植被侵入等)、元数据 (线路ID、电压等级、杆塔编号、巡检日期等)。你绝对不能凭空捏造数据或回答与当前系统数据无关的问题。如果用户提问超出范围，你必须礼貌地拒绝并重申你的职责范围。
+
+[核心能力与任务]
+你必须能够理解用户的意图，并将其分解为以下几类核心任务：
+1. 数据查询与筛选 (Data Query & Filtering)
+2. 空间分析与量算 (Spatial Analysis & Measurement)
+3. 风险识别与告警 (Risk Identification & Alerts)
+4. 视图控制与可视化 (View Control & Visualization): 当需要进行视图操作时，你需生成特定格式的JSON指令，例如：{""action"": ""view_control"", ""command"": ""highlight"", ""target"": {""type"": ""line"", ""id"": ""L-55""}}";
+
+
     // 智谱AI API认证配置
     private string GetAuthorizationHeader()
     {
@@ -74,13 +102,13 @@ public class AIAPIManager : MonoBehaviour
             Debug.LogError("[AIAPI] API密钥为空");
             return null;
         }
-        
+
         // 检查API密钥格式
         if (!apiKey.Contains("."))
         {
             Debug.LogWarning("[AIAPI] API密钥格式可能不正确，智谱AI的API密钥通常包含点号");
         }
-        
+
         return $"Bearer {apiKey}";
     }
     
@@ -137,7 +165,7 @@ public class AIAPIManager : MonoBehaviour
     }
     
     /// <summary>
-    /// 发送消息到AI API
+    /// 发送消息到AI API（通过Python脚本）
     /// </summary>
     public void SendMessage(string userMessage, Action<string> onResponse, Action<string> onError = null)
     {
@@ -152,45 +180,146 @@ public class AIAPIManager : MonoBehaviour
             onError?.Invoke("API密钥格式错误，请检查配置");
             return;
         }
-        
+
         Debug.Log($"[AIAPI] 发送消息: {userMessage}");
-        
-        // 输出当前配置
-        Debug.Log($"[AIAPI] 当前模型: {model}");
-        Debug.Log($"[AIAPI] 当前API密钥: {apiKey}");
-        
+
         // 添加用户消息到历史记录
         conversationHistory.Add(new ChatMessage
         {
             role = "user",
             content = userMessage
         });
-        
-        // 构建请求消息列表
-        var messages = new List<ChatMessage>();
-        
-        // 只保留最近的对话（最多6条消息）
-        int startIndex = Math.Max(0, conversationHistory.Count - 6);
-        for (int i = startIndex; i < conversationHistory.Count; i++)
-        {
-            messages.Add(conversationHistory[i]);
-        }
-        
-        // 构建请求
-        var request = new ChatRequest
-        {
-            model = model,
-            messages = messages,
-            temperature = temperature,
-            max_tokens = maxTokens
-        };
-        
-        // 发送请求
-        StartCoroutine(SendRequest(request, onResponse, onError));
+
+        // 通过Python脚本发送请求
+        StartCoroutine(SendRequestViaPython(userMessage, onResponse, onError));
     }
     
     /// <summary>
-    /// 发送HTTP请求
+    /// 通过Python脚本发送请求
+    /// </summary>
+    private IEnumerator SendRequestViaPython(string userMessage, Action<string> onResponse, Action<string> onError)
+    {
+        Debug.Log("[AIAPI] 开始通过Python脚本发送请求...");
+        
+        // 获取Python脚本路径
+        string pythonScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py");
+        
+        if (!File.Exists(pythonScriptPath))
+        {
+            string errorMsg = $"Python脚本不存在: {pythonScriptPath}";
+            Debug.LogError($"[AIAPI] {errorMsg}");
+            onError?.Invoke(errorMsg);
+            yield break;
+        }
+        
+        // 构建命令行参数
+        string arguments = $"\"{pythonScriptPath}\" \"{apiKey}\" \"{userMessage}\" \"{model}\" {temperature} {maxTokens} false 1957794713918672896";
+        
+        Debug.Log($"[AIAPI] 执行Python脚本: {arguments}");
+        
+        // 创建进程
+        ProcessStartInfo startInfo = new ProcessStartInfo();
+        startInfo.FileName = "python3"; // 或者 "python"，取决于系统配置
+        startInfo.Arguments = arguments;
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+        startInfo.StandardOutputEncoding = Encoding.UTF8;
+        startInfo.StandardErrorEncoding = Encoding.UTF8;
+        
+        Process process = new Process();
+        process.StartInfo = startInfo;
+        
+        try
+        {
+            process.Start();
+            
+            // 等待进程完成，但不超过30秒
+            bool completed = process.WaitForExit(30000);
+            
+            if (!completed)
+            {
+                process.Kill();
+                string errorMsg = "Python脚本执行超时";
+                Debug.LogError($"[AIAPI] {errorMsg}");
+                onError?.Invoke(errorMsg);
+                yield break;
+            }
+            
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogWarning($"[AIAPI] Python脚本错误输出: {error}");
+            }
+            
+            if (string.IsNullOrEmpty(output))
+            {
+                string errorMsg = "Python脚本没有输出";
+                Debug.LogError($"[AIAPI] {errorMsg}");
+                onError?.Invoke(errorMsg);
+                yield break;
+            }
+            
+            Debug.Log($"[AIAPI] Python脚本输出: {output}");
+            
+            try
+            {
+                // 解析JSON响应
+                var result = JsonUtility.FromJson<PythonResponse>(output);
+                
+                if (result.success)
+                {
+                    // 添加AI回复到历史记录
+                    conversationHistory.Add(new ChatMessage
+                    {
+                        role = "assistant",
+                        content = result.response
+                    });
+                    
+                    // 限制历史记录长度
+                    if (conversationHistory.Count > 20)
+                    {
+                        conversationHistory.RemoveRange(0, conversationHistory.Count - 20);
+                    }
+                    
+                    onResponse?.Invoke(result.response);
+                }
+                else
+                {
+                    string errorMsg = $"Python脚本执行失败: {result.error}";
+                    Debug.LogError($"[AIAPI] {errorMsg}");
+                    onError?.Invoke(errorMsg);
+                }
+            }
+            catch (Exception ex)
+            {
+                string errorMsg = $"解析Python脚本输出失败: {ex.Message}";
+                Debug.LogError($"[AIAPI] {errorMsg}");
+                Debug.LogError($"[AIAPI] 原始输出: {output}");
+                onError?.Invoke(errorMsg);
+            }
+        }
+        catch (Exception ex)
+        {
+            string errorMsg = $"启动Python脚本失败: {ex.Message}";
+            Debug.LogError($"[AIAPI] {errorMsg}");
+            onError?.Invoke(errorMsg);
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+            }
+            process.Dispose();
+        }
+    }
+    
+    /// <summary>
+    /// 发送HTTP请求（保留原方法作为备用）
     /// </summary>
     private IEnumerator SendRequest(ChatRequest request, Action<string> onResponse, Action<string> onError)
     {
@@ -356,6 +485,16 @@ public class AIAPIManager : MonoBehaviour
         Debug.Log($"[AIAPI] 测试URL: {apiUrl}");
         Debug.Log($"[AIAPI] 测试模型: {model}");
         
+        // 检查Python脚本是否存在
+        string pythonScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py");
+        if (!File.Exists(pythonScriptPath))
+        {
+            Debug.LogError($"[AIAPI] ❌ Python脚本不存在: {pythonScriptPath}");
+            return;
+        }
+        
+        Debug.Log($"[AIAPI] ✅ Python脚本存在: {pythonScriptPath}");
+        
         SendMessage("你好，请简单介绍一下自己", 
             (response) => {
                 Debug.Log($"[AIAPI] ✅ 测试成功: {response}");
@@ -364,10 +503,11 @@ public class AIAPIManager : MonoBehaviour
                 Debug.LogError($"[AIAPI] ❌ 测试失败: {error}");
                 // 提供更多诊断信息
                 Debug.LogError($"[AIAPI] 请检查以下项目:");
-                Debug.LogError($"[AIAPI] 1. 网络连接是否正常");
-                Debug.LogError($"[AIAPI] 2. API密钥是否正确");
-                Debug.LogError($"[AIAPI] 3. API端点是否可访问");
-                Debug.LogError($"[AIAPI] 4. 防火墙设置是否允许HTTPS请求");
+                Debug.LogError($"[AIAPI] 1. Python环境是否正确安装");
+                Debug.LogError($"[AIAPI] 2. requests库是否已安装 (pip install requests)");
+                Debug.LogError($"[AIAPI] 3. 网络连接是否正常");
+                Debug.LogError($"[AIAPI] 4. API密钥是否正确");
+                Debug.LogError($"[AIAPI] 5. API端点是否可访问");
             });
     }
     
