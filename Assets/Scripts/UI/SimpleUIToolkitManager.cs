@@ -46,12 +46,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         TowerOverview,
         SceneOverview, // 添加场景总览模式
         PointCloud, // 添加点云模式
-<<<<<<< HEAD
-        StatisticsDashboard // 添加统计大屏模式
-=======
+        StatisticsDashboard, // 添加统计大屏模式
         TreeDanger, // 添加树木危险监测模式
         AIAssistant // 添加AI助手模式
->>>>>>> 921dff83dff7eadefec6ac58f30ef6a4c1507f7e
     }
     
     public UIMode currentMode = UIMode.Normal;
@@ -1046,25 +1043,17 @@ public class SimpleUIToolkitManager : MonoBehaviour
             ShowTreeDangerPanel();
             break;
                 case UIMode.SceneOverview:
-<<<<<<< HEAD
                     // 场景总览使用独立弹窗，不需要侧边栏
                     break;
                 case UIMode.StatisticsDashboard:
                     ShowStatisticsDashboardPanel();
                     break;
+                case UIMode.AIAssistant:
+                    ShowAIAssistantPanel();
+                    break;
                 default:
                     ShowNormalPanel();
                     break;
-=======
-            // 场景总览使用独立弹窗，不需要侧边栏
-            break;
-        case UIMode.AIAssistant:
-            ShowAIAssistantPanel();
-            break;
-        default:
-            ShowNormalPanel();
-            break;
->>>>>>> 921dff83dff7eadefec6ac58f30ef6a4c1507f7e
             }
             
             UpdateStatusBar($"模式: {mode}");
@@ -5422,7 +5411,6 @@ public class SimpleUIToolkitManager : MonoBehaviour
     }
     
     /// <summary>
-<<<<<<< HEAD
     /// 显示统计大屏面板
     /// </summary>
     void ShowStatisticsDashboardPanel()
@@ -5509,7 +5497,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         sidebar.Add(returnButton);
         
         Debug.Log("=== ShowStatisticsDashboardPanel方法执行完成 ===");
-=======
+    }
+    
+    /// <summary>
     /// 创建AI助手按钮渐变纹理
     /// </summary>
     private Texture2D CreateAIAssistantButtonGradient()
@@ -5657,6 +5647,5 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         texture.Apply();
         return texture;
->>>>>>> 921dff83dff7eadefec6ac58f30ef6a4c1507f7e
     }
 } 

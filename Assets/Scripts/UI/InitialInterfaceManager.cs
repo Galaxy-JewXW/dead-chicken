@@ -696,7 +696,7 @@ public class InitialInterfaceManager : MonoBehaviour
         var authButton = CreateOptionButton(
             "用户认证",
             "登录或注册账户\n管理您的个人信息\n获取个性化服务",
-            "🔐",
+            "",
             () => OnAuthButtonClicked()
         );
         selectionContainer.Add(authButton);
@@ -3047,7 +3047,7 @@ public class InitialInterfaceManager : MonoBehaviour
         parent.Add(loginButton);
         
         // 创建切换到注册的按钮
-        var switchToRegisterButton = new Button(() => ShowRegisterPanel()) { text = "没有账号？点击注册" };
+        var switchToRegisterButton = new Button(() => ShowRegisterPanel()) { text = "没有账户？点击注册" };
         switchToRegisterButton.name = "switch-to-register-button";
         switchToRegisterButton.style.width = 300;
         switchToRegisterButton.style.height = 30;
@@ -3142,7 +3142,7 @@ public class InitialInterfaceManager : MonoBehaviour
         parent.Add(registerButton);
         
         // 创建切换到登录的按钮
-        var switchToLoginButton = new Button(() => ShowLoginPanel()) { text = "已有账号？点击登录" };
+        var switchToLoginButton = new Button(() => ShowLoginPanel()) { text = "已有账户？点击登录" };
         switchToLoginButton.name = "switch-to-login-button";
         switchToLoginButton.style.width = 300;
         switchToLoginButton.style.height = 30;
@@ -3320,7 +3320,7 @@ public class InitialInterfaceManager : MonoBehaviour
         var usernameField = new TextField();
         usernameField.name = "username-field";
         usernameField.style.width = 340;
-        usernameField.style.height = 50;
+        usernameField.style.height = 65; // 增加输入框高度，与注册表单保持一致
         usernameField.style.marginBottom = 20;
         usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
         usernameField.style.borderTopLeftRadius = 12;
@@ -3337,8 +3337,8 @@ public class InitialInterfaceManager : MonoBehaviour
         usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         usernameField.style.paddingLeft = 15;
         usernameField.style.paddingRight = 15;
-        usernameField.style.paddingTop = 8;
-        usernameField.style.paddingBottom = 8;
+        usernameField.style.paddingTop = 12; // 增加上下内边距
+        usernameField.style.paddingBottom = 12; // 增加上下内边距
         usernameField.style.fontSize = 16;
         ApplyFont(usernameField, FontSize.Body);
         
@@ -3377,7 +3377,7 @@ public class InitialInterfaceManager : MonoBehaviour
         passwordField.name = "password-field";
         passwordField.isPasswordField = true;
         passwordField.style.width = 340;
-        passwordField.style.height = 50;
+        passwordField.style.height = 65; // 增加输入框高度，与注册表单保持一致
         passwordField.style.marginBottom = 25;
         passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
         passwordField.style.borderTopLeftRadius = 12;
@@ -3388,14 +3388,14 @@ public class InitialInterfaceManager : MonoBehaviour
         passwordField.style.borderRightWidth = 2;
         passwordField.style.borderTopWidth = 2;
         passwordField.style.borderBottomWidth = 2;
-        passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 1f);
+        passwordField.style.borderLeftColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         passwordField.style.borderRightColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         passwordField.style.borderTopColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         passwordField.style.paddingLeft = 15;
         passwordField.style.paddingRight = 15;
-        passwordField.style.paddingTop = 8;
-        passwordField.style.paddingBottom = 8;
+        passwordField.style.paddingTop = 12; // 增加上下内边距
+        passwordField.style.paddingBottom = 12; // 增加上下内边距
         passwordField.style.fontSize = 16;
         ApplyFont(passwordField, FontSize.Body);
         
@@ -3454,12 +3454,13 @@ public class InitialInterfaceManager : MonoBehaviour
         loginForm.Add(loginButton);
         
         // 切换到注册的按钮
-        var switchToRegisterButton = new Button(() => SwitchToRegisterInAuthArea()) { text = "没有账户？点击注册" };
+        var switchToRegisterButton = new Button(() => SwitchToRegisterInAuthArea());
+        switchToRegisterButton.text = "没有账户？点击注册";  // 明确设置按钮文字
         switchToRegisterButton.name = "switch-to-register-button";
         switchToRegisterButton.style.width = 340;
         switchToRegisterButton.style.height = 40;
         switchToRegisterButton.style.backgroundColor = Color.clear;
-        switchToRegisterButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        switchToRegisterButton.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);  // 加深文字颜色，确保可见
         switchToRegisterButton.style.borderLeftWidth = 1;
         switchToRegisterButton.style.borderRightWidth = 1;
         switchToRegisterButton.style.borderTopWidth = 1;
@@ -3472,13 +3473,15 @@ public class InitialInterfaceManager : MonoBehaviour
         switchToRegisterButton.style.borderTopRightRadius = 10;
         switchToRegisterButton.style.borderBottomLeftRadius = 10;
         switchToRegisterButton.style.borderBottomRightRadius = 10;
-        switchToRegisterButton.style.fontSize = 14;
+        switchToRegisterButton.style.fontSize = 16;  // 增加字体大小
         switchToRegisterButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        switchToRegisterButton.style.unityFontStyleAndWeight = FontStyle.Normal;  // 确保字体样式正常
+        ApplyFont(switchToRegisterButton, FontSize.Body);  // 应用字体设置
         
         // 添加悬停效果
         switchToRegisterButton.RegisterCallback<MouseEnterEvent>(evt => {
             switchToRegisterButton.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-            switchToRegisterButton.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
+            switchToRegisterButton.style.color = new Color(0.1f, 0.1f, 0.1f, 1f);  // 悬停时文字更深，确保可见
             switchToRegisterButton.style.borderLeftColor = new Color(0.6f, 0.6f, 0.6f, 1f);
             switchToRegisterButton.style.borderRightColor = new Color(0.6f, 0.6f, 0.6f, 1f);
             switchToRegisterButton.style.borderTopColor = new Color(0.6f, 0.6f, 0.6f, 1f);
@@ -3487,7 +3490,7 @@ public class InitialInterfaceManager : MonoBehaviour
         
         switchToRegisterButton.RegisterCallback<MouseLeaveEvent>(evt => {
             switchToRegisterButton.style.backgroundColor = Color.clear;
-            switchToRegisterButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            switchToRegisterButton.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);  // 保持与默认设置一致
             switchToRegisterButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
             switchToRegisterButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
             switchToRegisterButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
@@ -3529,7 +3532,7 @@ public class InitialInterfaceManager : MonoBehaviour
         var usernameField = new TextField();
         usernameField.name = "register-username-field";
         usernameField.style.width = 340;
-        usernameField.style.height = 55; // 增加输入框高度
+        usernameField.style.height = 65; // 进一步增加输入框高度
         usernameField.style.marginBottom = 25; // 增加输入框之间的间距
         usernameField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 0.98f);
         usernameField.style.borderTopLeftRadius = 12;
@@ -3546,8 +3549,8 @@ public class InitialInterfaceManager : MonoBehaviour
         usernameField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         usernameField.style.paddingLeft = 15;
         usernameField.style.paddingRight = 15;
-        usernameField.style.paddingTop = 8;
-        usernameField.style.paddingBottom = 8;
+        usernameField.style.paddingTop = 12; // 增加上下内边距
+        usernameField.style.paddingBottom = 12; // 增加上下内边距
         usernameField.style.fontSize = 16;
         ApplyFont(usernameField, FontSize.Body);
         
@@ -3586,7 +3589,7 @@ public class InitialInterfaceManager : MonoBehaviour
         passwordField.name = "register-password-field";
         passwordField.isPasswordField = true;
         passwordField.style.width = 340;
-        passwordField.style.height = 55; // 增加输入框高度
+        passwordField.style.height = 65; // 进一步增加输入框高度
         passwordField.style.marginBottom = 25; // 增加输入框之间的间距
         passwordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
         passwordField.style.borderTopLeftRadius = 12;
@@ -3603,8 +3606,8 @@ public class InitialInterfaceManager : MonoBehaviour
         passwordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         passwordField.style.paddingLeft = 15;
         passwordField.style.paddingRight = 15;
-        passwordField.style.paddingTop = 8;
-        passwordField.style.paddingBottom = 8;
+        passwordField.style.paddingTop = 12; // 增加上下内边距
+        passwordField.style.paddingBottom = 12; // 增加上下内边距
         passwordField.style.fontSize = 16;
         ApplyFont(passwordField, FontSize.Body);
         
@@ -3643,7 +3646,7 @@ public class InitialInterfaceManager : MonoBehaviour
         confirmPasswordField.name = "confirm-password-field";
         confirmPasswordField.isPasswordField = true;
         confirmPasswordField.style.width = 340;
-        confirmPasswordField.style.height = 55; // 增加输入框高度
+        confirmPasswordField.style.height = 65; // 进一步增加输入框高度
         confirmPasswordField.style.marginBottom = 30; // 增加底部间距
         confirmPasswordField.style.backgroundColor = new Color(0.98f, 0.98f, 0.98f, 1f);
         confirmPasswordField.style.borderTopLeftRadius = 12;
@@ -3660,8 +3663,8 @@ public class InitialInterfaceManager : MonoBehaviour
         confirmPasswordField.style.borderBottomColor = new Color(0.9f, 0.9f, 0.9f, 0.9f);
         confirmPasswordField.style.paddingLeft = 15;
         confirmPasswordField.style.paddingRight = 15;
-        confirmPasswordField.style.paddingTop = 8;
-        confirmPasswordField.style.paddingBottom = 8;
+        confirmPasswordField.style.paddingTop = 12; // 增加上下内边距
+        confirmPasswordField.style.paddingBottom = 12; // 增加上下内边距
         confirmPasswordField.style.fontSize = 16;
         ApplyFont(confirmPasswordField, FontSize.Body);
         
@@ -3688,14 +3691,14 @@ public class InitialInterfaceManager : MonoBehaviour
         var registerButton = new Button(() => OnRegisterButtonClickedInAuthArea()) { text = "注册" };
         registerButton.name = "register-button";
         registerButton.style.width = 340;
-        registerButton.style.height = 55; // 增加按钮高度
+        registerButton.style.height = 60; // 增加按钮高度
         registerButton.style.backgroundColor = accentColor;
         registerButton.style.color = Color.white;
         registerButton.style.borderTopLeftRadius = 12;
         registerButton.style.borderTopRightRadius = 12;
         registerButton.style.borderBottomLeftRadius = 12;
         registerButton.style.borderBottomRightRadius = 12;
-        registerButton.style.marginBottom = 25; // 增加按钮间距
+        registerButton.style.marginBottom = 15; // 增加按钮间距
         registerButton.style.fontSize = 18;
         registerButton.style.unityFontStyleAndWeight = FontStyle.Bold;
         registerButton.style.unityTextAlign = TextAnchor.MiddleCenter;
@@ -3720,12 +3723,13 @@ public class InitialInterfaceManager : MonoBehaviour
         registerForm.Add(registerButton);
         
         // 切换到登录的按钮
-        var switchToLoginButton = new Button(() => SwitchToLoginInAuthArea()) { text = "已有账户？点击登录" };
+        var switchToLoginButton = new Button(() => SwitchToLoginInAuthArea());
+        switchToLoginButton.text = "已有账户？点击登录";  // 明确设置按钮文字
         switchToLoginButton.name = "switch-to-login-button";
         switchToLoginButton.style.width = 340;
-        switchToLoginButton.style.height = 45; // 增加按钮高度
+        switchToLoginButton.style.height = 65; // 增加按钮高度
         switchToLoginButton.style.backgroundColor = Color.clear;
-        switchToLoginButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+        switchToLoginButton.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);  // 加深文字颜色，确保可见
         switchToLoginButton.style.borderLeftWidth = 1;
         switchToLoginButton.style.borderRightWidth = 1;
         switchToLoginButton.style.borderTopWidth = 1;
@@ -3738,26 +3742,29 @@ public class InitialInterfaceManager : MonoBehaviour
         switchToLoginButton.style.borderTopRightRadius = 10;
         switchToLoginButton.style.borderBottomLeftRadius = 10;
         switchToLoginButton.style.borderBottomRightRadius = 10;
-        switchToLoginButton.style.fontSize = 14;
+        switchToLoginButton.style.fontSize = 16;  // 增加字体大小
         switchToLoginButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+        switchToLoginButton.style.unityFontStyleAndWeight = FontStyle.Normal;  // 确保字体样式正常
+        switchToLoginButton.style.marginBottom = -30; // 添加下边距，让按钮下移
+        ApplyFont(switchToLoginButton, FontSize.Body);  // 应用字体设置
         
         // 添加悬停效果
         switchToLoginButton.RegisterCallback<MouseEnterEvent>(evt => {
             switchToLoginButton.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-            switchToLoginButton.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-            switchToLoginButton.style.borderLeftColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
-            switchToLoginButton.style.borderRightColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
-            switchToLoginButton.style.borderTopColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
-            switchToLoginButton.style.borderBottomColor = new Color(0.6f, 0.6f, 0.6f, 0.6f);
+            switchToLoginButton.style.color = new Color(0.1f, 0.1f, 0.1f, 1f);  // 悬停时文字更深，确保可见
+            switchToLoginButton.style.borderLeftColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToLoginButton.style.borderRightColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToLoginButton.style.borderTopColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+            switchToLoginButton.style.borderBottomColor = new Color(0.6f, 0.6f, 0.6f, 1f);
         });
         
         switchToLoginButton.RegisterCallback<MouseLeaveEvent>(evt => {
             switchToLoginButton.style.backgroundColor = Color.clear;
-            switchToLoginButton.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
+            switchToLoginButton.style.color = new Color(0.2f, 0.2f, 0.2f, 1f);  // 保持与默认设置一致
             switchToLoginButton.style.borderLeftColor = new Color(0.8f, 0.8f, 0.8f, 1f);
             switchToLoginButton.style.borderRightColor = new Color(0.8f, 0.8f, 0.8f, 1f);
-            switchToLoginButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
-            switchToLoginButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 0.8f);
+            switchToLoginButton.style.borderTopColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+            switchToLoginButton.style.borderBottomColor = new Color(0.8f, 0.8f, 0.8f, 1f);
         });
         
         registerForm.Add(switchToLoginButton);
