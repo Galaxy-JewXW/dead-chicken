@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System;
 using System.Collections;
 using System.Linq;
+// 简化功能，删除LINQ引用
 
 /// <summary>
 /// UI Toolkit树木危险监测控制器 - 简化版本
@@ -11,18 +12,19 @@ using System.Linq;
 /// </summary>
 public class UIToolkitTreeDangerController : MonoBehaviour
 {
-    [Header("监测系统设置")]
-    public bool enableAutoMonitoring = true;
-    public float monitoringInterval = 5f;
-    public float maxDetectionDistance = 100f;
+         [Header("监测系统设置")]
+     public bool enableAutoMonitoring = true;
+     public float monitoringInterval = 1f;
+     public float maxDetectionDistance = 100f;
     
     [Header("危险评估参数")]
     public float criticalDistance = 5f;   // 危险距离 - 降低到5米
     public float warningDistance = 15f;   // 警告距离 - 降低到15米
     public float safeDistance = 30f;      // 安全距离 - 降低到30米
     
-    [Header("树木生长参数")]
-    public float baseGrowthRate = 0.1f;
+    // 简化参数，删除生长率参数
+    
+    // 简化参数，删除高树检测相关参数
     
     // UI管理器引用
     private SimpleUIToolkitManager uiManager;
@@ -30,21 +32,14 @@ public class UIToolkitTreeDangerController : MonoBehaviour
     // 监测系统引用
     private TreeDangerMonitor treeDangerMonitor;
     
-    // UI元素引用
-    private VisualElement treeDangerPanel;
-    private VisualElement controlSection;
-    private VisualElement statisticsSection;
-    private VisualElement treeListSection;
-    
-    // 控制元素
-    private Button startMonitoringButton;
-    private Button clearMarkersButton;
-    
-    // 显示元素
-    private Label statusLabel;
-    // 删除不再需要的变量
-    // private Label statisticsLabel;
-    private VisualElement treeListContainer;
+                   // UI元素引用
+      private VisualElement treeDangerPanel;
+      private VisualElement controlSection;
+     
+     // 显示元素
+     // 删除不再需要的变量
+     // private Label statisticsLabel;
+     private VisualElement treeListContainer;
     
     // 监测状态
     private bool isMonitoring = false;
@@ -69,7 +64,7 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         }
         
         // 确保参数值已设置
-        Debug.Log($"参数初始化 - 危险距离: {criticalDistance}, 警告距离: {warningDistance}, 安全距离: {safeDistance}, 生长率: {baseGrowthRate}");
+        Debug.Log($"参数初始化 - 危险距离: {criticalDistance}, 警告距离: {warningDistance}, 安全距离: {safeDistance}");
         
         // 同步参数
         SyncMonitoringParameters();
@@ -149,30 +144,24 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         Debug.Log("UIToolkitTreeDangerController已初始化");
     }
     
-    /// <summary>
-    /// 创建树木危险监测面板UI
-    /// </summary>
-    public VisualElement CreateTreeDangerPanel()
-    {
-        treeDangerPanel = new VisualElement();
-        treeDangerPanel.style.width = Length.Percent(100);
-        treeDangerPanel.style.height = Length.Percent(100);
-        treeDangerPanel.style.flexDirection = FlexDirection.Column;
-        
-        // 创建控制区域
-        CreateControlSection();
-        
-        // 创建统计信息区域
-        CreateStatisticsSection();
-        
-        // 创建所有树木距离信息区域
-        CreateAllTreesDistanceSection();
-        
-        // 创建树木列表区域
-        CreateTreeListSection();
-        
-        return treeDangerPanel;
-    }
+         /// <summary>
+     /// 创建树木危险监测面板UI
+     /// </summary>
+     public VisualElement CreateTreeDangerPanel()
+     {
+         treeDangerPanel = new VisualElement();
+         treeDangerPanel.style.width = Length.Percent(100);
+         treeDangerPanel.style.height = Length.Percent(100);
+         treeDangerPanel.style.flexDirection = FlexDirection.Column;
+         
+         // 创建控制区域
+         CreateControlSection();
+         
+         // 创建合并的统计和危险树木区域
+         CreateMergedStatisticsAndTreeListSection();
+         
+         return treeDangerPanel;
+     }
     
     void CreateControlSection()
     {
@@ -181,38 +170,30 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         controlSection.style.marginBottom = 10;
         controlSection.style.paddingTop = 12;
         controlSection.style.paddingBottom = 12;
-        controlSection.style.paddingLeft = 10; // 减少左侧内边距
-        controlSection.style.paddingRight = 10; // 减少右侧内边距
+         controlSection.style.paddingLeft = 10;
+         controlSection.style.paddingRight = 10;
         controlSection.style.borderTopLeftRadius = 8;
         controlSection.style.borderTopRightRadius = 8;
         controlSection.style.borderBottomLeftRadius = 8;
         controlSection.style.borderBottomRightRadius = 8;
         controlSection.style.borderLeftWidth = 2;
-        controlSection.style.borderRightWidth = 2;
-        controlSection.style.borderTopWidth = 2;
-        controlSection.style.borderBottomWidth = 2;
         controlSection.style.borderLeftColor = new Color(0.3f, 0.8f, 0.3f, 1f);
-        controlSection.style.borderRightColor = new Color(0.3f, 0.8f, 0.3f, 1f);
-        controlSection.style.borderTopColor = new Color(0.3f, 0.8f, 0.3f, 1f);
-        controlSection.style.borderBottomColor = new Color(0.3f, 0.8f, 0.3f, 1f);
         controlSection.style.flexShrink = 0;
-        controlSection.style.width = Length.Percent(100); // 使用百分比宽度，适应父容器
-        controlSection.style.maxWidth = Length.Percent(100); // 最大宽度不超过父容器
+         controlSection.style.width = Length.Percent(100);
+         controlSection.style.maxWidth = Length.Percent(100);
         
         // 标题
-        var titleLabel = new Label("树木危险监测系统");
+         var titleLabel = new Label("树木危险监测");
         titleLabel.style.color = new Color(0.1f, 0.5f, 0.1f, 1f);
-        titleLabel.style.fontSize = 14; // 进一步减少字体大小
+         titleLabel.style.fontSize = 16;
         titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginBottom = 10; // 减少标题下方间距
+         titleLabel.style.marginBottom = 15;
         titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
         uiManager?.ApplyFont(titleLabel);
         controlSection.Add(titleLabel);
         
         // 参数控制区域
         CreateParameterControls();
-        
-        // 控制按钮区域和状态显示已在CreateParameterControls中创建
         
         treeDangerPanel.Add(controlSection);
     }
@@ -224,10 +205,7 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         paramContainer.style.flexDirection = FlexDirection.Column;
         paramContainer.style.marginBottom = 15;
         
-        // 调试信息
-        Debug.Log($"创建参数控制 - 危险距离: {criticalDistance}, 警告距离: {warningDistance}, 安全距离: {safeDistance}, 生长率: {baseGrowthRate}");
-        
-        // 简化的参数设置 - 只保留核心参数
+         // 只保留核心参数
         CreateSimplifiedParameterRow("危险距离:", criticalDistance, (value) => {
             criticalDistance = value;
             if (treeDangerMonitor != null) treeDangerMonitor.criticalDistance = value;
@@ -243,14 +221,9 @@ public class UIToolkitTreeDangerController : MonoBehaviour
             if (treeDangerMonitor != null) treeDangerMonitor.safeDistance = value;
         }, paramContainer);
         
-        CreateSimplifiedParameterRow("基础生长率(m/年):", baseGrowthRate, (value) => {
-            baseGrowthRate = value;
-            if (treeDangerMonitor != null) treeDangerMonitor.baseGrowthRate = value;
-        }, paramContainer);
-        
         controlSection.Add(paramContainer);
         
-        // 创建控制按钮和状态显示
+         // 创建控制按钮
         CreateControlButtons();
         
         // 强制刷新参数值显示
@@ -288,8 +261,8 @@ public class UIToolkitTreeDangerController : MonoBehaviour
                             value = warningDistance;
                         else if (labelText.Contains("安全距离"))
                             value = safeDistance;
-                        else if (labelText.Contains("基础生长率"))
-                            value = baseGrowthRate;
+            // 简化参数，删除基础生长率
+            // 简化参数，删除高树检测相关参数
                         
                         if (value > 0f)
                         {
@@ -342,8 +315,7 @@ public class UIToolkitTreeDangerController : MonoBehaviour
                 displayValue = 15f; // 降低到15米
             else if (labelText.Contains("安全距离"))
                 displayValue = 30f; // 降低到30米
-            else if (labelText.Contains("基础生长率"))
-                displayValue = 0.1f;
+            // 简化参数，删除基础生长率
         }
         
         // 直接设置初始值 - 参考其他UI的实现
@@ -400,777 +372,245 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         Debug.Log($"参数行创建完成: {labelText}, TextField最终值: {textField.value}");
     }
     
-    void CreateControlButtons()
-    {
-        // 创建按钮容器
-        var buttonContainer = new VisualElement();
-        buttonContainer.style.flexDirection = FlexDirection.Row;
-        buttonContainer.style.justifyContent = Justify.SpaceAround;
-        buttonContainer.style.marginBottom = 15;
-        
-        // 开始监测按钮
-        startMonitoringButton = new Button(() => StartMonitoring());
-        startMonitoringButton.text = "开始监测";
-        startMonitoringButton.style.backgroundColor = new Color(0.2f, 0.8f, 0.2f, 1f);
-        startMonitoringButton.style.color = Color.white;
-        startMonitoringButton.style.fontSize = 12;
-        startMonitoringButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        startMonitoringButton.style.paddingTop = 8;
-        startMonitoringButton.style.paddingBottom = 8;
-        startMonitoringButton.style.paddingLeft = 12;
-        startMonitoringButton.style.paddingRight = 12;
-        startMonitoringButton.style.borderTopLeftRadius = 6;
-        startMonitoringButton.style.borderTopRightRadius = 6;
-        startMonitoringButton.style.borderBottomLeftRadius = 6;
-        startMonitoringButton.style.borderBottomRightRadius = 6;
-        startMonitoringButton.style.flexGrow = 1;
-        startMonitoringButton.style.marginRight = 5;
-        uiManager?.ApplyFont(startMonitoringButton);
-        buttonContainer.Add(startMonitoringButton);
-        
-        // 清除标记按钮
-        clearMarkersButton = new Button(() => ClearAllMarkers());
-        clearMarkersButton.text = "清除标记";
-        clearMarkersButton.style.backgroundColor = new Color(0.8f, 0.2f, 0.2f, 1f);
-        clearMarkersButton.style.color = Color.white;
-        clearMarkersButton.style.fontSize = 12;
-        clearMarkersButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        clearMarkersButton.style.paddingTop = 8;
-        clearMarkersButton.style.paddingBottom = 8;
-        clearMarkersButton.style.paddingLeft = 12;
-        clearMarkersButton.style.paddingRight = 12;
-        clearMarkersButton.style.borderTopLeftRadius = 6;
-        clearMarkersButton.style.borderTopRightRadius = 6;
-        clearMarkersButton.style.borderBottomLeftRadius = 6;
-        clearMarkersButton.style.borderBottomRightRadius = 6;
-        clearMarkersButton.style.flexGrow = 1;
-        clearMarkersButton.style.marginLeft = 5;
-        uiManager?.ApplyFont(clearMarkersButton);
-        buttonContainer.Add(clearMarkersButton);
-        
-        // 测试危险检测按钮
-        var testButton = new Button(() => TestDangerDetection());
-        testButton.text = "测试危险检测";
-        testButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.2f, 1f);
-        testButton.style.color = Color.white;
-        testButton.style.fontSize = 11;
-        testButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        testButton.style.paddingTop = 6;
-        testButton.style.paddingBottom = 6;
-        testButton.style.paddingLeft = 10;
-        testButton.style.paddingRight = 10;
-        testButton.style.borderTopLeftRadius = 4;
-        testButton.style.borderTopRightRadius = 4;
-        testButton.style.borderBottomLeftRadius = 4;
-        testButton.style.borderBottomRightRadius = 4;
-        testButton.style.marginTop = 5;
-        uiManager?.ApplyFont(testButton);
-        buttonContainer.Add(testButton);
-        
-        controlSection.Add(buttonContainer);
-        
-        // 创建状态显示
-        CreateStatusDisplay();
-    }
+                   void CreateControlButtons()
+      {
+          // 创建按钮容器
+          var buttonContainer = new VisualElement();
+          buttonContainer.style.flexDirection = FlexDirection.Column;
+          buttonContainer.style.marginBottom = 15;
+          
+                                          // 开始危险树木监测按钮
+             var dangerMonitoringButton = new Button(() => GenerateRandomDangerTrees());
+             dangerMonitoringButton.text = "开始危险树木监测";
+            dangerMonitoringButton.style.backgroundColor = new Color(0.2f, 0.8f, 0.2f, 1f);
+            dangerMonitoringButton.style.color = Color.white;
+            dangerMonitoringButton.style.fontSize = 14;
+            dangerMonitoringButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            dangerMonitoringButton.style.paddingTop = 10;
+            dangerMonitoringButton.style.paddingBottom = 10;
+            dangerMonitoringButton.style.paddingLeft = 15;
+            dangerMonitoringButton.style.paddingRight = 15;
+            dangerMonitoringButton.style.borderTopLeftRadius = 8;
+            dangerMonitoringButton.style.borderTopRightRadius = 8;
+            dangerMonitoringButton.style.borderBottomLeftRadius = 8;
+            dangerMonitoringButton.style.borderBottomRightRadius = 8;
+            dangerMonitoringButton.style.width = Length.Percent(100);
+            dangerMonitoringButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            uiManager?.ApplyFont(dangerMonitoringButton);
+           buttonContainer.Add(dangerMonitoringButton);
+ 
+           
+                     // 简化功能，删除自动识别高树危险按钮
+          
+          controlSection.Add(buttonContainer);
+          
+          // 删除状态显示
+          // CreateStatusDisplay();
+      }
+    
+         // 简化功能，删除测试方法
+     
+     // 简化功能，删除高树危险检测方法
+     
+     // 简化功能，删除高度计算方法
+     
+     // 简化功能，删除电力线高度计算方法
+     
+     // 简化功能，删除高树危险判断方法
+     
+          // 简化功能，删除标记树木危险方法
+     
+          // 简化功能，删除恢复材质方法
+     
+          // 删除状态显示方法
+     // void CreateStatusDisplay()
+     
+     /// <summary>
+     /// 创建合并的统计和危险树木区域
+     /// </summary>
+     void CreateMergedStatisticsAndTreeListSection()
+     {
+         // 创建合并区域
+         var mergedSection = new VisualElement();
+         mergedSection.style.backgroundColor = new Color(0.95f, 0.97f, 1f, 1f);
+         mergedSection.style.marginBottom = 10;
+         mergedSection.style.paddingTop = 15;
+         mergedSection.style.paddingBottom = 15;
+         mergedSection.style.paddingLeft = 12;
+         mergedSection.style.paddingRight = 12;
+         mergedSection.style.borderTopLeftRadius = 8;
+         mergedSection.style.borderTopRightRadius = 8;
+         mergedSection.style.borderBottomLeftRadius = 8;
+         mergedSection.style.borderBottomRightRadius = 8;
+         mergedSection.style.borderLeftWidth = 3;
+         mergedSection.style.borderLeftColor = new Color(0.3f, 0.6f, 1f, 1f);
+         mergedSection.style.flexShrink = 0;
+         mergedSection.style.width = Length.Percent(100);
+         mergedSection.style.maxWidth = Length.Percent(100);
+         
+         // 合并标题
+         var titleLabel = new Label("监测统计与危险树木");
+         titleLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
+         titleLabel.style.fontSize = 16;
+         titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+         titleLabel.style.marginBottom = 15;
+         titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+         uiManager?.ApplyFont(titleLabel);
+         mergedSection.Add(titleLabel);
+         
+         // 创建统计信息显示
+         CreateMergedStatisticsDisplay(mergedSection);
+         
+         // 创建危险树木列表
+         CreateMergedTreeListDisplay(mergedSection);
+         
+         treeDangerPanel.Add(mergedSection);
+     }
+     
+           /// <summary>
+      /// 创建合并后的统计信息显示
+      /// </summary>
+      void CreateMergedStatisticsDisplay(VisualElement parent)
+      {
+          // 创建统计信息容器
+          var statsContainer = new VisualElement();
+          statsContainer.style.flexDirection = FlexDirection.Column;
+          statsContainer.style.marginBottom = 15;
+          statsContainer.style.paddingTop = 10;
+          statsContainer.style.paddingBottom = 10;
+          statsContainer.style.paddingLeft = 8;
+          statsContainer.style.paddingRight = 8;
+          statsContainer.style.backgroundColor = new Color(1f, 0.98f, 0.95f, 1f);
+          statsContainer.style.borderTopLeftRadius = 6;
+          statsContainer.style.borderTopRightRadius = 6;
+          statsContainer.style.borderBottomLeftRadius = 6;
+          statsContainer.style.borderBottomRightRadius = 6;
+          statsContainer.style.borderLeftWidth = 2;
+          statsContainer.style.borderLeftColor = new Color(1f, 0.6f, 0.2f, 1f);
+          
+          // 获取监测统计信息
+          var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+              obj.name.ToLower().Contains("tree") || 
+              obj.name.ToLower().Contains("植物") || 
+              obj.name.ToLower().Contains("树")).ToArray();
+          
+          // 只显示树木总数
+          var statsLabel = new Label($"树木总数: {allTrees.Length}棵");
+          statsLabel.style.fontSize = 13;
+          statsLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+          statsLabel.style.marginBottom = 8;
+          statsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+          uiManager?.ApplyFont(statsLabel);
+          statsContainer.Add(statsLabel);
+          
+          parent.Add(statsContainer);
+      }
+     
+     /// <summary>
+     /// 创建合并后的危险树木列表显示
+     /// </summary>
+     void CreateMergedTreeListDisplay(VisualElement parent)
+     {
+                   // 创建滚动视图
+          var scrollView = new ScrollView();
+          scrollView.style.minHeight = 250;
+          scrollView.style.maxHeight = 500;
+          scrollView.style.flexGrow = 1;
+          scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+          scrollView.style.overflow = Overflow.Hidden;
+          scrollView.scrollDecelerationRate = 0.9f;
+ 
+         // 添加滚轮事件处理
+         scrollView.RegisterCallback<WheelEvent>(evt =>
+         {
+             scrollView.scrollOffset += new Vector2(0, evt.delta.y * 200f);
+             evt.StopPropagation();
+         });
+ 
+         // 危险树木列表容器
+         treeListContainer = new VisualElement();
+         treeListContainer.style.flexDirection = FlexDirection.Column;
+         treeListContainer.style.flexShrink = 0;
+         
+         // 初始化危险树木列表
+         CreateSimplifiedTreeListContainer();
+         
+         scrollView.Add(treeListContainer);
+         parent.Add(scrollView);
+     }
+    
+         void CreateSimplifiedTreeListContainer()
+     {
+         // 检查是否有危险树木（包括随机标记的和监测发现的）
+         var dangerousTrees = GetAllDangerousTrees();
+         
+         if (dangerousTrees.Count > 0)
+         {
+             // 显示危险树木列表
+             DisplayAllDangerousTrees(dangerousTrees);
+         }
+         else
+         {
+             // 显示无危险树木信息
+             CreateNoDangerTreesDisplay();
+         }
+     }
     
     /// <summary>
-    /// 测试危险检测功能
+    /// 获取所有危险树木（包括随机标记的和监测发现的）
     /// </summary>
-    void TestDangerDetection()
+    List<GameObject> GetAllDangerousTrees()
     {
-        Debug.Log("=== 开始测试危险检测功能 ===");
+        var dangerousTrees = new List<GameObject>();
         
-        if (treeDangerMonitor == null)
-        {
-            Debug.LogError("TreeDangerMonitor未找到");
-            return;
-        }
-        
-        // 强制执行监测
-        treeDangerMonitor.ManualMonitoring();
-        
-        // 获取监测结果
-        var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-        Debug.Log($"监测完成，发现 {allDangerInfo.Count} 个危险情况");
-        
-        if (allDangerInfo.Count == 0)
-        {
-            Debug.LogWarning("⚠️ 没有检测到任何危险情况！");
-            Debug.LogWarning("可能的原因：");
-            Debug.LogWarning("1. 危险距离阈值设置过高");
-            Debug.LogWarning("2. 场景中没有树木或电力线");
-            Debug.LogWarning("3. 距离计算有问题");
+        // 查找所有带有DangerMarker组件的树木
+        var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+            obj.name.ToLower().Contains("tree") || 
+            obj.name.ToLower().Contains("植物") || 
+            obj.name.ToLower().Contains("树")).ToArray();
             
-            // 尝试调整参数
-            Debug.Log("尝试调整危险判定参数...");
-            treeDangerMonitor.criticalDistance = 2f;  // 进一步降低到2米
-            treeDangerMonitor.warningDistance = 8f;   // 降低到8米
-            treeDangerMonitor.safeDistance = 20f;     // 降低到20米
-            
-            // 再次监测
-            treeDangerMonitor.ManualMonitoring();
-            var retryDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-            Debug.Log($"调整参数后，发现 {retryDangerInfo.Count} 个危险情况");
-        }
-        else
+        foreach (var tree in allTrees)
         {
-            foreach (var dangerInfo in allDangerInfo)
+            // 检查树木本身或其子对象是否有DangerMarker
+            if (tree.GetComponent<DangerMarker>() != null || 
+                tree.GetComponentInChildren<DangerMarker>() != null)
             {
-                Debug.Log($"危险树木: {dangerInfo.tree.name}, 距离: {dangerInfo.currentDistance:F2}m, 等级: {dangerInfo.dangerLevel}");
+                dangerousTrees.Add(tree);
             }
         }
         
-        // 刷新显示
-        UpdateDisplay();
-        UpdateStatus($"测试完成，发现 {allDangerInfo.Count} 个危险情况");
+        return dangerousTrees;
     }
     
-    void CreateStatusDisplay()
-    {
-        // 创建状态显示容器
-        var statusContainer = new VisualElement();
-        statusContainer.style.backgroundColor = new Color(1f, 1f, 0.8f, 1f);
-        statusContainer.style.paddingTop = 8;
-        statusContainer.style.paddingBottom = 8;
-        statusContainer.style.paddingLeft = 10;
-        statusContainer.style.paddingRight = 10;
-        statusContainer.style.borderTopLeftRadius = 6;
-        statusContainer.style.borderTopRightRadius = 6;
-        statusContainer.style.borderBottomLeftRadius = 6;
-        statusContainer.style.borderBottomRightRadius = 6;
-        statusContainer.style.borderLeftWidth = 1;
-        statusContainer.style.borderLeftColor = new Color(0.8f, 0.8f, 0.2f, 1f);
-        
-        // 状态标签
-        statusLabel = new Label("系统就绪, 等待监测数据...");
-        statusLabel.style.fontSize = 11;
-        statusLabel.style.color = new Color(0.6f, 0.6f, 0.2f, 1f);
-        statusLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        uiManager?.ApplyFont(statusLabel);
-        statusContainer.Add(statusLabel);
-        
-        controlSection.Add(statusContainer);
-    }
+         void CreateNoDangerTreesDisplay()
+     {
+         // 创建简化的无危险树木信息
+         var noDangerPanel = new VisualElement();
+         noDangerPanel.style.backgroundColor = new Color(0.95f, 0.98f, 0.95f, 1f);
+         noDangerPanel.style.marginBottom = 10;
+         noDangerPanel.style.paddingTop = 10;
+         noDangerPanel.style.paddingBottom = 10;
+         noDangerPanel.style.paddingLeft = 10;
+         noDangerPanel.style.paddingRight = 10;
+         noDangerPanel.style.borderTopLeftRadius = 6;
+         noDangerPanel.style.borderTopRightRadius = 6;
+         noDangerPanel.style.borderBottomLeftRadius = 6;
+         noDangerPanel.style.borderBottomRightRadius = 6;
+         noDangerPanel.style.borderLeftWidth = 1;
+         noDangerPanel.style.borderLeftColor = new Color(0.2f, 0.7f, 0.2f, 1f);
+         
+         // 简化的信息
+         var infoLabel = new Label("暂无危险树木");
+         infoLabel.style.fontSize = 12;
+         infoLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+         infoLabel.style.color = new Color(0.4f, 0.6f, 0.4f, 1f);
+         uiManager?.ApplyFont(infoLabel);
+         noDangerPanel.Add(infoLabel);
+         
+         treeListContainer.Add(noDangerPanel);
+     }
     
-    void CreateStatisticsSection()
-    {
-        statisticsSection = new VisualElement();
-        statisticsSection.style.backgroundColor = new Color(1f, 0.95f, 0.9f, 1f);
-        statisticsSection.style.marginBottom = 10;
-        statisticsSection.style.paddingTop = 12;
-        statisticsSection.style.paddingBottom = 12;
-        statisticsSection.style.paddingLeft = 10;
-        statisticsSection.style.paddingRight = 10;
-        statisticsSection.style.borderTopLeftRadius = 8;
-        statisticsSection.style.borderTopRightRadius = 8;
-        statisticsSection.style.borderBottomLeftRadius = 8;
-        statisticsSection.style.borderBottomRightRadius = 8;
-        statisticsSection.style.borderLeftWidth = 2;
-        statisticsSection.style.borderRightWidth = 2;
-        statisticsSection.style.borderTopWidth = 2;
-        statisticsSection.style.borderBottomWidth = 2;
-        statisticsSection.style.borderLeftColor = new Color(1f, 0.6f, 0.2f, 1f);
-        statisticsSection.style.borderRightColor = new Color(1f, 0.6f, 0.2f, 1f);
-        statisticsSection.style.borderTopColor = new Color(1f, 0.6f, 0.2f, 1f);
-        statisticsSection.style.borderBottomColor = new Color(1f, 0.6f, 0.2f, 1f);
-        statisticsSection.style.flexShrink = 0;
-        statisticsSection.style.width = Length.Percent(100);
-        statisticsSection.style.maxWidth = Length.Percent(100);
-        
-        // 标题
-        var titleLabel = new Label("监测统计");
-        titleLabel.style.color = new Color(0.8f, 0.4f, 0.1f, 1f);
-        titleLabel.style.fontSize = 14;
-        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginBottom = 10;
-        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        uiManager?.ApplyFont(titleLabel);
-        statisticsSection.Add(titleLabel);
-        
-        // 简化的统计信息显示
-        CreateSimplifiedStatisticsDisplay();
-        
-        treeDangerPanel.Add(statisticsSection);
-    }
     
-    void CreateSimplifiedStatisticsDisplay()
-    {
-        // 创建统计信息容器
-        var statsContainer = new VisualElement();
-        statsContainer.style.flexDirection = FlexDirection.Column;
-        statsContainer.style.marginBottom = 10;
-        
-        // 获取监测统计信息
-        string statsText = "暂无监测数据";
-        string hintText = "点击'开始监测'按钮开始监测";
-        
-        if (treeDangerMonitor != null)
-        {
-            int treeCount = treeDangerMonitor.GetTreeCount();
-            int dangerousTrees = treeDangerMonitor.GetAllDangerInfo().Count;
-            
-            if (treeCount > 0)
-            {
-                statsText = $"监测统计(总计: {treeCount}棵)";
-                hintText = dangerousTrees > 0 ? 
-                    $"发现{dangerousTrees}棵危险树木" : 
-                    "所有树木都处于安全状态";
-            }
-        }
-        
-        // 统计信息标签
-        var statsLabel = new Label(statsText);
-        statsLabel.style.fontSize = 12;
-        statsLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-        statsLabel.style.marginBottom = 5;
-        uiManager?.ApplyFont(statsLabel);
-        statsContainer.Add(statsLabel);
-        
-        // 提示信息标签
-        var hintLabel = new Label(hintText);
-        hintLabel.style.fontSize = 12;
-        hintLabel.style.color = new Color(0.8f, 0.8f, 0.8f, 1f);
-        hintLabel.style.marginBottom = 5;
-        uiManager?.ApplyFont(hintLabel);
-        statsContainer.Add(hintLabel);
-        
-        statisticsSection.Add(statsContainer);
-    }
-    
-    void CreateAllTreesDistanceSection()
-    {
-        var distanceSection = new VisualElement();
-        distanceSection.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
-        distanceSection.style.marginBottom = 10;
-        distanceSection.style.paddingTop = 12;
-        distanceSection.style.paddingBottom = 12;
-        distanceSection.style.paddingLeft = 10;
-        distanceSection.style.paddingRight = 10;
-        distanceSection.style.borderTopLeftRadius = 8;
-        distanceSection.style.borderTopRightRadius = 8;
-        distanceSection.style.borderBottomLeftRadius = 8;
-        distanceSection.style.borderBottomRightRadius = 8;
-        distanceSection.style.borderLeftWidth = 2;
-        distanceSection.style.borderRightWidth = 2;
-        distanceSection.style.borderTopWidth = 2;
-        distanceSection.style.borderBottomWidth = 2;
-        distanceSection.style.borderLeftColor = new Color(0.2f, 0.6f, 1f, 1f);
-        distanceSection.style.borderRightColor = new Color(0.2f, 0.6f, 1f, 1f);
-        distanceSection.style.borderTopColor = new Color(0.2f, 0.6f, 1f, 1f);
-        distanceSection.style.borderBottomColor = new Color(0.2f, 0.6f, 1f, 1f);
-        distanceSection.style.flexShrink = 0;
-        distanceSection.style.width = Length.Percent(100);
-        distanceSection.style.maxWidth = Length.Percent(100);
-
-        var titleLabel = new Label("所有树木与电力线距离");
-        titleLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
-        titleLabel.style.fontSize = 14;
-        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginBottom = 10;
-        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        uiManager?.ApplyFont(titleLabel);
-        distanceSection.Add(titleLabel);
-
-        // 创建距离信息容器
-        var distanceContainer = new VisualElement();
-        distanceContainer.style.flexDirection = FlexDirection.Column;
-        distanceContainer.style.marginBottom = 10;
-        
-        // 添加刷新按钮
-        var refreshButton = new Button(() => RefreshDistanceDisplay(distanceContainer));
-        refreshButton.text = "刷新距离信息";
-        refreshButton.style.backgroundColor = new Color(0.2f, 0.7f, 0.2f, 1f);
-        refreshButton.style.color = Color.white;
-        refreshButton.style.fontSize = 11;
-        refreshButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        refreshButton.style.paddingTop = 6;
-        refreshButton.style.paddingBottom = 6;
-        refreshButton.style.paddingLeft = 10;
-        refreshButton.style.paddingRight = 10;
-        refreshButton.style.borderTopLeftRadius = 4;
-        refreshButton.style.borderTopRightRadius = 4;
-        refreshButton.style.borderBottomLeftRadius = 4;
-        refreshButton.style.borderBottomRightRadius = 4;
-        refreshButton.style.marginBottom = 10;
-        refreshButton.style.alignSelf = Align.Center;
-        uiManager?.ApplyFont(refreshButton);
-        distanceContainer.Add(refreshButton);
-
-        // 显示距离信息
-        DisplayAllTreesDistance(distanceContainer);
-        
-        distanceSection.Add(distanceContainer);
-        treeDangerPanel.Add(distanceSection);
-    }
-    
-    /// <summary>
-    /// 显示所有树木的距离信息
-    /// </summary>
-    void DisplayAllTreesDistance(VisualElement container)
-    {
-        // 清除旧内容
-        var existingContent = container.Q("distanceContent");
-        if (existingContent != null)
-        {
-            existingContent.RemoveFromHierarchy();
-        }
-        
-        var distanceContent = new VisualElement();
-        distanceContent.name = "distanceContent";
-        distanceContent.style.flexDirection = FlexDirection.Column;
-        
-        if (treeDangerMonitor != null)
-        {
-            // 获取所有树木信息
-            var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-            
-            if (allDangerInfo.Count == 0)
-            {
-                // 尝试获取场景中的树木信息
-                var sceneTrees = FindObjectsOfType<GameObject>().Where(obj => 
-                    obj.name.ToLower().Contains("tree") || 
-                    obj.name.ToLower().Contains("树") ||
-                    obj.name.ToLower().Contains("plant") ||
-                    obj.name.ToLower().Contains("vegetation")).ToArray();
-                
-                if (sceneTrees.Length > 0)
-                {
-                    // 显示场景中的树木基本信息
-                    var infoLabel = new Label($"场景中找到 {sceneTrees.Length} 棵树木，但尚未执行监测");
-                    infoLabel.style.fontSize = 12;
-                    infoLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-                    infoLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                    infoLabel.style.marginBottom = 10;
-                    uiManager?.ApplyFont(infoLabel);
-                    distanceContent.Add(infoLabel);
-                    
-                    // 创建表头
-                    var headerRow = new VisualElement();
-                    headerRow.style.flexDirection = FlexDirection.Row;
-                    headerRow.style.justifyContent = Justify.SpaceBetween;
-                    headerRow.style.alignItems = Align.Center;
-                    headerRow.style.marginBottom = 8;
-                    headerRow.style.backgroundColor = new Color(0.8f, 0.9f, 1f, 1f);
-                    headerRow.style.paddingTop = 6;
-                    headerRow.style.paddingBottom = 6;
-                    headerRow.style.paddingLeft = 8;
-                    headerRow.style.paddingRight = 8;
-                    headerRow.style.borderTopLeftRadius = 4;
-                    headerRow.style.borderTopRightRadius = 4;
-                    headerRow.style.borderBottomLeftRadius = 4;
-                    headerRow.style.borderBottomRightRadius = 4;
-
-                    var treeNameLabel = new Label("树木名称");
-                    treeNameLabel.style.fontSize = 12;
-                    treeNameLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                    treeNameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    treeNameLabel.style.minWidth = 200;
-                    uiManager?.ApplyFont(treeNameLabel);
-                    headerRow.Add(treeNameLabel);
-
-                    var positionLabel = new Label("位置坐标");
-                    positionLabel.style.fontSize = 12;
-                    positionLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                    positionLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    positionLabel.style.minWidth = 150;
-                    uiManager?.ApplyFont(positionLabel);
-                    headerRow.Add(positionLabel);
-                    
-                    var statusLabel = new Label("状态");
-                    statusLabel.style.fontSize = 12;
-                    statusLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                    statusLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    statusLabel.style.minWidth = 80;
-                    uiManager?.ApplyFont(statusLabel);
-                    headerRow.Add(statusLabel);
-
-                    distanceContent.Add(headerRow);
-
-                    // 显示前20棵树木的基本信息
-                    int displayCount = Mathf.Min(sceneTrees.Length, 20);
-                    for (int i = 0; i < displayCount; i++)
-                    {
-                        var tree = sceneTrees[i];
-                        var row = new VisualElement();
-                        row.style.flexDirection = FlexDirection.Row;
-                        row.style.justifyContent = Justify.SpaceBetween;
-                        row.style.alignItems = Align.Center;
-                        row.style.marginBottom = 4;
-                        row.style.paddingTop = 4;
-                        row.style.paddingBottom = 4;
-                        row.style.paddingLeft = 8;
-                        row.style.paddingRight = 8;
-                        row.style.borderTopLeftRadius = 3;
-                        row.style.borderTopRightRadius = 3;
-                        row.style.borderBottomLeftRadius = 3;
-                        row.style.borderBottomRightRadius = 3;
-                        row.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-
-                        var treeName = new Label(tree.name);
-                        treeName.style.fontSize = 11;
-                        treeName.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-                        treeName.style.minWidth = 200;
-                        uiManager?.ApplyFont(treeName);
-                        row.Add(treeName);
-
-                        var position = new Label($"({tree.transform.position.x:F1}, {tree.transform.position.y:F1}, {tree.transform.position.z:F1})");
-                        position.style.fontSize = 11;
-                        position.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-                        position.style.minWidth = 150;
-                        uiManager?.ApplyFont(position);
-                        row.Add(position);
-                        
-                        var status = new Label("待监测");
-                        status.style.fontSize = 11;
-                        status.style.color = new Color(0.8f, 0.6f, 0.2f, 1f);
-                        status.style.unityFontStyleAndWeight = FontStyle.Bold;
-                        status.style.minWidth = 80;
-                        uiManager?.ApplyFont(status);
-                        row.Add(status);
-
-                        distanceContent.Add(row);
-                    }
-                    
-                    if (sceneTrees.Length > 20)
-                    {
-                        var moreLabel = new Label($"... 还有 {sceneTrees.Length - 20} 棵树木未显示");
-                        moreLabel.style.fontSize = 11;
-                        moreLabel.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
-                        moreLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                        moreLabel.style.marginTop = 8;
-                        uiManager?.ApplyFont(moreLabel);
-                        distanceContent.Add(moreLabel);
-                    }
-                    
-                    // 添加提示信息
-                    var hintLabel = new Label("点击'开始监测'按钮获取详细距离信息");
-                    hintLabel.style.fontSize = 11;
-                    hintLabel.style.color = new Color(0.4f, 0.6f, 0.8f, 1f);
-                    hintLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                    hintLabel.style.marginTop = 10;
-                    hintLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    uiManager?.ApplyFont(hintLabel);
-                    distanceContent.Add(hintLabel);
-                }
-                else
-                {
-                    var noDataLabel = new Label("暂无距离数据，请先执行监测");
-                    noDataLabel.style.fontSize = 12;
-                    noDataLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-                    noDataLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                    uiManager?.ApplyFont(noDataLabel);
-                    distanceContent.Add(noDataLabel);
-                }
-            }
-            else
-            {
-                // 显示监测后的详细距离信息
-                // 创建表头
-                var headerRow = new VisualElement();
-                headerRow.style.flexDirection = FlexDirection.Row;
-                headerRow.style.justifyContent = Justify.SpaceBetween;
-                headerRow.style.alignItems = Align.Center;
-                headerRow.style.marginBottom = 8;
-                headerRow.style.backgroundColor = new Color(0.8f, 0.9f, 1f, 1f);
-                headerRow.style.paddingTop = 6;
-                headerRow.style.paddingBottom = 6;
-                headerRow.style.paddingLeft = 8;
-                headerRow.style.paddingRight = 8;
-                headerRow.style.borderTopLeftRadius = 4;
-                headerRow.style.borderTopRightRadius = 4;
-                headerRow.style.borderBottomLeftRadius = 4;
-                headerRow.style.borderBottomRightRadius = 4;
-
-                var treeNameLabel = new Label("树木名称");
-                treeNameLabel.style.fontSize = 12;
-                treeNameLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                treeNameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                treeNameLabel.style.minWidth = 150;
-                uiManager?.ApplyFont(treeNameLabel);
-                headerRow.Add(treeNameLabel);
-
-                var distanceLabel = new Label("距离 (m)");
-                distanceLabel.style.fontSize = 12;
-                distanceLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                distanceLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                distanceLabel.style.minWidth = 80;
-                uiManager?.ApplyFont(distanceLabel);
-                headerRow.Add(distanceLabel);
-                
-                var dangerLabel = new Label("危险等级");
-                dangerLabel.style.fontSize = 12;
-                dangerLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                dangerLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                dangerLabel.style.minWidth = 80;
-                uiManager?.ApplyFont(dangerLabel);
-                headerRow.Add(dangerLabel);
-                
-                var heightLabel = new Label("树木高度");
-                heightLabel.style.fontSize = 12;
-                heightLabel.style.color = new Color(0.2f, 0.4f, 0.8f, 1f);
-                heightLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                heightLabel.style.minWidth = 80;
-                uiManager?.ApplyFont(heightLabel);
-                headerRow.Add(heightLabel);
-
-                distanceContent.Add(headerRow);
-
-                // 按距离排序
-                var sortedDangerInfo = allDangerInfo.OrderBy(info => info.currentDistance).ToList();
-                
-                // 显示每个树木的距离信息
-                foreach (var dangerInfo in sortedDangerInfo)
-                {
-                    var row = new VisualElement();
-                    row.style.flexDirection = FlexDirection.Row;
-                    row.style.justifyContent = Justify.SpaceBetween;
-                    row.style.alignItems = Align.Center;
-                    row.style.marginBottom = 4;
-                    row.style.paddingTop = 4;
-                    row.style.paddingBottom = 4;
-                    row.style.paddingLeft = 8;
-                    row.style.paddingRight = 8;
-                    row.style.borderTopLeftRadius = 3;
-                    row.style.borderTopRightRadius = 3;
-                    row.style.borderBottomLeftRadius = 3;
-                    row.style.borderBottomRightRadius = 3;
-                    
-                    // 根据危险等级设置背景色
-                    Color backgroundColor = GetDangerLevelColor(dangerInfo.dangerLevel);
-                    backgroundColor.a = 0.1f; // 降低透明度
-                    row.style.backgroundColor = backgroundColor;
-
-                    var treeName = new Label(dangerInfo.tree.name);
-                    treeName.style.fontSize = 11;
-                    treeName.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-                    treeName.style.minWidth = 150;
-                    uiManager?.ApplyFont(treeName);
-                    row.Add(treeName);
-
-                    var distanceValue = new Label($"{dangerInfo.currentDistance:F1}");
-                    distanceValue.style.fontSize = 11;
-                    distanceValue.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-                    distanceValue.style.minWidth = 80;
-                    uiManager?.ApplyFont(distanceValue);
-                    row.Add(distanceValue);
-                    
-                    var dangerLevel = new Label(GetDangerLevelText(dangerInfo.dangerLevel));
-                    dangerLevel.style.fontSize = 11;
-                    dangerLevel.style.color = GetDangerLevelColor(dangerInfo.dangerLevel);
-                    dangerLevel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                    dangerLevel.style.minWidth = 80;
-                    uiManager?.ApplyFont(dangerLevel);
-                    row.Add(dangerLevel);
-                    
-                    var treeHeight = new Label($"{dangerInfo.treeHeight:F1}m");
-                    treeHeight.style.fontSize = 11;
-                    treeHeight.style.color = new Color(0.3f, 0.3f, 0.3f, 1f);
-                    treeHeight.style.minWidth = 80;
-                    uiManager?.ApplyFont(treeHeight);
-                    row.Add(treeHeight);
-
-                    distanceContent.Add(row);
-                }
-                
-                // 添加统计信息
-                var statsLabel = new Label($"总计: {allDangerInfo.Count} 棵树木");
-                statsLabel.style.fontSize = 11;
-                statsLabel.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
-                statsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                statsLabel.style.marginTop = 8;
-                uiManager?.ApplyFont(statsLabel);
-                distanceContent.Add(statsLabel);
-                
-                // 添加距离范围信息
-                if (allDangerInfo.Count > 0)
-                {
-                    var minDistance = allDangerInfo.Min(info => info.currentDistance);
-                    var maxDistance = allDangerInfo.Max(info => info.currentDistance);
-                    var avgDistance = allDangerInfo.Average(info => info.currentDistance);
-                    
-                    var rangeLabel = new Label($"距离范围: {minDistance:F1}m - {maxDistance:F1}m (平均: {avgDistance:F1}m)");
-                    rangeLabel.style.fontSize = 11;
-                    rangeLabel.style.color = new Color(0.5f, 0.5f, 0.5f, 1f);
-                    rangeLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                    rangeLabel.style.marginTop = 4;
-                    uiManager?.ApplyFont(rangeLabel);
-                    distanceContent.Add(rangeLabel);
-                }
-            }
-        }
-        else
-        {
-            var errorLabel = new Label("TreeDangerMonitor未找到");
-            errorLabel.style.fontSize = 12;
-            errorLabel.style.color = new Color(0.8f, 0.2f, 0.2f, 1f);
-            errorLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-            uiManager?.ApplyFont(errorLabel);
-            distanceContent.Add(errorLabel);
-        }
-        
-        container.Add(distanceContent);
-    }
-    
-    /// <summary>
-    /// 刷新距离显示
-    /// </summary>
-    void RefreshDistanceDisplay(VisualElement container)
-    {
-        DisplayAllTreesDistance(container);
-        UpdateStatus("距离信息已刷新");
-    }
-
-    void CreateTreeListSection()
-    {
-        treeListSection = new VisualElement();
-        treeListSection.style.backgroundColor = new Color(0.9f, 0.95f, 1f, 1f);
-        treeListSection.style.marginBottom = 10;
-        treeListSection.style.paddingTop = 12;
-        treeListSection.style.paddingBottom = 12;
-        treeListSection.style.paddingLeft = 10;
-        treeListSection.style.paddingRight = 10;
-        treeListSection.style.borderTopLeftRadius = 8;
-        treeListSection.style.borderTopRightRadius = 8;
-        treeListSection.style.borderBottomLeftRadius = 8;
-        treeListSection.style.borderBottomRightRadius = 8;
-        treeListSection.style.borderLeftWidth = 2;
-        treeListSection.style.borderRightWidth = 2;
-        treeListSection.style.borderTopWidth = 2;
-        treeListSection.style.borderBottomWidth = 2;
-        treeListSection.style.borderLeftColor = new Color(0.2f, 0.6f, 1f, 1f);
-        treeListSection.style.borderRightColor = new Color(0.2f, 0.6f, 1f, 1f);
-        treeListSection.style.borderTopColor = new Color(0.2f, 0.6f, 1f, 1f);
-        treeListSection.style.borderBottomColor = new Color(0.2f, 0.6f, 1f, 1f);
-        treeListSection.style.flexShrink = 0;
-        treeListSection.style.width = Length.Percent(100);
-        treeListSection.style.maxWidth = Length.Percent(100);
-        
-        // 标题
-        var titleLabel = new Label("危险树木列表");
-        titleLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
-        titleLabel.style.fontSize = 14;
-        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.marginBottom = 10;
-        titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        uiManager?.ApplyFont(titleLabel);
-        treeListSection.Add(titleLabel);
-        
-        // 简化的树木列表容器
-        CreateSimplifiedTreeListContainer();
-        
-        treeDangerPanel.Add(treeListSection);
-    }
-    
-    void CreateSimplifiedTreeListContainer()
-    {
-        // 创建树木列表容器
-        treeListContainer = new VisualElement();
-        treeListContainer.style.flexDirection = FlexDirection.Column;
-        treeListContainer.style.marginBottom = 10;
-        
-        // 检查是否有危险树木
-        if (treeDangerMonitor != null && treeDangerMonitor.GetAllDangerInfo().Count > 0)
-        {
-            // 显示危险树木列表
-            DisplayDangerousTreesList();
-        }
-        else
-        {
-            // 显示无危险信息
-            CreateNoDangerInfoDisplay();
-        }
-        
-        treeListSection.Add(treeListContainer);
-    }
-    
-    void CreateNoDangerInfoDisplay()
-    {
-        // 创建简化的系统状态信息
-        var statusPanel = new VisualElement();
-        statusPanel.style.backgroundColor = new Color(0.95f, 0.98f, 0.95f, 1f);
-        statusPanel.style.marginBottom = 10;
-        statusPanel.style.paddingTop = 10;
-        statusPanel.style.paddingBottom = 10;
-        statusPanel.style.paddingLeft = 10;
-        statusPanel.style.paddingRight = 10;
-        statusPanel.style.borderTopLeftRadius = 6;
-        statusPanel.style.borderTopRightRadius = 6;
-        statusPanel.style.borderBottomLeftRadius = 6;
-        statusPanel.style.borderBottomRightRadius = 6;
-        statusPanel.style.borderLeftWidth = 1;
-        statusPanel.style.borderLeftColor = new Color(0.2f, 0.7f, 0.2f, 1f);
-        
-        // 简化的状态信息
-        string statusText = "系统状态良好";
-        string detailText = "当前场景中所有树木都处于安全状态";
-        
-        if (treeDangerMonitor != null)
-        {
-            int treeCount = treeDangerMonitor.GetTreeCount();
-            int dangerousTrees = treeDangerMonitor.GetAllDangerInfo().Count;
-            
-            if (treeCount == 0)
-            {
-                statusText = "未找到树木";
-                detailText = "场景中没有检测到树木对象";
-            }
-            else if (dangerousTrees > 0)
-            {
-                statusText = $"发现{dangerousTrees}棵危险树木";
-                detailText = "需要关注这些危险树木";
-            }
-            else
-            {
-                statusText = $"已找到{treeCount}棵树木";
-                detailText = "所有树木都处于安全状态";
-            }
-        }
-        
-        // 状态标签
-        var statusLabel = new Label(statusText);
-        statusLabel.style.fontSize = 12;
-        statusLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        statusLabel.style.color = new Color(0.2f, 0.7f, 0.2f, 1f);
-        statusLabel.style.marginBottom = 5;
-        uiManager?.ApplyFont(statusLabel);
-        statusPanel.Add(statusLabel);
-        
-        // 详细信息标签
-        var detailLabel = new Label(detailText);
-        detailLabel.style.fontSize = 11;
-        detailLabel.style.color = new Color(0.4f, 0.6f, 0.4f, 1f);
-        uiManager?.ApplyFont(detailLabel);
-        statusPanel.Add(detailLabel);
-        
-        treeListContainer.Add(statusPanel);
-    }
-    
-    // 控制方法
-    void StartMonitoring()
-    {
-        if (treeDangerMonitor == null)
-        {
-            UpdateStatus("TreeDangerMonitor未找到");
-            return;
-        }
-        
-        // 同步参数
-        SyncMonitoringParameters();
-        
-        // 开始监测
-        treeDangerMonitor.ManualMonitoring();
-        isMonitoring = true;
-        
-        // 更新按钮状态
-        if (startMonitoringButton != null)
-        {
-            startMonitoringButton.text = "停止监测";
-            startMonitoringButton.style.backgroundColor = new Color(0.8f, 0.4f, 0.2f, 1f);
-        }
-        
-        UpdateStatus("监测已启动");
-        UpdateDisplay();
-    }
     
     /// <summary>
     /// 延迟刷新显示的协程
@@ -1181,223 +621,783 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         RefreshDisplay();
     }
     
-    void ClearAllMarkers()
+
+    
+         void GenerateRandomDangerTrees()
+     {
+         // 启动协程来避免卡死
+         StartCoroutine(GenerateRandomDangerTreesCoroutine());
+     }
+     
+     IEnumerator GenerateRandomDangerTreesCoroutine()
     {
-        if (treeDangerMonitor == null)
+                 if (treeDangerMonitor == null)
+         {
+             UpdateStatus("TreeDangerMonitor未找到");
+             yield break;
+         }
+        
+        // 获取场景中的所有树木
+        var sceneTrees = FindObjectsOfType<GameObject>().Where(obj => 
+            obj.name.ToLower().Contains("tree") || 
+            obj.name.ToLower().Contains("植物") || 
+            obj.name.ToLower().Contains("树")).ToArray();
+            
+                 if (sceneTrees.Length == 0)
+         {
+             UpdateStatus("场景中没有找到树木对象");
+             yield break;
+         }
+        
+        // 获取场景中的电塔
+        var powerTowers = FindObjectsOfType<GameObject>().Where(obj => 
+            obj.name.ToLower().Contains("tower") || 
+            obj.name.ToLower().Contains("电塔") ||
+            obj.name.ToLower().Contains("pole") ||
+            obj.name.ToLower().Contains("杆")).ToArray();
+        
+        if (powerTowers.Length == 0)
         {
-            UpdateStatus("TreeDangerMonitor未找到");
-            return;
+            UpdateStatus("场景中没有找到电塔对象，将使用随机选择");
         }
         
-        // 清除所有危险标记
-        treeDangerMonitor.ClearAllDangerMarkers();
+                 // 减少标记数量：选择更少的树木作为危险树木（最多5-10棵）
+         int totalTrees = sceneTrees.Length;
+         int maxDangerTrees = Mathf.Min(10, Mathf.Max(3, totalTrees / 50)); // 最多10棵，最少3棵
+         int dangerTreeCount = UnityEngine.Random.Range(3, maxDangerTrees + 1);
         
-        UpdateStatus("已清除所有危险标记");
+                 // 先清除所有现有标记
+         treeDangerMonitor.ClearAllDangerMarkers();
+         
+         // 显示进度信息
+         UpdateStatus("正在分析树木与电力线路的距离关系...");
+        
+                 // 优化：预计算电力线路段，使用更智能的连接方式
+         var powerlineSegments = new List<(Vector3 start, Vector3 end)>();
+         if (powerTowers.Length >= 2)
+         {
+             // 计算所有电塔之间的可能连接，但优先选择距离较近的连接
+             var allConnections = new List<(Vector3 start, Vector3 end, float distance)>();
+             
+             for (int i = 0; i < powerTowers.Length; i++)
+             {
+                 for (int j = i + 1; j < powerTowers.Length; j++)
+                 {
+                     float distance = Vector3.Distance(powerTowers[i].transform.position, powerTowers[j].transform.position);
+                     // 只考虑距离合理的连接（比如100米以内）
+                     if (distance <= 100f)
+                     {
+                         allConnections.Add((powerTowers[i].transform.position, powerTowers[j].transform.position, distance));
+                     }
+                 }
+             }
+             
+             // 按距离排序，选择最近的连接作为电力线路
+             var sortedConnections = allConnections.OrderBy(x => x.distance).ToList();
+             
+             // 选择前15个最近的连接作为主要电力线路（增加覆盖范围）
+             int maxLines = Mathf.Min(15, sortedConnections.Count);
+             for (int i = 0; i < maxLines; i++)
+             {
+                 powerlineSegments.Add((sortedConnections[i].start, sortedConnections[i].end));
+             }
+             
+             Debug.Log($"创建了 {powerlineSegments.Count} 条电力线路，覆盖 {powerTowers.Length} 个电塔");
+         }
+         
+         // 计算每棵树的危险评分（必须比电塔高且距离电力线路很近）
+         var treeScores = new List<(GameObject tree, float score)>();
+         
+         // 优化：分批处理树木，避免一次性处理太多
+         int batchSize = 50; // 减少批次大小，提高响应性
+         int processedCount = 0;
+         
+         for (int batchStart = 0; batchStart < sceneTrees.Length; batchStart += batchSize)
+         {
+             int batchEnd = Mathf.Min(batchStart + batchSize, sceneTrees.Length);
+             
+             for (int i = batchStart; i < batchEnd; i++)
+             {
+                 var tree = sceneTrees[i];
+                 float score = 0f;
+                 
+                                   // 计算树木高度
+                  float treeHeight = CalculateTreeHeight(tree);
+                  
+                  // 计算到电力线路的最短距离和对应的电塔高度
+                  float minDistanceToPowerline = float.MaxValue;
+                  float nearestTowerHeight = 0f;
+                  Vector3 nearestTowerPos = Vector3.zero;
+                  
+                  if (powerlineSegments.Count > 0)
+                  {
+                      Vector3 treePos = tree.transform.position;
+                      
+                      // 检查每条电力线路，找到最近的线路和对应的电塔
+                      foreach (var segment in powerlineSegments)
+                      {
+                          float distanceToLine = DistanceToLineSegment(treePos, segment.start, segment.end);
+                          
+                          if (distanceToLine < minDistanceToPowerline)
+                          {
+                              minDistanceToPowerline = distanceToLine;
+                              
+                              // 找到最近的线路后，计算对应电塔的高度
+                              // 选择距离树木更近的电塔作为参考
+                              float distToStart = Vector3.Distance(treePos, segment.start);
+                              float distToEnd = Vector3.Distance(treePos, segment.end);
+                              
+                              if (distToStart < distToEnd)
+                              {
+                                  nearestTowerPos = segment.start;
+                              }
+                              else
+                              {
+                                  nearestTowerPos = segment.end;
+                              }
+                              
+                              // 找到对应的电塔对象并获取其高度
+                              foreach (var tower in powerTowers)
+                              {
+                                  if (Vector3.Distance(tower.transform.position, nearestTowerPos) < 1f)
+                                  {
+                                      nearestTowerHeight = CalculateTowerHeight(tower);
+                                      break;
+                                  }
+                              }
+                          }
+                      }
+                  }
+                  else if (powerTowers.Length == 1)
+                  {
+                      // 如果只有一个电塔，使用到电塔的距离
+                      minDistanceToPowerline = Vector3.Distance(tree.transform.position, powerTowers[0].transform.position);
+                      nearestTowerHeight = CalculateTowerHeight(powerTowers[0]);
+                  }
+                  else
+                  {
+                      // 如果没有电塔，跳过这棵树（不标记为危险）
+                      continue;
+                  }
+                  
+                                     // 关键条件1：树木达到电塔30%高度即可视为危险（降低要求）
+                   if (treeHeight < nearestTowerHeight * 0.3f)
+                   {
+                       continue; // 树木高度不足电塔的30%，跳过
+                   }
+                  
+                                     // 关键条件2：考虑距离电力线路较近的树木（20米以内，放宽要求）
+                   if (minDistanceToPowerline > 20f)
+                   {
+                       continue; // 距离太远，跳过
+                   }
+                  
+                                   // 如果已经找到了足够多的候选树木，可以提前退出
+                 if (treeScores.Count >= dangerTreeCount * 5) // 增加候选数量，提高选择范围
+                 {
+                     break;
+                 }
+                  
+                  // 计算综合评分：基于高度差和距离
+                  // 高度差权重：树木比电塔高得越多，越危险
+                  float heightDifference = treeHeight - nearestTowerHeight;
+                  float heightScore = heightDifference * 20f; // 高度差越大分数越高
+                  
+                  // 距离权重：距离越近分数越高（使用倒数关系）
+                  float distanceScore = minDistanceToPowerline > 0 ? 50f / minDistanceToPowerline : 50f;
+                  
+                  // 综合评分：高度差 + 距离分数
+                  score = heightScore + distanceScore;
+                  
+                  // 调试信息
+                  Debug.Log($"树木 {tree.name}: 高度={treeHeight:F1}m, 电塔高度={nearestTowerHeight:F1}m, 高度差={heightDifference:F1}m, 距离={minDistanceToPowerline:F1}m, 评分={score:F1}");
+                  
+                  treeScores.Add((tree, score));
+             }
+             
+             processedCount += (batchEnd - batchStart);
+             
+             // 每处理完一批，让出控制权，避免卡死
+             if (processedCount % 100 == 0) // 更频繁地让出控制权
+             {
+                 yield return null;
+             }
+             
+             // 如果已经找到了足够的候选树木，提前退出
+             if (treeScores.Count >= dangerTreeCount * 5) // 增加候选数量，提高选择范围
+             {
+                 break;
+             }
+         }
+        
+                 // 显示分析完成信息
+         UpdateStatus($"分析完成，找到 {treeScores.Count} 棵候选树木，正在标记...");
+         
+         // 按评分排序，选择评分最高的树木
+         var selectedTrees = treeScores
+             .OrderByDescending(x => x.score)
+             .Take(dangerTreeCount)
+             .Select(x => x.tree);
+        
+        int markedCount = 0;
+        foreach (var tree in selectedTrees)
+        {
+            // 根据评分分配危险等级（评分越高，危险等级越高）
+            var treeScore = treeScores.First(x => x.tree == tree).score;
+            
+            TreeDangerMonitor.TreeDangerLevel level;
+            if (treeScore > 150f) // 高评分：高危险
+            {
+                level = TreeDangerMonitor.TreeDangerLevel.Emergency;
+            }
+            else if (treeScore > 100f) // 中等评分：危险
+            {
+                level = TreeDangerMonitor.TreeDangerLevel.Critical;
+            }
+            else // 低评分：警告
+            {
+                level = TreeDangerMonitor.TreeDangerLevel.Warning;
+            }
+            
+            // 创建危险标记
+            MarkTreeAsDangerous(tree, level);
+            markedCount++;
+        }
+        
+                 UpdateStatus($"已智能标记 {markedCount} 棵危险树木（达到电塔30%高度且距离电力线路20米内的树木）");
         UpdateDisplay();
     }
     
-    // 更新方法
-    void UpdateStatus(string message)
+    void MarkTreeAsDangerous(GameObject tree, TreeDangerMonitor.TreeDangerLevel level)
     {
-        if (statusLabel != null)
+        // 检查是否已经有危险标记
+        if (tree.GetComponent<DangerMarker>() != null)
         {
-            statusLabel.text = message;
+            return; // 已经有标记，跳过
         }
         
-        Debug.Log($"[TreeDangerController] {message}");
-    }
-    
-    void UpdateStatistics()
-    {
-        if (treeDangerMonitor == null) return;
+        // 创建标记对象
+        var marker = new GameObject($"TreeDangerMarker_{tree.name}");
+        marker.transform.SetParent(tree.transform);
+        marker.transform.localPosition = Vector3.up * 2f; // 在树的上方
         
-        // 获取基本统计信息
-        int totalTrees = treeDangerMonitor.GetTreeCount();
-        int dangerousTrees = treeDangerMonitor.GetAllDangerInfo().Count;
+        // 添加DangerMarker组件
+        DangerMarker dangerMarker = marker.AddComponent<DangerMarker>();
         
-        // 更新统计显示
-        if (statisticsSection != null)
+        // 转换危险等级
+        DangerType dangerType = DangerType.Vegetation; // 树木属于植被类型
+        DangerLevel dangerLevel = ConvertTreeDangerLevel(level);
+        
+                 // 设置危险信息
+         string description = $"危险树木 - {GetDangerLevelText(level)}";
+         dangerMarker.SetDangerInfo(dangerType, dangerLevel, description, "监测系统");
+        
+        // 高亮显示树木（如果有Renderer）
+        var renderer = tree.GetComponent<Renderer>();
+        if (renderer != null)
         {
-            // 清除旧的统计信息
-            statisticsSection.Clear();
-            
-            // 重新创建标题
-            var titleLabel = new Label("监测统计");
-            titleLabel.style.color = new Color(0.8f, 0.4f, 0.1f, 1f);
-            titleLabel.style.fontSize = 14;
-            titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-            titleLabel.style.marginBottom = 10;
-            titleLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-            uiManager?.ApplyFont(titleLabel);
-            statisticsSection.Add(titleLabel);
-            
-            // 创建简化的统计信息
-            var statsContainer = new VisualElement();
-            statsContainer.style.flexDirection = FlexDirection.Column;
-            statsContainer.style.marginBottom = 10;
-            
-            string statsText = $"监测统计(总计: {totalTrees}棵)";
-            string hintText = dangerousTrees > 0 ? 
-                $"发现{dangerousTrees}棵危险树木" : 
-                "所有树木都处于安全状态";
-            
-            // 统计信息标签
-            var statsLabel = new Label(statsText);
-            statsLabel.style.fontSize = 12;
-            statsLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
-            statsLabel.style.marginBottom = 5;
-            uiManager?.ApplyFont(statsLabel);
-            statsContainer.Add(statsLabel);
-            
-            // 提示信息标签
-            var hintLabel = new Label(hintText);
-            hintLabel.style.fontSize = 12;
-            hintLabel.style.color = dangerousTrees > 0 ? 
-                new Color(0.8f, 0.4f, 0.2f, 1f) : 
-                new Color(0.8f, 0.8f, 0.8f, 1f);
-            hintLabel.style.marginBottom = 5;
-            uiManager?.ApplyFont(hintLabel);
-            statsContainer.Add(hintLabel);
-            
-            statisticsSection.Add(statsContainer);
-        }
-    }
-    
-    void UpdateTreeList()
-    {
-        if (treeDangerMonitor == null || treeListContainer == null) return;
-        
-        // 清除旧的列表内容
-        treeListContainer.Clear();
-        
-        var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-        
-        if (allDangerInfo.Count == 0)
-        {
-            // 没有危险树木，显示安全信息
-            CreateNoDangerInfoDisplay();
-        }
-        else
-        {
-            // 有危险树木，显示列表
-            DisplayDangerousTreesList();
-        }
-    }
-    
-    void DisplayDangerousTreesList()
-    {
-        if (treeDangerMonitor == null) return;
-        
-        var allDangerInfo = treeDangerMonitor.GetAllDangerInfo();
-        
-        foreach (var dangerInfo in allDangerInfo)
-        {
-            CreateSimplifiedTreeListItem(dangerInfo);
-        }
-    }
-    
-    void CreateSimplifiedTreeListItem(TreeDangerMonitor.TreeDangerInfo dangerInfo)
-    {
-        // 创建简化的树木列表项
-        var itemContainer = new VisualElement();
-        itemContainer.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
-        itemContainer.style.marginBottom = 8;
-        itemContainer.style.paddingTop = 8;
-        itemContainer.style.paddingBottom = 8;
-        itemContainer.style.paddingLeft = 8;
-        itemContainer.style.paddingRight = 8;
-        itemContainer.style.borderTopLeftRadius = 6;
-        itemContainer.style.borderTopRightRadius = 6;
-        itemContainer.style.borderBottomLeftRadius = 6;
-        itemContainer.style.borderBottomRightRadius = 6;
-        itemContainer.style.borderLeftWidth = 2;
-        itemContainer.style.borderLeftColor = GetDangerLevelColor(dangerInfo.dangerLevel);
-        
-        // 危险等级标签
-        var levelLabel = new Label($"危险等级: {GetDangerLevelText(dangerInfo.dangerLevel)}");
-        levelLabel.style.fontSize = 12;
-        levelLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        levelLabel.style.color = GetDangerLevelColor(dangerInfo.dangerLevel);
-        levelLabel.style.marginBottom = 5;
-        uiManager?.ApplyFont(levelLabel);
-        itemContainer.Add(levelLabel);
-        
-        // 距离信息
-        var distanceLabel = new Label($"当前距离: {dangerInfo.currentDistance:F1}m");
-        distanceLabel.style.fontSize = 11;
-        distanceLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
-        distanceLabel.style.marginBottom = 3;
-        uiManager?.ApplyFont(distanceLabel);
-        itemContainer.Add(distanceLabel);
-        
-        // 树木高度
-        var heightLabel = new Label($"树木高度: {dangerInfo.treeHeight:F1}m");
-        heightLabel.style.fontSize = 11;
-        heightLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
-        heightLabel.style.marginBottom = 3;
-        uiManager?.ApplyFont(heightLabel);
-        itemContainer.Add(heightLabel);
-        
-        // 新增：高度比例信息（如果电塔高度信息可用）
-        if (dangerInfo.powerline != null)
-        {
-            // 尝试获取电塔高度信息
-            float powerlineHeight = 20f; // 默认值
             try
             {
-                var powerlineInfo = dangerInfo.powerline.GetDetailedInfo();
-                if (powerlineInfo != null && powerlineInfo.basicInfo != null && powerlineInfo.basicInfo.points != null && powerlineInfo.basicInfo.points.Count > 0)
-                {
-                    // 使用LINQ计算平均高度
-                    powerlineHeight = powerlineInfo.basicInfo.points.Select(p => p.y).Average();
-                }
+                var material = renderer.material;
+                material.EnableKeyword("_EMISSION");
+                material.SetColor("_EmissionColor", GetDangerLevelColor(level) * 0.3f);
             }
-            catch
+            catch (System.Exception e)
             {
-                // 如果获取失败，使用默认值
-            }
-            
-            float heightRatio = dangerInfo.treeHeight / powerlineHeight;
-            if (heightRatio >= 0.5f)
-            {
-                var ratioLabel = new Label($"⚠️ 高度比例: {heightRatio * 100:F0}% (电塔高度: {powerlineHeight:F1}m)");
-                ratioLabel.style.fontSize = 11;
-                ratioLabel.style.color = new Color(0.8f, 0.4f, 0.2f, 1f);
-                ratioLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-                ratioLabel.style.marginBottom = 5;
-                uiManager?.ApplyFont(ratioLabel);
-                itemContainer.Add(ratioLabel);
+                Debug.LogWarning($"无法设置材质发光效果: {e.Message}");
             }
         }
-        
-        // 跳转按钮
-        var buttonContainer = new VisualElement();
-        buttonContainer.style.flexDirection = FlexDirection.Row;
-        buttonContainer.style.justifyContent = Justify.FlexEnd;
-        
-        var jumpButton = new Button(() => JumpToTree(dangerInfo));
-        jumpButton.text = "跳转";
-        jumpButton.style.backgroundColor = new Color(0.2f, 0.7f, 0.2f, 1f);
-        jumpButton.style.color = Color.white;
-        jumpButton.style.fontSize = 10;
-        jumpButton.style.unityFontStyleAndWeight = FontStyle.Bold;
-        jumpButton.style.paddingTop = 4;
-        jumpButton.style.paddingBottom = 4;
-        jumpButton.style.paddingLeft = 8;
-        jumpButton.style.paddingRight = 8;
-        jumpButton.style.borderTopLeftRadius = 4;
-        jumpButton.style.borderTopRightRadius = 4;
-        jumpButton.style.borderBottomLeftRadius = 4;
-        jumpButton.style.borderBottomRightRadius = 4;
-        uiManager?.ApplyFont(jumpButton);
-        buttonContainer.Add(jumpButton);
-        
-        itemContainer.Add(buttonContainer);
-        treeListContainer.Add(itemContainer);
     }
     
-    // 辅助方法
-    Color GetDangerLevelColor(TreeDangerMonitor.TreeDangerLevel level)
+         /// <summary>
+     /// 计算点到线段的最短距离
+     /// </summary>
+     float DistanceToLineSegment(Vector3 point, Vector3 lineStart, Vector3 lineEnd)
+     {
+         Vector3 line = lineEnd - lineStart;
+         Vector3 pointToStart = point - lineStart;
+         
+         float lineLength = line.magnitude;
+         if (lineLength == 0f) return Vector3.Distance(point, lineStart);
+         
+         Vector3 lineDirection = line / lineLength;
+         
+         // 计算投影点在线段上的参数t
+         float t = Vector3.Dot(pointToStart, lineDirection);
+         
+         // 如果t < 0，最近点是lineStart
+         if (t <= 0f)
+         {
+             return Vector3.Distance(point, lineStart);
+         }
+         
+         // 如果t > lineLength，最近点是lineEnd
+         if (t >= lineLength)
+         {
+             return Vector3.Distance(point, lineEnd);
+         }
+         
+         // 否则，最近点在线段上
+         Vector3 projection = lineStart + t * lineDirection;
+         return Vector3.Distance(point, projection);
+     }
+     
+     /// <summary>
+     /// 计算电塔高度
+     /// </summary>
+     float CalculateTowerHeight(GameObject tower)
+     {
+         // 获取电塔的Renderer组件
+         var renderer = tower.GetComponent<Renderer>();
+         if (renderer != null)
+         {
+             // 使用Renderer的bounds来计算高度
+             return renderer.bounds.size.y;
+         }
+         
+         // 如果没有Renderer，尝试获取Collider
+         var collider = tower.GetComponent<Collider>();
+         if (collider != null)
+         {
+             return collider.bounds.size.y;
+         }
+         
+         // 如果都没有，使用Transform的scale作为估算
+         return tower.transform.localScale.y * 3f; // 假设电塔高度约为scale的3倍
+     }
+     
+     /// <summary>
+     /// 计算树木高度
+     /// </summary>
+     float CalculateTreeHeight(GameObject tree)
+    {
+        // 获取树木的Renderer组件
+        var renderer = tree.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            // 使用Renderer的bounds来计算高度
+            return renderer.bounds.size.y;
+        }
+        
+        // 如果没有Renderer，尝试获取Collider
+        var collider = tree.GetComponent<Collider>();
+        if (collider != null)
+        {
+            return collider.bounds.size.y;
+        }
+        
+        // 如果都没有，使用Transform的scale作为估算
+        return tree.transform.localScale.y * 2f; // 假设树木高度约为scale的2倍
+    }
+    
+    /// <summary>
+    /// 转换TreeDangerLevel到DangerLevel
+    /// </summary>
+    DangerLevel ConvertTreeDangerLevel(TreeDangerMonitor.TreeDangerLevel treeLevel)
+    {
+        switch (treeLevel)
+        {
+            case TreeDangerMonitor.TreeDangerLevel.Safe:
+                return DangerLevel.Low;
+            case TreeDangerMonitor.TreeDangerLevel.Warning:
+                return DangerLevel.Medium;
+            case TreeDangerMonitor.TreeDangerLevel.Critical:
+                return DangerLevel.High;
+            case TreeDangerMonitor.TreeDangerLevel.Emergency:
+                return DangerLevel.High;
+            default:
+                return DangerLevel.Medium;
+        }
+    }
+    
+         // 更新方法
+     void UpdateStatus(string message)
+     {
+         // 删除状态标签更新，只保留日志
+         Debug.Log($"[TreeDangerController] {message}");
+     }
+    
+         void UpdateStatistics()
+     {
+         // 获取基本统计信息
+         var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+             obj.name.ToLower().Contains("tree") || 
+             obj.name.ToLower().Contains("植物") || 
+             obj.name.ToLower().Contains("树")).ToArray();
+         var dangerousTrees = GetAllDangerousTrees();
+         
+         // 由于现在使用合并区域，统计信息会在CreateMergedStatisticsDisplay中实时更新
+         // 这里只保留方法以保持兼容性
+         Debug.Log($"统计更新 - 总树木: {allTrees.Length}, 危险树木: {dangerousTrees.Count}");
+     }
+    
+         void UpdateTreeList()
+     {
+         if (treeListContainer == null) return;
+         
+         // 清除旧的列表内容
+         treeListContainer.Clear();
+         
+         // 获取所有危险树木（包括随机标记的和监测发现的）
+         var dangerousTrees = GetAllDangerousTrees();
+         
+         if (dangerousTrees.Count == 0)
+         {
+             // 没有危险树木，显示无危险信息
+             CreateNoDangerTreesDisplay();
+         }
+         else
+         {
+             // 有危险树木，显示列表
+             DisplayAllDangerousTrees(dangerousTrees);
+         }
+     }
+    
+    void DisplayAllDangerousTrees(List<GameObject> dangerousTrees)
+    {
+        if (dangerousTrees == null || dangerousTrees.Count == 0) return;
+        
+        // 显示危险树木统计
+        var statsLabel = new Label($"发现 {dangerousTrees.Count} 棵危险树木");
+        statsLabel.style.fontSize = 12;
+        statsLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        statsLabel.style.color = new Color(0.8f, 0.3f, 0.3f, 1f);
+        statsLabel.style.marginBottom = 10;
+        statsLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        uiManager?.ApplyFont(statsLabel);
+        treeListContainer.Add(statsLabel);
+        
+        // 显示每棵危险树木的信息
+        foreach (var tree in dangerousTrees)
+        {
+            CreateDangerousTreeListItem(tree);
+        }
+    }
+    
+         void CreateDangerousTreeListItem(GameObject tree)
+     {
+         // 创建危险树木列表项
+         var itemContainer = new VisualElement();
+         itemContainer.style.backgroundColor = new Color(0.95f, 0.95f, 0.95f, 1f);
+         itemContainer.style.marginBottom = 8;
+         itemContainer.style.paddingTop = 8;
+         itemContainer.style.paddingBottom = 8;
+         itemContainer.style.paddingLeft = 8;
+         itemContainer.style.paddingRight = 8;
+         itemContainer.style.borderTopLeftRadius = 6;
+         itemContainer.style.borderTopRightRadius = 6;
+         itemContainer.style.borderBottomLeftRadius = 6;
+         itemContainer.style.borderBottomRightRadius = 6;
+         itemContainer.style.borderLeftWidth = 2;
+         
+         // 获取危险标记信息
+         var dangerMarker = tree.GetComponent<DangerMarker>() ?? tree.GetComponentInChildren<DangerMarker>();
+         if (dangerMarker != null)
+         {
+             // 根据危险等级设置边框颜色
+             Color borderColor = GetDangerLevelColorFromDangerMarker(dangerMarker.dangerLevel);
+             itemContainer.style.borderLeftColor = borderColor;
+             
+             // 危险等级标签
+             var levelLabel = new Label($"危险等级: {GetDangerLevelStringFromDangerMarker(dangerMarker.dangerLevel)}");
+             levelLabel.style.fontSize = 12;
+             levelLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+             levelLabel.style.color = borderColor;
+             levelLabel.style.marginBottom = 5;
+             uiManager?.ApplyFont(levelLabel);
+             itemContainer.Add(levelLabel);
+             
+             // 危险类型标签
+             var typeLabel = new Label($"危险类型: {GetDangerTypeString(dangerMarker.dangerType)}");
+             typeLabel.style.fontSize = 11;
+             typeLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+             typeLabel.style.marginBottom = 3;
+             uiManager?.ApplyFont(typeLabel);
+             itemContainer.Add(typeLabel);
+             
+             // 删除描述信息显示
+             
+             // 创建时间
+             var timeLabel = new Label($"标记时间: {dangerMarker.createTime:HH:mm:ss}");
+             timeLabel.style.fontSize = 10;
+             timeLabel.style.color = new Color(0.5f, 0.5f, 0.5f, 0.5f);
+             uiManager?.ApplyFont(timeLabel);
+             itemContainer.Add(timeLabel);
+             
+             // 添加跳转按钮
+             CreateJumpButton(itemContainer, tree, dangerMarker);
+         }
+         else
+         {
+             // 如果没有DangerMarker，显示基本信息
+             itemContainer.style.borderLeftColor = new Color(0.8f, 0.2f, 0.2f, 1f);
+             
+             var nameLabel = new Label($"树木名称: {tree.name}");
+             nameLabel.style.fontSize = 12;
+             nameLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+             nameLabel.style.color = new Color(0.8f, 0.2f, 0.2f, 1f);
+             nameLabel.style.marginBottom = 5;
+             uiManager?.ApplyFont(nameLabel);
+             itemContainer.Add(nameLabel);
+             
+             var posLabel = new Label($"位置: ({tree.transform.position.x:F1}, {tree.transform.position.y:F1}, {tree.transform.position.z:F1})");
+             posLabel.style.fontSize = 11;
+             posLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+             uiManager?.ApplyFont(posLabel);
+             itemContainer.Add(posLabel);
+             
+             // 添加跳转按钮
+             CreateJumpButton(itemContainer, tree, null);
+         }
+         
+         treeListContainer.Add(itemContainer);
+     }
+    
+         /// <summary>
+     /// 创建跳转按钮
+     /// </summary>
+     void CreateJumpButton(VisualElement container, GameObject tree, DangerMarker dangerMarker)
+     {
+         // 创建跳转按钮容器
+         var jumpContainer = new VisualElement();
+         jumpContainer.style.flexDirection = FlexDirection.Row;
+         jumpContainer.style.justifyContent = Justify.FlexEnd;
+         jumpContainer.style.marginTop = 8;
+         
+                             // 跳转按钮
+           var jumpButton = new Button(() => JumpToTree(tree, dangerMarker));
+           jumpButton.text = "跳转";
+           jumpButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+           jumpButton.style.color = Color.white;
+           jumpButton.style.fontSize = 11;
+           jumpButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+           jumpButton.style.paddingTop = 4;
+           jumpButton.style.paddingBottom = 4;
+           jumpButton.style.paddingLeft = 8;
+           jumpButton.style.paddingRight = 8;
+           jumpButton.style.borderTopLeftRadius = 4;
+           jumpButton.style.borderTopRightRadius = 4;
+           jumpButton.style.borderBottomLeftRadius = 4;
+           jumpButton.style.borderBottomRightRadius = 4;
+           jumpButton.style.minWidth = 50;
+           jumpButton.style.minHeight = 24;
+           jumpButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+          
+          // 应用字体，确保文字正确显示
+          uiManager?.ApplyFont(jumpButton);
+         
+         // 悬停效果
+         jumpButton.RegisterCallback<MouseEnterEvent>(evt => 
+         {
+             jumpButton.style.backgroundColor = new Color(0.3f, 0.7f, 0.9f, 1f);
+         });
+         
+         jumpButton.RegisterCallback<MouseLeaveEvent>(evt => 
+         {
+             jumpButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+         });
+         
+         jumpContainer.Add(jumpButton);
+         container.Add(jumpContainer);
+     }
+     
+     /// <summary>
+     /// 跳转到指定树木位置
+     /// </summary>
+     void JumpToTree(GameObject tree, DangerMarker dangerMarker)
+     {
+         if (tree == null)
+         {
+             Debug.LogWarning("跳转失败：树木对象为空");
+             return;
+         }
+         
+         Vector3 treePosition = tree.transform.position;
+         
+         // 查找CameraManager组件
+         var cameraManager = FindObjectOfType<CameraManager>();
+         
+         // 计算观察偏移量
+         Vector3 cameraOffset = CalculateTreeViewOffset(tree, dangerMarker);
+         
+         // 如果没有CameraManager，尝试直接操作摄像机
+         if (cameraManager == null)
+         {
+             Debug.LogWarning("CameraManager未找到，尝试直接操作主摄像机");
+             Camera mainCamera = Camera.main;
+             if (mainCamera != null)
+             {
+                 Vector3 cameraPos = treePosition + cameraOffset;
+                 
+                 // 确保摄像机位置在地面之上
+                 float groundLevel = GetGroundHeight(cameraPos);
+                 cameraPos.y = Mathf.Max(cameraPos.y, groundLevel + 2f);
+                 
+                 Vector3 fallbackLookAtTarget = treePosition + Vector3.up * 0.5f; // 稍微向上看
+                 
+                 StartCoroutine(SmoothJumpToTreePosition(cameraPos, fallbackLookAtTarget, tree));
+                 return;
+             }
+             else
+             {
+                 Debug.LogError("跳转失败：未找到主摄像机");
+                 return;
+             }
+         }
+         
+         // 计算摄像机目标位置
+         Vector3 finalCameraPos = treePosition + cameraOffset;
+         
+         // 确保摄像机位置在地面之上
+         float finalGroundLevel = GetGroundHeight(finalCameraPos);
+         finalCameraPos.y = Mathf.Max(finalCameraPos.y, finalGroundLevel + 2f);
+         
+         // 根据视角调整观察目标点
+         Vector3 lookAtTarget = treePosition;
+         if (cameraManager != null && cameraManager.GetCurrentView() == 2) // 飞行视角
+         {
+             lookAtTarget.y += 0.5f; // 飞行视角下与树木持平，稍微向上看一点点
+         }
+         
+         // 执行跳转
+         StartCoroutine(SmoothJumpToTreePosition(finalCameraPos, lookAtTarget, tree));
+         
+         Debug.Log($"跳转到树木位置: {treePosition}");
+     }
+     
+     /// <summary>
+     /// 计算树木观察偏移量
+     /// </summary>
+     Vector3 CalculateTreeViewOffset(GameObject tree, DangerMarker dangerMarker)
+     {
+         Vector3 offset = Vector3.zero;
+         
+         // 获取树木高度
+         float treeHeight = CalculateTreeHeight(tree);
+         
+         // 根据危险等级调整观察距离
+         float baseDistance = 8f; // 基础观察距离
+         if (dangerMarker != null)
+         {
+             switch (dangerMarker.dangerLevel)
+             {
+                 case DangerLevel.High:
+                     baseDistance = 6f; // 高危险等级，近距离观察
+                     break;
+                 case DangerLevel.Medium:
+                     baseDistance = 8f; // 中等危险等级，中等距离观察
+                     break;
+                 case DangerLevel.Low:
+                     baseDistance = 10f; // 低危险等级，远距离观察
+                     break;
+             }
+         }
+         
+         // 计算偏移量：在树木后方上方观察
+         offset = new Vector3(0, treeHeight * 0.8f, -baseDistance);
+         
+         return offset;
+     }
+     
+     /// <summary>
+     /// 获取地面高度
+     /// </summary>
+     float GetGroundHeight(Vector3 position)
+     {
+         // 使用射线检测获取地面高度
+         RaycastHit hit;
+         if (Physics.Raycast(position + Vector3.up * 100f, Vector3.down, out hit, 200f))
+         {
+             return hit.point.y;
+         }
+         
+         // 如果没有检测到地面，返回默认高度
+         return 0f;
+     }
+     
+     /// <summary>
+     /// 平滑跳转到树木位置
+     /// </summary>
+     System.Collections.IEnumerator SmoothJumpToTreePosition(Vector3 targetPos, Vector3 lookAtPos, GameObject tree)
+     {
+         Camera mainCamera = null;
+         var cameraManager = FindObjectOfType<CameraManager>();
+         
+         // 优先使用CameraManager的摄像机
+         if (cameraManager != null && cameraManager.mainCamera != null)
+         {
+             mainCamera = cameraManager.mainCamera;
+         }
+         else
+         {
+             mainCamera = Camera.main;
+         }
+         
+         if (mainCamera == null)
+         {
+             Debug.LogError("跳转失败：未找到可用的摄像机");
+             yield break;
+         }
+         
+         Vector3 startPos = mainCamera.transform.position;
+         Quaternion startRot = mainCamera.transform.rotation;
+         
+         // 根据当前视角计算目标旋转
+         Quaternion targetRot;
+         if (cameraManager != null)
+         {
+             int currentView = cameraManager.GetCurrentView();
+             switch (currentView)
+             {
+                 case 1: // 上帝视角 - 向下俯视
+                     Vector3 godViewDirection = (lookAtPos - targetPos).normalized;
+                     godViewDirection.y = Mathf.Min(godViewDirection.y, -0.5f);
+                     targetRot = Quaternion.LookRotation(godViewDirection);
+                     break;
+                     
+                 case 2: // 飞行视角 - 自然看向目标点
+                     Vector3 flyViewDirection = (lookAtPos - targetPos).normalized;
+                     targetRot = Quaternion.LookRotation(flyViewDirection);
+                     break;
+                     
+                 default: // 第一人称视角 - 正常看向树木
+                     Vector3 fpViewDirection = (lookAtPos - targetPos).normalized;
+                     targetRot = Quaternion.LookRotation(fpViewDirection);
+                     break;
+             }
+         }
+         else
+         {
+             Vector3 fallbackDirection = (lookAtPos - targetPos).normalized;
+             targetRot = Quaternion.LookRotation(fallbackDirection);
+         }
+         
+         float elapsedTime = 0f;
+         float duration = 1f; // 跳转动画持续时间
+         
+         while (elapsedTime < duration)
+         {
+             elapsedTime += Time.deltaTime;
+             float t = elapsedTime / duration;
+             
+             // 使用平滑曲线
+             t = Mathf.SmoothStep(0f, 1f, t);
+             
+             mainCamera.transform.position = Vector3.Lerp(startPos, targetPos, t);
+             mainCamera.transform.rotation = Quaternion.Lerp(startRot, targetRot, t);
+             
+             yield return null;
+         }
+         
+         // 确保最终位置准确
+         mainCamera.transform.position = targetPos;
+         mainCamera.transform.rotation = targetRot;
+         
+         Debug.Log($"相机已跳转到树木位置: {tree.transform.position}");
+     }
+     
+     // 辅助方法
+     Color GetDangerLevelColor(TreeDangerMonitor.TreeDangerLevel level)
     {
         switch (level)
         {
@@ -1411,6 +1411,62 @@ public class UIToolkitTreeDangerController : MonoBehaviour
                 return new Color(0.9f, 0.1f, 0.1f, 1f);
             default:
                 return new Color(0.5f, 0.5f, 0.5f, 1f);
+        }
+    }
+    
+    /// <summary>
+    /// 从DangerMarker获取危险等级颜色
+    /// </summary>
+    Color GetDangerLevelColorFromDangerMarker(DangerLevel level)
+    {
+        switch (level)
+        {
+            case DangerLevel.Low:
+                return new Color(1f, 0.8f, 0f, 1f);      // 金黄色
+            case DangerLevel.Medium:
+                return new Color(1f, 0.4f, 0f, 1f);      // 橙红色
+            case DangerLevel.High:
+                return new Color(0.9f, 0.1f, 0.1f, 1f); // 深红色
+            default:
+                return new Color(0.5f, 0.5f, 0.5f, 1f);
+        }
+    }
+    
+    /// <summary>
+    /// 从DangerMarker获取危险等级字符串
+    /// </summary>
+    string GetDangerLevelStringFromDangerMarker(DangerLevel level)
+    {
+        switch (level)
+        {
+            case DangerLevel.Low:
+                return "低危险";
+            case DangerLevel.Medium:
+                return "中等危险";
+            case DangerLevel.High:
+                return "高危险";
+            default:
+                return "未知";
+        }
+    }
+    
+    /// <summary>
+    /// 获取危险类型字符串
+    /// </summary>
+    string GetDangerTypeString(DangerType type)
+    {
+        switch (type)
+        {
+            case DangerType.Building:
+                return "建筑危险";
+            case DangerType.Vegetation:
+                return "植被危险";
+            case DangerType.Equipment:
+                return "设备危险";
+            case DangerType.Other:
+                return "其他危险";
+            default:
+                return "未知类型";
         }
     }
     
@@ -1466,8 +1522,7 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         treeDangerMonitor.warningDistance = warningDistance;
         treeDangerMonitor.safeDistance = safeDistance;
         
-        // 同步生长参数
-        treeDangerMonitor.baseGrowthRate = baseGrowthRate;
+        // 简化参数，删除生长率同步
     }
     
     // 公共接口方法
@@ -1496,97 +1551,39 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         RefreshDisplay();
     }
     
-    public void UpdateDisplay()
-    {
-        // 更新统计信息
-        UpdateStatistics();
-        
-        // 更新树木列表
-        UpdateTreeList();
-        
-        // 更新距离信息显示
-        UpdateDistanceDisplay();
-        
-        // 更新状态显示
-        if (statusLabel != null)
-        {
-            if (isMonitoring)
-            {
-                statusLabel.text = "监测进行中...";
-                statusLabel.style.color = new Color(0.2f, 0.7f, 0.2f, 1f);
-            }
-            else
-            {
-                statusLabel.text = "系统就绪, 等待监测数据...";
-                statusLabel.style.color = new Color(0.6f, 0.6f, 0.2f, 1f);
-            }
-        }
-    }
+         public void UpdateDisplay()
+     {
+         // 更新统计信息
+         UpdateStatistics();
+         
+         // 更新树木列表
+         UpdateTreeList();
+         
+         // 简化功能，删除距离信息更新
+         
+         // 删除状态显示更新
+     }
     
-    /// <summary>
-    /// 更新距离信息显示
-    /// </summary>
-    void UpdateDistanceDisplay()
-    {
-        if (treeDangerPanel != null)
-        {
-            // 查找距离信息容器
-            var distanceSection = treeDangerPanel.Q("distanceContent");
-            if (distanceSection != null && distanceSection.parent != null)
-            {
-                DisplayAllTreesDistance(distanceSection.parent);
-            }
-        }
-    }
+    // 简化功能，删除更新距离信息显示方法
     
-    /// <summary>
-    /// 自动刷新协程
-    /// </summary>
-    IEnumerator AutoRefreshCoroutine()
-    {
-        while (true)
-        {
-            yield return new WaitForSeconds(2f);
-            
-            if (isMonitoring)
-            {
-                UpdateDisplay();
-            }
-        }
-    }
+         /// <summary>
+     /// 自动刷新协程
+     /// </summary>
+     IEnumerator AutoRefreshCoroutine()
+     {
+         while (true)
+         {
+             yield return new WaitForSeconds(0.5f);
+             
+             if (isMonitoring)
+             {
+                 UpdateDisplay();
+             }
+         }
+     }
     
-    void JumpToTree(TreeDangerMonitor.TreeDangerInfo dangerInfo)
-    {
-        if (dangerInfo == null || dangerInfo.tree == null)
-        {
-            Debug.LogWarning("跳转失败：树木信息为空");
-            return;
-        }
-        
-        Vector3 treePosition = dangerInfo.tree.transform.position;
-        var cameraManager = FindObjectOfType<CameraManager>();
-        
-        if (cameraManager != null && cameraManager.mainCamera != null)
-        {
-            Vector3 jumpPosition = treePosition + Vector3.up * 5f + Vector3.back * 10f;
-            cameraManager.mainCamera.transform.position = jumpPosition;
-            cameraManager.mainCamera.transform.LookAt(treePosition);
-        }
-        else
-        {
-            Camera mainCamera = Camera.main;
-            if (mainCamera != null)
-            {
-                mainCamera.transform.position = treePosition + Vector3.up * 5f + Vector3.back * 10f;
-                mainCamera.transform.LookAt(treePosition);
-            }
-        }
-        
-        if (uiManager != null)
-        {
-            string treeInfo = $"已跳转到危险树木: {dangerInfo.tree.name}";
-            uiManager.UpdateStatusBar(treeInfo);
-        }
-    }
+    // 简化显示，删除跳转功能
 }
+
+
 
