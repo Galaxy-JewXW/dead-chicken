@@ -3925,18 +3925,19 @@ public class SimpleUIToolkitManager : MonoBehaviour
             }
         }
         
-        if (Input.GetKeyDown(KeyCode.A))
-        {
-            // A键切换AI助手模式
-            if (currentMode == UIMode.AIAssistant)
-            {
-                SwitchMode(UIMode.Normal);
-            }
-            else
-            {
-                SwitchMode(UIMode.AIAssistant);
-            }
-        }
+        // 禁用A键AI助手功能
+        // if (Input.GetKeyDown(KeyCode.A))
+        // {
+        //     // A键切换AI助手模式
+        //     if (currentMode == UIMode.AIAssistant)
+        //     {
+        //         SwitchMode(UIMode.Normal);
+        //     }
+        //     else
+        //     {
+        //         SwitchMode(UIMode.AIAssistant);
+        //     }
+        // }
         
         if (Input.GetKeyDown(KeyCode.Tab))
         {

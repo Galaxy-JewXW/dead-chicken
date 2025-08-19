@@ -562,9 +562,9 @@ MonoBehaviour:
     speed: 2
     m_Value: {x: -0.1922103, y: -0.79746926, z: 0.46962422, w: -0.32642183}
   m_Size:
-    m_Target: 918.07043
+    m_Target: 1034.8035
     speed: 2
-    m_Value: 918.07043
+    m_Value: 1034.8035
   m_Ortho:
     m_Target: 0
     speed: 2
@@ -849,7 +849,7 @@ MonoBehaviour:
       m_Icon: {fileID: 0}
       m_ResourceFile: 
   m_AssetTreeState:
-    scrollPos: {x: 0, y: 133}
+    scrollPos: {x: 0, y: 413.79993}
     m_SelectedIDs: 
     m_LastClickedID: 0
     m_ExpandedIDs: ffffffff00000000e25b0000e45b0000e65b0000e85b0000ea5b0000ec5b0000ee5b0000f05b0000f25b0000f45b0000f65b0000f85b0000fa5b0000fc5b0000fe5b0000
