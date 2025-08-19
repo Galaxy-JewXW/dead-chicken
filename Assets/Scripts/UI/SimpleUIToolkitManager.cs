@@ -478,19 +478,26 @@ public class SimpleUIToolkitManager : MonoBehaviour
         topBar.style.backgroundColor = primaryColor;
         topBar.style.paddingLeft = 20;
         topBar.style.paddingRight = 20;
+        topBar.style.minHeight = 60; // 确保最小高度
+        topBar.style.minWidth = 1400; // 设置最小宽度，确保有足够空间容纳所有按钮
         
-        // 标题
-        var titleLabel = new Label("基于机载LiDAR点云的电力线提取与三维重建系统");
-        titleLabel.style.color = Color.white;
-        titleLabel.style.fontSize = 22;
-        titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
-        titleLabel.style.whiteSpace = WhiteSpace.Normal;
+                    // 标题
+            var titleLabel = new Label("基于机载LiDAR点云的\n电力线提取与三维重建系统");
+            titleLabel.style.color = Color.white;
+            titleLabel.style.fontSize = 20; // 稍微减小字体大小
+            titleLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+            titleLabel.style.whiteSpace = WhiteSpace.Normal; // 允许换行
+            titleLabel.style.flexShrink = 0; // 防止标题被压缩
+            titleLabel.style.minWidth = 300; // 减少最小宽度，因为现在是两行
+            titleLabel.style.maxWidth = 350; // 设置最大宽度，确保换行效果
+            titleLabel.style.unityTextAlign = TextAnchor.MiddleLeft; // 左对齐，确保换行后的文字对齐
         ApplyFont(titleLabel);
         topBar.Add(titleLabel);
         
         // 功能按钮容器
         var buttonContainer = new VisualElement();
         buttonContainer.style.flexDirection = FlexDirection.Row;
+        buttonContainer.style.flexShrink = 0; // 防止按钮容器被压缩
         
         // 首页按钮 - 回到初始信息界面
         CreateStyledButton("首页", () => SwitchMode(UIMode.Normal), buttonContainer);
@@ -510,15 +517,16 @@ public class SimpleUIToolkitManager : MonoBehaviour
         // 总览按钮容器
         var overviewContainer = new VisualElement();
         overviewContainer.style.flexDirection = FlexDirection.Row;
-        overviewContainer.style.marginLeft = 5;
+        overviewContainer.style.marginLeft = 8; // 增加间距
+        overviewContainer.style.flexShrink = 0; // 防止被压缩
         
         // 场景总览按钮
         var sceneOverviewButton = new Button(() => {
             ToggleSceneOverview();
         });
         sceneOverviewButton.text = "场景总览";
-        sceneOverviewButton.style.marginRight = 3;
-        sceneOverviewButton.style.width = 100; // 增加宽度到100px以确保文字不换行
+        sceneOverviewButton.style.marginRight = 5; // 增加间距
+        sceneOverviewButton.style.width = 110; // 增加宽度到110px
         sceneOverviewButton.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         sceneOverviewButton.style.color = Color.black;
         sceneOverviewButton.style.borderBottomLeftRadius = 5;
@@ -538,9 +546,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         sceneOverviewButton.style.paddingTop = 6;
         sceneOverviewButton.style.paddingBottom = 6;
         sceneOverviewButton.style.height = 40;
-        sceneOverviewButton.style.fontSize = 13; // 稍微减小字体大小以确保文字不换行
+        sceneOverviewButton.style.fontSize = 13;
         sceneOverviewButton.style.unityTextAlign = TextAnchor.MiddleCenter;
-        sceneOverviewButton.style.whiteSpace = WhiteSpace.NoWrap; // 强制文字不换行
+        sceneOverviewButton.style.whiteSpace = WhiteSpace.NoWrap;
         ApplyFont(sceneOverviewButton);
         
         // 添加悬停效果
@@ -559,8 +567,12 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         overviewContainer.Add(sceneOverviewButton);
         
-        var mainButtonContainer = new VisualElement();
-        mainButtonContainer.style.flexDirection = FlexDirection.Row;
+                    var mainButtonContainer = new VisualElement();
+            mainButtonContainer.style.flexDirection = FlexDirection.Row;
+            mainButtonContainer.style.flexShrink = 0; // 防止被压缩
+            mainButtonContainer.style.justifyContent = Justify.FlexEnd; // 按钮靠右对齐
+            mainButtonContainer.style.alignItems = Align.Center; // 垂直居中对齐
+            mainButtonContainer.style.marginLeft = -80; // 减少与标题的距离，让按钮组更靠左
         mainButtonContainer.Add(buttonContainer);
         mainButtonContainer.Add(overviewContainer);
         
@@ -617,9 +629,21 @@ public class SimpleUIToolkitManager : MonoBehaviour
     {
         var buttonContainer = new VisualElement();
         buttonContainer.style.height = 40;
-        buttonContainer.style.width = 100; // 增加宽度到100px以确保文字不换行
-        buttonContainer.style.marginLeft = 3;
-        buttonContainer.style.marginRight = 3;
+        
+        // 根据文字长度动态调整按钮宽度
+        int buttonWidth = 100;
+        if (text.Length > 4)
+        {
+            buttonWidth = 110; // 长文字使用更宽按钮
+        }
+        if (text.Length > 6)
+        {
+            buttonWidth = 120; // 很长文字使用更宽按钮
+        }
+        
+        buttonContainer.style.width = buttonWidth;
+        buttonContainer.style.marginLeft = 5; // 增加间距
+        buttonContainer.style.marginRight = 5; // 增加间距
         buttonContainer.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         buttonContainer.style.justifyContent = Justify.Center;
         buttonContainer.style.alignItems = Align.Center;
@@ -638,9 +662,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         var label = new Label(text);
         label.style.color = Color.black;
-        label.style.fontSize = 13; // 稍微减小字体大小以确保文字不换行
+        label.style.fontSize = 13;
         label.style.unityTextAlign = TextAnchor.MiddleCenter;
-        label.style.whiteSpace = WhiteSpace.NoWrap; // 强制文字不换行
+        label.style.whiteSpace = WhiteSpace.NoWrap;
         ApplyFont(label);
         buttonContainer.Add(label);
         
@@ -665,9 +689,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
     {
         var buttonContainer = new VisualElement();
         buttonContainer.style.height = 40;
-        buttonContainer.style.width = 100; // 增加宽度到100px以确保文字不换行
-        buttonContainer.style.marginLeft = 3;
-        buttonContainer.style.marginRight = 3;
+        buttonContainer.style.width = 110; // 增加宽度到110px
+        buttonContainer.style.marginLeft = 5; // 增加间距
+        buttonContainer.style.marginRight = 5; // 增加间距
         buttonContainer.style.justifyContent = Justify.Center;
         buttonContainer.style.alignItems = Align.Center;
         buttonContainer.style.borderTopLeftRadius = 5;
@@ -684,9 +708,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         buttonContainer.style.borderBottomColor = primaryColor;
         
         var label = new Label();
-        label.style.fontSize = 13; // 稍微减小字体大小以确保文字不换行
+        label.style.fontSize = 13;
         label.style.unityTextAlign = TextAnchor.MiddleCenter;
-        label.style.whiteSpace = WhiteSpace.NoWrap; // 强制文字不换行
+        label.style.whiteSpace = WhiteSpace.NoWrap;
         ApplyFont(label);
         buttonContainer.Add(label);
         
@@ -1068,18 +1092,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
     void ShowNormalPanel()
     {
         sidebar.Clear(); // 确保每次切换都清空sidebar
-        var panel = CreatePanel("基于机载LiDAR点云的电力线提取与三维重建系统");
-        
-        // 欢迎语
-        var welcomeText = new Label("欢迎使用！");
-        welcomeText.style.color = Color.black;
-        welcomeText.style.fontSize = 18;
-        welcomeText.style.marginBottom = 15;
-        welcomeText.style.backgroundColor = Color.yellow;
-        welcomeText.style.paddingTop = 5;
-        welcomeText.style.paddingBottom = 5;
-        ApplyFont(welcomeText);
-        panel.Add(welcomeText);
+        var panel = CreatePanel("欢迎使用！");
         
         // 功能说明容器
         var infoContainer = new VisualElement();
@@ -1106,32 +1119,32 @@ public class SimpleUIToolkitManager : MonoBehaviour
         infoTitle.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
         infoTitle.style.fontSize = 16;
         infoTitle.style.unityFontStyleAndWeight = FontStyle.Normal;
-        infoTitle.style.marginBottom = 10;
+        infoTitle.style.marginBottom = 0;
         ApplyFont(infoTitle);
         infoContainer.Add(infoTitle);
         
         // 核心功能列表
         var coreFunctions = new Label("• 相机控制 - 多视角观察\n• 距离测量 - 精确测距\n• 危险物标记 - 安全隐患标识\n• 电力线信息 - 详细参数查看\n• 电塔总览 - 设备状态监控\n• 点云数据 - 3D点云可视化\n• 场景总览 - 全局地图视图\n• 无人机巡检 - 自动巡检功能");
         coreFunctions.style.color = Color.black;
-        coreFunctions.style.fontSize = 14;
+        coreFunctions.style.fontSize = 10;
         coreFunctions.style.whiteSpace = WhiteSpace.Normal;
-        coreFunctions.style.marginBottom = 15;
+        coreFunctions.style.marginBottom = 0;
         ApplyFont(coreFunctions);
         infoContainer.Add(coreFunctions);
         
         // 操作提示
-        var operationHint = new Label("操作提示：\n点击顶部按钮切换功能模式\n使用鼠标滚轮缩放视角\n左键拖拽旋转，右键平移");
+        var operationHint = new Label("操作提示：n使用鼠标滚轮缩放视角\n左键拖拽旋转，右键平移");
         operationHint.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
         operationHint.style.fontSize = 12;
         operationHint.style.whiteSpace = WhiteSpace.Normal;
-        operationHint.style.marginBottom = 10;
+        operationHint.style.marginBottom = 5;
         ApplyFont(operationHint);
         infoContainer.Add(operationHint);
         
         // 快捷键说明
-        var hotkeyInfo = new Label("快捷键：\nH - 首页  M - 测量模式  C - 相机模式\nX - 危险物模式  P - 电力线模式\nT - 电塔总览  A - AI助手  Tab - 切换面板");
+        var hotkeyInfo = new Label("快捷键：\nH - 首页  M - 测量模式  C - 相机模式\nX - 危险物模式  P - 电力线模式\nT - 电塔总览 A - AI助手  Tab - 切换面板");
         hotkeyInfo.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
-        hotkeyInfo.style.fontSize = 12;
+        hotkeyInfo.style.fontSize = 10;
         hotkeyInfo.style.whiteSpace = WhiteSpace.Normal;
         ApplyFont(hotkeyInfo);
         infoContainer.Add(hotkeyInfo);
@@ -5045,9 +5058,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
     {
         dronePatrolButtonContainer = new VisualElement();
         dronePatrolButtonContainer.style.height = 40;
-        dronePatrolButtonContainer.style.width = 100; // 增加宽度到100px以确保文字不换行
-        dronePatrolButtonContainer.style.marginLeft = 3;
-        dronePatrolButtonContainer.style.marginRight = 3;
+        dronePatrolButtonContainer.style.width = 120; // 增加宽度到120px，因为"无人机巡检"文字较长
+        dronePatrolButtonContainer.style.marginLeft = 5; // 增加间距
+        dronePatrolButtonContainer.style.marginRight = 5; // 增加间距
         dronePatrolButtonContainer.style.backgroundColor = new Color(0.9f, 0.9f, 0.9f, 1f);
         dronePatrolButtonContainer.style.justifyContent = Justify.Center;
         dronePatrolButtonContainer.style.alignItems = Align.Center;
@@ -5066,9 +5079,9 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         dronePatrolButtonLabel = new Label("无人机巡检");
         dronePatrolButtonLabel.style.color = Color.black;
-        dronePatrolButtonLabel.style.fontSize = 13; // 稍微减小字体大小以确保文字不换行
+        dronePatrolButtonLabel.style.fontSize = 13;
         dronePatrolButtonLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-        dronePatrolButtonLabel.style.whiteSpace = WhiteSpace.NoWrap; // 强制文字不换行
+        dronePatrolButtonLabel.style.whiteSpace = WhiteSpace.NoWrap;
         ApplyFont(dronePatrolButtonLabel);
         dronePatrolButtonContainer.Add(dronePatrolButtonLabel);
         
@@ -5122,7 +5135,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
             }
         });
         aiAssistantButton.text = "AI助手";
-        aiAssistantButton.style.marginRight = 3;
+        aiAssistantButton.style.marginRight = 5; // 增加间距
         aiAssistantButton.style.width = 85;
         
         // 现代化渐变背景
