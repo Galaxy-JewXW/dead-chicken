@@ -383,7 +383,7 @@ public class InitialInterfaceManager : MonoBehaviour
         fileUploadArea = rootElement.Q<VisualElement>("file-upload-area");
         pythonGuideArea = rootElement.Q<VisualElement>("python-guide-area");
         statusLabel = rootElement.Q<Label>("status-label");
-        progressBar = rootElement.Q<ProgressBar>("progress-bar");
+        // progressBar 现在通过代码创建，不需要查询
         uploadLasButton = rootElement.Q<VisualElement>("upload-las-button");
         startExtractionButton = rootElement.Q<Button>("start-extraction-button");
         
@@ -546,8 +546,8 @@ public class InitialInterfaceManager : MonoBehaviour
         // 创建登录/注册区域（作为主界面的子元素）
         CreateAuthArea(initialPanel);
         
-        // 移除状态显示区域，避免在认证界面中显示不必要的元素
-        // CreateStatusArea(initialPanel);
+        // 创建状态显示区域，包含进度条等重要元素
+        CreateStatusArea(initialPanel);
         
         // 创建底部信息
         CreateFooterInfo(initialPanel);
@@ -1345,6 +1345,14 @@ public class InitialInterfaceManager : MonoBehaviour
         
         UpdateStatus($"正在加载 {csvFileName}.csv...");
         
+        // 检查sceneInitializer是否存在
+        if (sceneInitializer == null)
+        {
+            Debug.LogError("SceneInitializer未找到，无法加载电塔数据");
+            UpdateStatus("错误：SceneInitializer未找到");
+            yield break;
+        }
+        
         // 初始化地形系统
         InitializeTerrainSystem();
         
@@ -1414,6 +1422,14 @@ public class InitialInterfaceManager : MonoBehaviour
         }
         
         UpdateStatus($"正在加载 {selectedFile}.csv...");
+        
+        // 检查sceneInitializer是否存在
+        if (sceneInitializer == null)
+        {
+            Debug.LogError("SceneInitializer未找到，无法加载电塔数据");
+            UpdateStatus("错误：SceneInitializer未找到");
+            yield break;
+        }
         
         // 初始化地形系统
         InitializeTerrainSystem();
@@ -1708,10 +1724,11 @@ public class InitialInterfaceManager : MonoBehaviour
     System.Collections.IEnumerator CheckPythonEnvironmentCoroutine()
     {
         bool pythonAvailable = false;
-        bool laspyAvailable = false;
-        bool numpyAvailable = false;
-        bool scipyAvailable = false;
-        bool sklearnAvailable = false;
+        // 这些变量在后续版本中可能会用到，暂时注释掉以避免警告
+        // bool laspyAvailable = false;
+        // bool numpyAvailable = false;
+        // bool scipyAvailable = false;
+        // bool sklearnAvailable = false;
         
         try
         {
@@ -1949,6 +1966,14 @@ public class InitialInterfaceManager : MonoBehaviour
         // 等待一帧，确保状态更新先显示
         yield return null;
         
+        // 检查进度条是否已初始化
+        if (progressBar == null)
+        {
+            Debug.LogError("进度条未初始化，无法开始预览");
+            UpdateStatus("错误：UI组件未正确初始化");
+            yield break;
+        }
+        
         isProcessing = true;
         progressBar.style.display = DisplayStyle.Flex;
         
@@ -1976,18 +2001,27 @@ public class InitialInterfaceManager : MonoBehaviour
         {
             Debug.Log($"OFF文件已存在: {fullOffPath}");
             UpdateStatus("OFF文件已存在，直接预览...");
-            progressBar.value = 50f;
+            if (progressBar != null)
+            {
+                progressBar.value = 50f;
+            }
         }
         else
         {
             // 先更新状态，再开始转换
-            progressBar.value = 10f;
+            if (progressBar != null)
+            {
+                progressBar.value = 10f;
+            }
             UpdateStatus("正在转换LAS文件为OFF格式...");
             
             // 等待一帧确保状态更新显示
             yield return null;
             
-            progressBar.value = 15f;
+            if (progressBar != null)
+            {
+                progressBar.value = 15f;
+            }
             UpdateStatus("检查转换依赖...");
             
             if (!PowerlineSystem.LasToOffConverter.CheckDependencies())
@@ -1996,11 +2030,17 @@ public class InitialInterfaceManager : MonoBehaviour
                 UpdateStatus($"错误：{errorMessage}");
                 Debug.LogError("LAS到OFF转换依赖检查失败");
                 isProcessing = false;
-                progressBar.style.display = DisplayStyle.None;
+                if (progressBar != null)
+                {
+                    progressBar.style.display = DisplayStyle.None;
+                }
                 yield break;
             }
             
-            progressBar.value = 20f;
+            if (progressBar != null)
+            {
+                progressBar.value = 20f;
+            }
             UpdateStatus("正在转换LAS文件...");
             
             // 等待一帧确保状态更新显示
@@ -2018,7 +2058,10 @@ public class InitialInterfaceManager : MonoBehaviour
                 UpdateStatus($"错误：{errorMessage}");
                 Debug.LogError($"LAS到OFF转换异常: {errorMessage}");
                 isProcessing = false;
-                progressBar.style.display = DisplayStyle.None;
+                if (progressBar != null)
+                {
+                    progressBar.style.display = DisplayStyle.None;
+                }
                 yield break;
             }
             
@@ -2028,11 +2071,17 @@ public class InitialInterfaceManager : MonoBehaviour
                 UpdateStatus($"错误：{errorMessage}");
                 Debug.LogError("LAS到OFF转换失败");
                 isProcessing = false;
-                progressBar.style.display = DisplayStyle.None;
+                if (progressBar != null)
+                {
+                    progressBar.style.display = DisplayStyle.None;
+                }
                 yield break;
             }
             
-            progressBar.value = 80f;
+            if (progressBar != null)
+            {
+                progressBar.value = 80f;
+            }
             UpdateStatus("LAS文件转换完成");
             Debug.Log($"LAS文件转换成功: {convertedPath}");
             
@@ -2047,11 +2096,17 @@ public class InitialInterfaceManager : MonoBehaviour
             UpdateStatus($"错误：{errorMessage}");
             Debug.LogError($"OFF文件不存在: {fullOffPath}");
             isProcessing = false;
-            progressBar.style.display = DisplayStyle.None;
+            if (progressBar != null)
+            {
+                progressBar.style.display = DisplayStyle.None;
+            }
             yield break;
         }
         
-        progressBar.value = 90f;
+        if (progressBar != null)
+        {
+            progressBar.value = 90f;
+        }
         UpdateStatus("正在启动点云预览...");
         
         // 查找或创建点云查看器
@@ -2065,7 +2120,10 @@ public class InitialInterfaceManager : MonoBehaviour
         // 显示点云查看器
         pointCloudViewer.ShowPointCloudViewer(fileName);
         
-        progressBar.value = 100f;
+        if (progressBar != null)
+        {
+            progressBar.value = 100f;
+        }
         UpdateStatus($"点云预览已打开: {fileName}");
         Debug.Log($"点云预览已启动，文件: {fileName}");
         
@@ -2074,7 +2132,10 @@ public class InitialInterfaceManager : MonoBehaviour
         
         // 清理处理状态
         isProcessing = false;
-        progressBar.style.display = DisplayStyle.None;
+        if (progressBar != null)
+        {
+            progressBar.style.display = DisplayStyle.None;
+        }
         
         // 在try-catch块外执行yield return
         if (needWait)
@@ -2147,8 +2208,26 @@ public class InitialInterfaceManager : MonoBehaviour
             return;
         }
         
+        // 检查必要的组件是否存在
+        if (progressBar == null)
+        {
+            Debug.LogError("进度条未初始化");
+            UpdateStatus("错误：UI组件未正确初始化");
+            return;
+        }
+        
+        if (startExtractionButton == null)
+        {
+            Debug.LogError("开始提取按钮未初始化");
+            UpdateStatus("错误：UI组件未正确初始化");
+            return;
+        }
+        
         isProcessing = true;
-        progressBar.style.display = DisplayStyle.Flex;
+        if (progressBar != null)
+        {
+            progressBar.style.display = DisplayStyle.Flex;
+        }
         startExtractionButton.style.display = DisplayStyle.None;
         
         UpdateStatus("开始电力线提取...");
@@ -2163,6 +2242,10 @@ public class InitialInterfaceManager : MonoBehaviour
         {
             UpdateStatus("错误：未找到电力线提取管理器");
             isProcessing = false;
+            if (progressBar != null)
+            {
+                progressBar.style.display = DisplayStyle.None;
+            }
         }
     }
     
@@ -2174,7 +2257,10 @@ public class InitialInterfaceManager : MonoBehaviour
     void OnExtractionCompleted(string csvPath)
     {
         UpdateStatus("电力线提取完成！正在构建场景...");
-        progressBar.value = 100f;
+        if (progressBar != null)
+        {
+            progressBar.value = 100f;
+        }
         
         // 使用生成的CSV文件初始化场景
         StartCoroutine(BuildSceneFromExtractedData(csvPath));
@@ -2218,6 +2304,14 @@ public class InitialInterfaceManager : MonoBehaviour
     {
         try
         {
+            // 检查sceneInitializer是否存在
+            if (sceneInitializer == null)
+            {
+                Debug.LogError("SceneInitializer未找到，无法构建场景");
+                UpdateStatus("错误：SceneInitializer未找到");
+                return;
+            }
+            
             // 清除之前的场景
             Debug.Log("清除之前的场景...");
             sceneInitializer.ClearAllWires();
@@ -2473,7 +2567,10 @@ public class InitialInterfaceManager : MonoBehaviour
     {
         UpdateStatus($"提取失败: {error}");
         isProcessing = false;
-        progressBar.style.display = DisplayStyle.None;
+        if (progressBar != null)
+        {
+            progressBar.style.display = DisplayStyle.None;
+        }
         startExtractionButton.style.display = DisplayStyle.Flex;
     }
     

@@ -177,25 +177,7 @@ namespace PowerlineSystem
             }
             catch (UnityException)
             {
-                Debug.LogWarning("[PowerlineExtractionSceneBuilder] Tower标签未定义，尝试自动创建...");
-                
-                // 查找TowerTagHelper组件
-                TowerTagHelper tagHelper = FindObjectOfType<TowerTagHelper>();
-                if (tagHelper == null)
-                {
-                    // 创建一个临时的TowerTagHelper
-                    GameObject tempObj = new GameObject("TempTowerTagHelper");
-                    tagHelper = tempObj.AddComponent<TowerTagHelper>();
-                }
-                
-                // 尝试创建标签
-                tagHelper.CreateTowerTag();
-                
-                // 如果是临时创建的，删除它
-                if (tagHelper.gameObject.name == "TempTowerTagHelper")
-                {
-                    DestroyImmediate(tagHelper.gameObject);
-                }
+                Debug.LogWarning("[PowerlineExtractionSceneBuilder] Tower标签未定义，将使用名称查找电塔");
             }
 #else
             Debug.Log("[PowerlineExtractionSceneBuilder] 运行时模式，跳过标签创建");

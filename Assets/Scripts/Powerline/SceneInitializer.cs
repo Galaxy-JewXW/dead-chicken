@@ -4,6 +4,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Linq;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class SceneInitializer : MonoBehaviour
 {
     [Header("基本配置")]
@@ -303,15 +307,7 @@ public class SceneInitializer : MonoBehaviour
         GameObject tower = Instantiate(towerPrefab, position, Quaternion.identity);
         tower.name = $"Tower_{position.x:F1}_{position.z:F1}";
         
-        // 尝试设置标签（如果标签存在的话）
-        try
-        {
-            tower.tag = "Tower";
-        }
-        catch (UnityException)
-        {
-            Debug.LogWarning("Tower标签未定义，请在Unity的Tags & Layers中添加Tower标签");
-        }
+        // 不再设置标签，直接通过名称识别
         
         // 根据电塔高度进行缩放
         float scaleRatio = towerData.height / baseTowerHeight;
@@ -1068,22 +1064,8 @@ public class SceneInitializer : MonoBehaviour
     {
         if (pinpointSystem == null) return;
         
-        GameObject[] towers = null;
-        try
-        {
-            towers = GameObject.FindGameObjectsWithTag("Tower");
-        }
-        catch (UnityException)
-        {
-            Debug.LogWarning("Tower标签未定义，将通过名称查找电塔");
-            towers = new GameObject[0];
-        }
-        
-        if (towers.Length == 0)
-        {
-            towers = FindObjectsOfType<GameObject>().Where(go => 
-                go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
-        }
+        GameObject[] towers = FindObjectsOfType<GameObject>().Where(go => 
+            go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
         
         foreach (GameObject tower in towers)
         {
@@ -1192,6 +1174,9 @@ private void CreateTreesFromCsv()
     
     Debug.Log($"[SceneInitializer] 树木放置完成！成功: {successCount}, 失败: {failCount}");
     Debug.Log($"[SceneInitializer] 总共放置了 {placedTrees.Count} 棵树");
+    
+    // 通知树木危险监测系统更新
+    NotifyTreeDangerMonitorUpdate();
 }
 
 /// <summary>
@@ -1346,13 +1331,8 @@ private List<SimpleTreeData> GenerateTreesNearTowers()
     Debug.Log($"[SceneInitializer] 基于 {towerData.Count} 座电塔生成树木");
     
     // 获取实际场景中的电塔GameObject位置（更准确）
-    GameObject[] actualTowers = GameObject.FindGameObjectsWithTag("Tower");
-    if (actualTowers.Length == 0)
-    {
-        // 如果没有找到Tower标签，尝试通过名称查找
-        actualTowers = FindObjectsOfType<GameObject>().Where(go => 
-            go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
-    }
+    GameObject[] actualTowers = FindObjectsOfType<GameObject>().Where(go => 
+        go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
     
     Debug.Log($"[SceneInitializer] 找到 {actualTowers.Length} 座实际电塔");
     
@@ -1487,6 +1467,8 @@ private GameObject CreateTreeAtPosition(SimpleTreeData treeData)
     
     // 调整树木位置，让底部贴在地面上（参考电塔的AdjustTowerGroundPosition方法）
     AdjustTreeGroundPosition(tree, treeData);
+    
+    // 不再设置标签，直接通过名称识别
     
     // 自动缩放（如果需要）
     if (enableTreeAutoScaling)
@@ -1647,12 +1629,8 @@ public void CheckTreeSystemStatus()
     
     // 显示电塔和树木的位置信息
     Debug.Log("=== 位置信息 ===");
-    GameObject[] towers = GameObject.FindGameObjectsWithTag("Tower");
-    if (towers.Length == 0)
-    {
-        towers = FindObjectsOfType<GameObject>().Where(go => 
-            go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
-    }
+    GameObject[] towers = FindObjectsOfType<GameObject>().Where(go => 
+        go.name.Contains("Tower") || go.name.Contains("GoodTower")).ToArray();
     
     Debug.Log($"找到 {towers.Length} 座电塔:");
     foreach (var tower in towers)
@@ -1689,6 +1667,26 @@ public void RegenerateTrees()
     CreateTreesFromCsv();
     Debug.Log("[SceneInitializer] 树木重新生成完成");
 }
+
+/// <summary>
+/// 通知树木危险监测系统更新
+/// </summary>
+private void NotifyTreeDangerMonitorUpdate()
+{
+    var treeDangerMonitor = FindObjectOfType<TreeDangerMonitor>();
+    if (treeDangerMonitor != null)
+    {
+        Debug.Log("[SceneInitializer] 通知TreeDangerMonitor更新树木列表");
+        treeDangerMonitor.RefreshTreeList();
+        treeDangerMonitor.ManualMonitoring();
+    }
+    else
+    {
+        Debug.LogWarning("[SceneInitializer] 未找到TreeDangerMonitor，无法通知更新");
+    }
+}
+
+
 
 #endregion
 
