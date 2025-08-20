@@ -154,6 +154,7 @@ namespace UI
                 yLabel.style.fontSize = 10;
                 yLabel.style.unityTextAlign = TextAnchor.MiddleRight;
                 yLabel.style.marginRight = 5;
+                ApplyFontToLabel(yLabel, FontSize.Tiny);
                 yAxisContainer.Add(yLabel);
             }
             
@@ -243,6 +244,7 @@ namespace UI
                 valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
                 valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
                 valueLabel.style.marginBottom = 3;
+                ApplyFontToLabel(valueLabel, FontSize.Tiny);
                 
                 // 创建X轴标签（直接放在柱状图容器内）
                 var xLabel = new Label(labels[i]);
@@ -250,6 +252,7 @@ namespace UI
                 xLabel.style.fontSize = 10;
                 xLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
                 xLabel.style.marginTop = 2;
+                ApplyFontToLabel(xLabel, FontSize.Tiny);
                 
                 // 组装柱状图（包含X轴标签）
                 barContainer.Add(valueLabel);
@@ -384,12 +387,14 @@ namespace UI
             valueLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
             valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
             valueLabel.style.marginBottom = 2; // 减少与最大值标签的间距
+            ApplyFontToLabel(valueLabel, FontSize.Title);
             
             // 创建最大值标签
             var maxValueLabel = new Label($"/ {maxValue:F1}");
             maxValueLabel.style.color = new Color(0.8f, 0.8f, 0.8f, 1f); // 稍微亮一点的灰色
             maxValueLabel.style.fontSize = 16; // 适中的字体大小
             maxValueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            ApplyFontToLabel(maxValueLabel, FontSize.Body);
             
             // 组装数值标签
             valueContainer.Add(valueLabel);
@@ -417,6 +422,21 @@ namespace UI
         {
             Color[] colors = { primaryColor, secondaryColor, successColor, warningColor, dangerColor };
             return colors[index % colors.Length];
+        }
+        
+        /// <summary>
+        /// 应用字体到Label
+        /// </summary>
+        private void ApplyFontToLabel(Label label, FontSize size = FontSize.Body)
+        {
+            if (FontManager.Instance != null)
+            {
+                FontManager.Instance.ApplyFont(label, size);
+            }
+            else
+            {
+                Debug.LogWarning("FontManager实例不存在，使用默认字体设置");
+            }
         }
     }
 }
