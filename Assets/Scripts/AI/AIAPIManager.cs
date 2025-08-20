@@ -7,6 +7,8 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 
+using Debug = UnityEngine.Debug;
+
 [System.Serializable]
 public class ChatMessage
 {
@@ -76,21 +78,6 @@ public class AIAPIManager : MonoBehaviour
     [SerializeField] private string model = "glm-4.5";
     [SerializeField] private float temperature = 0.7f;
     [SerializeField] private int maxTokens = 1000;
-
-    private string systemPrompt = @"你是一个名为“电网智询 (Grid-AI)”的智能助手，内嵌于一套“电力线三维重建与管理系统”中。你的核心任务是帮助电力行业的专业人员（如工程师、巡检员、管理人员）通过自然语言对话，快速、准确地从系统中获取信息、执行分析和进行可视化交互。
-
-[角色定义]
-1. 身份：你是电力数据分析专家和系统操作向导。
-2. 沟通风格：你的回答必须精确、简洁、专业。优先使用列表、表格等结构化方式呈现数据，确保信息清晰易读。
-3. 知识边界：你的所有知识严格限定于当前系统中加载和处理的数据。这些数据包括：原始点云数据 (分类后的地面、植被、建筑物、电力线等)、电力设施三维模型 (电力线、杆塔)、分析结果 (危险点、交叉跨越、对地距离、弧垂、植被侵入等)、元数据 (线路ID、电压等级、杆塔编号、巡检日期等)。你绝对不能凭空捏造数据或回答与当前系统数据无关的问题。如果用户提问超出范围，你必须礼貌地拒绝并重申你的职责范围。
-
-[核心能力与任务]
-你必须能够理解用户的意图，并将其分解为以下几类核心任务：
-1. 数据查询与筛选 (Data Query & Filtering)
-2. 空间分析与量算 (Spatial Analysis & Measurement)
-3. 风险识别与告警 (Risk Identification & Alerts)
-4. 视图控制与可视化 (View Control & Visualization): 当需要进行视图操作时，你需生成特定格式的JSON指令，例如：{""action"": ""view_control"", ""command"": ""highlight"", ""target"": {""type"": ""line"", ""id"": ""L-55""}}";
-
 
     // 智谱AI API认证配置
     private string GetAuthorizationHeader()
@@ -195,11 +182,11 @@ public class AIAPIManager : MonoBehaviour
     }
     
     /// <summary>
-    /// 通过Python脚本发送请求
+    /// 通过Python脚本发送请求（使用文件读写方式，更可靠）
     /// </summary>
     private IEnumerator SendRequestViaPython(string userMessage, Action<string> onResponse, Action<string> onError)
     {
-        Debug.Log("[AIAPI] 开始通过Python脚本发送请求...");
+        Debug.Log("[AIAPI] 开始通过Python脚本发送请求（文件读写模式）...");
         
         // 获取Python脚本路径
         string pythonScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py");
@@ -212,14 +199,26 @@ public class AIAPIManager : MonoBehaviour
             yield break;
         }
         
-        // 构建命令行参数
-        string arguments = $"\"{pythonScriptPath}\" \"{apiKey}\" \"{userMessage}\" \"{model}\" {temperature} {maxTokens} false 1957794713918672896";
+        // 创建临时文件路径
+        string tempDir = Path.Combine(Application.temporaryCachePath, "AIAPI");
+        if (!Directory.Exists(tempDir))
+        {
+            Directory.CreateDirectory(tempDir);
+        }
+        
+        string tempFileName = $"ai_response_{DateTime.Now:yyyyMMdd_HHmmss}_{UnityEngine.Random.Range(1000, 9999)}.json";
+        string tempFilePath = Path.Combine(tempDir, tempFileName);
+        
+        Debug.Log($"[AIAPI] 临时文件路径: {tempFilePath}");
+        
+        // 构建命令行参数（包含临时文件路径）
+        string arguments = $"\"{pythonScriptPath}\" \"{apiKey}\" \"{userMessage}\" \"{model}\" {temperature} {maxTokens} false 1957794713918672896 \"{tempFilePath}\"";
         
         Debug.Log($"[AIAPI] 执行Python脚本: {arguments}");
         
         // 创建进程
         ProcessStartInfo startInfo = new ProcessStartInfo();
-        startInfo.FileName = "python3"; // 或者 "python"，取决于系统配置
+        startInfo.FileName = "python"; // 或者 "python"，取决于系统配置
         startInfo.Arguments = arguments;
         startInfo.UseShellExecute = false;
         startInfo.RedirectStandardOutput = true;
@@ -255,20 +254,40 @@ public class AIAPIManager : MonoBehaviour
                 Debug.LogWarning($"[AIAPI] Python脚本错误输出: {error}");
             }
             
-            if (string.IsNullOrEmpty(output))
+            // 优先尝试从临时文件读取结果
+            string resultContent = null;
+            if (File.Exists(tempFilePath))
             {
-                string errorMsg = "Python脚本没有输出";
+                try
+                {
+                    resultContent = File.ReadAllText(tempFilePath, Encoding.UTF8);
+                    Debug.Log($"[AIAPI] 从临时文件读取到结果: {resultContent}");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[AIAPI] 读取临时文件失败: {ex.Message}");
+                }
+            }
+            
+            // 如果临时文件读取失败，尝试从stdout读取
+            if (string.IsNullOrEmpty(resultContent))
+            {
+                resultContent = output;
+                Debug.Log($"[AIAPI] 从stdout读取到结果: {resultContent}");
+            }
+            
+            if (string.IsNullOrEmpty(resultContent))
+            {
+                string errorMsg = "Python脚本没有输出，且临时文件读取失败";
                 Debug.LogError($"[AIAPI] {errorMsg}");
                 onError?.Invoke(errorMsg);
                 yield break;
             }
             
-            Debug.Log($"[AIAPI] Python脚本输出: {output}");
-            
             try
             {
                 // 解析JSON响应
-                var result = JsonUtility.FromJson<PythonResponse>(output);
+                var result = JsonUtility.FromJson<PythonResponse>(resultContent);
                 
                 if (result.success)
                 {
@@ -298,7 +317,7 @@ public class AIAPIManager : MonoBehaviour
             {
                 string errorMsg = $"解析Python脚本输出失败: {ex.Message}";
                 Debug.LogError($"[AIAPI] {errorMsg}");
-                Debug.LogError($"[AIAPI] 原始输出: {output}");
+                Debug.LogError($"[AIAPI] 原始输出: {resultContent}");
                 onError?.Invoke(errorMsg);
             }
         }
@@ -315,6 +334,20 @@ public class AIAPIManager : MonoBehaviour
                 process.Kill();
             }
             process.Dispose();
+            
+            // 清理临时文件
+            try
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                    Debug.Log($"[AIAPI] 临时文件已清理: {tempFilePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AIAPI] 清理临时文件失败: {ex.Message}");
+            }
         }
     }
     
@@ -495,6 +528,11 @@ public class AIAPIManager : MonoBehaviour
         
         Debug.Log($"[AIAPI] ✅ Python脚本存在: {pythonScriptPath}");
         
+        // 先测试文件读写功能
+        Debug.Log("[AIAPI] 开始测试文件读写功能...");
+        StartCoroutine(TestFileIO());
+        
+        // 然后测试API调用
         SendMessage("你好，请简单介绍一下自己", 
             (response) => {
                 Debug.Log($"[AIAPI] ✅ 测试成功: {response}");
@@ -509,6 +547,141 @@ public class AIAPIManager : MonoBehaviour
                 Debug.LogError($"[AIAPI] 4. API密钥是否正确");
                 Debug.LogError($"[AIAPI] 5. API端点是否可访问");
             });
+    }
+    
+    /// <summary>
+    /// 测试文件读写功能
+    /// </summary>
+    private IEnumerator TestFileIO()
+    {
+        Debug.Log("[AIAPI] 开始测试文件读写功能...");
+        
+        // 获取测试脚本路径
+        string testScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "test_file_io.py");
+        
+        if (!File.Exists(testScriptPath))
+        {
+            Debug.LogWarning($"[AIAPI] 测试脚本不存在: {testScriptPath}");
+            yield break;
+        }
+        
+        // 创建临时文件路径
+        string tempDir = Path.Combine(Application.temporaryCachePath, "AIAPI");
+        if (!Directory.Exists(tempDir))
+        {
+            Directory.CreateDirectory(tempDir);
+        }
+        
+        string tempFileName = $"test_response_{DateTime.Now:yyyyMMdd_HHmmss}_{UnityEngine.Random.Range(1000, 9999)}.json";
+        string tempFilePath = Path.Combine(tempDir, tempFileName);
+        
+        Debug.Log($"[AIAPI] 测试临时文件路径: {tempFilePath}");
+        
+        // 构建命令行参数
+        string arguments = $"\"{testScriptPath}\" \"{tempFilePath}\"";
+        
+        Debug.Log($"[AIAPI] 执行测试脚本: {arguments}");
+        
+        // 创建进程
+        ProcessStartInfo startInfo = new ProcessStartInfo();
+        startInfo.FileName = "python3"; // 或者 "python"，取决于系统配置
+        startInfo.Arguments = arguments;
+        startInfo.UseShellExecute = false;
+        startInfo.RedirectStandardOutput = true;
+        startInfo.RedirectStandardError = true;
+        startInfo.CreateNoWindow = true;
+        startInfo.StandardOutputEncoding = Encoding.UTF8;
+        startInfo.StandardErrorEncoding = Encoding.UTF8;
+        
+        Process process = new Process();
+        process.StartInfo = startInfo;
+        
+        try
+        {
+            process.Start();
+            
+            // 等待进程完成，但不超过10秒
+            bool completed = process.WaitForExit(10000);
+            
+            if (!completed)
+            {
+                process.Kill();
+                Debug.LogWarning("[AIAPI] 测试脚本执行超时");
+                yield break;
+            }
+            
+            string output = process.StandardOutput.ReadToEnd();
+            string error = process.StandardError.ReadToEnd();
+            
+            if (!string.IsNullOrEmpty(error))
+            {
+                Debug.LogWarning($"[AIAPI] 测试脚本错误输出: {error}");
+            }
+            
+            Debug.Log($"[AIAPI] 测试脚本stdout输出: {output}");
+            
+            // 尝试从临时文件读取结果
+            if (File.Exists(tempFilePath))
+            {
+                try
+                {
+                    string fileContent = File.ReadAllText(tempFilePath, Encoding.UTF8);
+                    Debug.Log($"[AIAPI] ✅ 从临时文件读取成功: {fileContent}");
+                    
+                    // 尝试解析JSON
+                    try
+                    {
+                        var testResult = JsonUtility.FromJson<PythonResponse>(fileContent);
+                        if (testResult.success)
+                        {
+                            Debug.Log("[AIAPI] ✅ 文件读写测试完全成功！");
+                        }
+                        else
+                        {
+                            Debug.LogWarning($"[AIAPI] ⚠️ 文件读写测试部分成功，但有错误: {testResult.error}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Debug.LogWarning($"[AIAPI] ⚠️ 文件读写测试成功，但JSON解析失败: {ex.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[AIAPI] ❌ 读取测试文件失败: {ex.Message}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("[AIAPI] ⚠️ 测试脚本未创建临时文件");
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.LogError($"[AIAPI] ❌ 启动测试脚本失败: {ex.Message}");
+        }
+        finally
+        {
+            if (!process.HasExited)
+            {
+                process.Kill();
+            }
+            process.Dispose();
+            
+            // 清理临时文件
+            try
+            {
+                if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                    Debug.Log($"[AIAPI] 测试临时文件已清理: {tempFilePath}");
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogWarning($"[AIAPI] 清理测试临时文件失败: {ex.Message}");
+            }
+        }
     }
     
     /// <summary>

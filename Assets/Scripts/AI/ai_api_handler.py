@@ -3,20 +3,32 @@
 """
 AI API Handler for Unity
 使用zai库处理智谱AI API调用的Python脚本
+支持stdout输出和文件输出两种方式
 """
 
 import json
 import sys
 import time
+import os
+import tempfile
 from typing import Dict, List, Optional, Any
 
 try:
     from zai import ZhipuAiClient
 except ImportError:
-    print(json.dumps({
+    error_result = {
         "success": False,
         "error": "zai库未安装，请运行: pip install zai"
-    }))
+    }
+    print(json.dumps(error_result, ensure_ascii=False))
+    # 同时尝试写入临时文件
+    try:
+        temp_file = os.environ.get('UNITY_TEMP_FILE')
+        if temp_file:
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(error_result, f, ensure_ascii=False, indent=2)
+    except:
+        pass
     sys.exit(1)
 
 class AIAPIHandler:
@@ -167,25 +179,40 @@ class AIAPIHandler:
             }
         }
 
+def output_result(result: Dict, temp_file_path: str = None):
+    """
+    输出结果到stdout和临时文件（如果提供）
+    
+    Args:
+        result: 要输出的结果字典
+        temp_file_path: 临时文件路径（可选）
+    """
+    # 输出到stdout
+    json_str = json.dumps(result, ensure_ascii=False)
+    print(json_str)
+    
+    # 如果提供了临时文件路径，也写入文件
+    if temp_file_path and os.path.exists(os.path.dirname(temp_file_path)):
+        try:
+            with open(temp_file_path, 'w', encoding='utf-8') as f:
+                json.dump(result, f, ensure_ascii=False, indent=2)
+            print(f"结果已同时写入临时文件: {temp_file_path}", file=sys.stderr)
+        except Exception as e:
+            print(f"写入临时文件失败: {e}", file=sys.stderr)
+
 def main():
     """
     主函数，处理命令行参数并执行API调用
     """
-    if len(sys.argv) < 3:
-        print(json.dumps({
-            "success": False,
-            "error": "参数不足。用法: python ai_api_handler.py <api_key> <user_message> [model] [temperature] [max_tokens] [stream] [knowledge_id]"
-        }))
-        sys.exit(1)
-    
     # 解析命令行参数
-    api_key = sys.argv[1]
-    user_message = sys.argv[2]
+    api_key = sys.argv[1] if len(sys.argv) > 1 else "cfed8c512417402983a28e3ceee6bfe1.vdzks2lqATOYjgUy"
+    user_message = sys.argv[2] if len(sys.argv) > 2 else "你是谁？"
     model = sys.argv[3] if len(sys.argv) > 3 else "glm-4.5"
     temperature = float(sys.argv[4]) if len(sys.argv) > 4 else 0.7
     max_tokens = int(sys.argv[5]) if len(sys.argv) > 5 else 1000
     stream = sys.argv[6].lower() == "true" if len(sys.argv) > 6 else False
     knowledge_id = sys.argv[7] if len(sys.argv) > 7 else None
+    temp_file_path = sys.argv[8] if len(sys.argv) > 8 else None
     
     # 系统提示词
     system_prompt = """你是一个名为"电网智询 (Grid-AI)"的智能助手，内嵌于一套"电力线三维重建与管理系统"中。你的核心任务是帮助电力行业的专业人员（如工程师、巡检员、管理人员）通过自然语言对话，快速、准确地从系统中获取信息、执行分析和进行可视化交互。
@@ -202,27 +229,36 @@ def main():
 3. 风险识别与告警 (Risk Identification & Alerts)
 4. 视图控制与可视化 (View Control & Visualization): 当需要进行视图操作时，你需生成特定格式的JSON指令，例如：{"action": "view_control", "command": "highlight", "target": {"type": "line", "id": "L-55"}};"""
     
-    # 创建API处理器
-    handler = AIAPIHandler(api_key)
-    
-    # 准备工具列表
-    tools = None
-    if knowledge_id:
-        tools = [handler.create_retrieval_tool(knowledge_id)]
-    
-    # 发送消息
-    result = handler.send_message(
-        user_message=user_message,
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        system_prompt=system_prompt,
-        stream=stream,
-        tools=tools
-    )
-    
-    # 输出结果（JSON格式，供Unity解析）
-    print(json.dumps(result, ensure_ascii=False))
+    try:
+        # 创建API处理器
+        handler = AIAPIHandler(api_key)
+        
+        # 准备工具列表
+        tools = None
+        if knowledge_id:
+            tools = [handler.create_retrieval_tool(knowledge_id)]
+        
+        # 发送消息
+        result = handler.send_message(
+            user_message=user_message,
+            model=model,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            system_prompt=system_prompt,
+            stream=stream,
+            tools=tools
+        )
+        
+        # 输出结果（同时输出到stdout和临时文件）
+        output_result(result, temp_file_path)
+        
+    except Exception as e:
+        error_result = {
+            "success": False,
+            "error": f"执行过程中发生错误: {str(e)}"
+        }
+        output_result(error_result, temp_file_path)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
