@@ -806,6 +806,15 @@ public class SimpleUIToolkitManager : MonoBehaviour
     }
     
     /// <summary>
+    /// 获取侧边栏引用
+    /// </summary>
+    /// <returns>侧边栏VisualElement</returns>
+    public VisualElement GetSidebar()
+    {
+        return sidebar;
+    }
+    
+    /// <summary>
     /// 显示主UI（从初始界面切换到主界面时调用）
     /// </summary>
     public void ShowMainUI()
@@ -3584,98 +3593,36 @@ public class SimpleUIToolkitManager : MonoBehaviour
     
     void CreateTowerOverviewSidebar(TowerOverviewManager towerManager)
     {
-        // 初始化电塔数据
-        towerManager.InitializeTowerData();
-        var towers = towerManager.GetAllTowers();
-        
         // 创建主面板
         var panel = CreatePanel("电塔总览");
         
-        // 创建统计信息容器
-        var statsContainer = new VisualElement();
-        statsContainer.style.backgroundColor = new Color(0.95f, 0.98f, 1f, 1f);
-        statsContainer.style.marginBottom = 10;
-        statsContainer.style.paddingTop = 10;
-        statsContainer.style.paddingBottom = 10;
-        statsContainer.style.paddingLeft = 10;
-        statsContainer.style.paddingRight = 10;
-        statsContainer.style.borderTopLeftRadius = 8;
-        statsContainer.style.borderTopRightRadius = 8;
-        statsContainer.style.borderBottomLeftRadius = 8;
-        statsContainer.style.borderBottomRightRadius = 8;
-        statsContainer.style.borderLeftWidth = 2;
-        statsContainer.style.borderRightWidth = 2;
-        statsContainer.style.borderTopWidth = 2;
-        statsContainer.style.borderBottomWidth = 2;
-        statsContainer.style.borderLeftColor = new Color(0.3f, 0.7f, 1f, 1f);
-        statsContainer.style.borderRightColor = new Color(0.3f, 0.7f, 1f, 1f);
-        statsContainer.style.borderTopColor = new Color(0.3f, 0.7f, 1f, 1f);
-        statsContainer.style.borderBottomColor = new Color(0.3f, 0.7f, 1f, 1f);
+        // 先显示加载提示，快速响应
+        var loadingLabel = new Label("正在加载电塔信息...");
+        loadingLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+        loadingLabel.style.fontSize = 14;
+        loadingLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+        loadingLabel.style.paddingTop = 20;
+        loadingLabel.style.paddingBottom = 20;
+        ApplyFont(loadingLabel);
+        panel.Add(loadingLabel);
+        
+        // 添加到侧栏，立即显示
+        sidebar.Add(panel);
+        
+        // 在后台异步加载数据
+        StartCoroutine(LoadTowerDataAsync(towerManager, panel));
+        
+
         
         // 电塔总数
-        var totalLabel = new Label($"电塔总数: {towers.Count}");
-        totalLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
-        totalLabel.style.fontSize = 16;
-        totalLabel.style.unityFontStyleAndWeight = FontStyle.Normal;
-        totalLabel.style.marginBottom = 5;
-        ApplyFont(totalLabel);
-        statsContainer.Add(totalLabel);
+
         
-        // 状态统计
-        var normalCount = towers.Count(t => t.status == "正常");
-        var warningCount = towers.Count(t => t.status == "警告");
-        var errorCount = towers.Count(t => t.status == "异常");
-        
-        var statusLabel = new Label($"正常: {normalCount} | 警告: {warningCount} | 异常: {errorCount}");
-        statusLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
-        statusLabel.style.fontSize = 12;
-        statusLabel.style.marginBottom = 5;
-        ApplyFont(statusLabel);
-        statsContainer.Add(statusLabel);
+
         
         // 高度统计
-        if (towers.Count > 0)
-        {
-            var avgHeight = towers.Average(t => t.height);
-            var maxHeight = towers.Max(t => t.height);
-            var minHeight = towers.Min(t => t.height);
-            
-            var heightLabel = new Label($"高度: 平均 {avgHeight:F1}m | 最高 {maxHeight:F1}m | 最低 {minHeight:F1}m");
-            heightLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
-            heightLabel.style.fontSize = 12;
-            ApplyFont(heightLabel);
-            statsContainer.Add(heightLabel);
-        }
+
         
-        panel.Add(statsContainer);
-        
-        // 创建电塔列表滚动视图
-        var scrollView = new ScrollView();
-        scrollView.style.minHeight = 300;
-        scrollView.style.maxHeight = 600;
-        scrollView.style.flexGrow = 1;
-        scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
-        scrollView.style.overflow = Overflow.Hidden;
-        scrollView.scrollDecelerationRate = 0.9f;
-        
-        scrollView.RegisterCallback<WheelEvent>(evt =>
-        {
-            scrollView.scrollOffset += new Vector2(0, evt.delta.y * 300f); // 增加滚动速度
-            evt.StopPropagation();
-        });
-        
-        var towerListContainer = new VisualElement();
-        towerListContainer.style.flexDirection = FlexDirection.Column;
-        towerListContainer.style.flexShrink = 0;
-        
-        // 创建电塔列表项，按ID排序
-        var sortedTowers = towers.OrderBy(t => t.id).ToList();
-        CreateTowerListItems(towerListContainer, sortedTowers, towerManager);
-        
-        scrollView.Add(towerListContainer);
-        panel.Add(scrollView);
-        
-        sidebar.Add(panel);
+
     }
     
     void CreateTowerListItems(VisualElement container, System.Collections.Generic.List<TowerOverviewManager.TowerOverviewInfo> towers, TowerOverviewManager towerManager)
@@ -5431,8 +5378,12 @@ public class SimpleUIToolkitManager : MonoBehaviour
     {
         Debug.Log("=== ShowStatisticsDashboardPanel方法开始执行 ===");
         
-        // 清空主要内容区域，准备显示统计大屏
-        mainContent.Clear();
+        // 隐藏侧边栏，让统计大屏全屏显示（参考AI助手实现）
+        if (sidebar != null)
+        {
+            sidebar.style.display = DisplayStyle.None;
+            Debug.Log("侧边栏已隐藏，统计大屏将全屏显示");
+        }
         
         // 查找现有的StatisticsDashboardController
         var existingController = FindObjectOfType<StatisticsDashboardController>();
@@ -5494,21 +5445,6 @@ public class SimpleUIToolkitManager : MonoBehaviour
         {
             Debug.LogError("StatisticsDashboardController创建失败");
         }
-        
-        // 在侧边栏添加返回主界面按钮
-        sidebar.Clear();
-        var returnButton = new Button(() => {
-            Debug.Log("用户点击返回主界面按钮");
-            SwitchMode(UIMode.Normal);
-        });
-        returnButton.text = "返回主界面";
-        returnButton.style.width = 200;
-        returnButton.style.height = 40;
-        returnButton.style.backgroundColor = primaryColor;
-        returnButton.style.color = Color.white;
-        returnButton.style.marginTop = 10;
-        ApplyFont(returnButton);
-        sidebar.Add(returnButton);
         
         Debug.Log("=== ShowStatisticsDashboardPanel方法执行完成 ===");
     }
@@ -5661,5 +5597,274 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         texture.Apply();
         return texture;
+    }
+    
+    /// <summary>
+    /// 异步加载电塔数据，避免阻塞UI
+    /// </summary>
+    System.Collections.IEnumerator LoadTowerDataAsync(TowerOverviewManager towerManager, VisualElement panel)
+    {
+        // 等待一帧，让UI先显示
+        yield return null;
+        
+        // 初始化电塔数据
+        towerManager.InitializeTowerData();
+        var towers = towerManager.GetAllTowers();
+        
+        // 清空加载提示
+        panel.Clear();
+        
+        // 创建美观的统计信息容器
+        var statsContainer = new VisualElement();
+        statsContainer.style.backgroundColor = new Color(0.95f, 0.98f, 1f, 1f);
+        statsContainer.style.marginBottom = 15;
+        statsContainer.style.paddingTop = 15;
+        statsContainer.style.paddingBottom = 15;
+        statsContainer.style.paddingLeft = 15;
+        statsContainer.style.paddingRight = 15;
+        statsContainer.style.borderTopLeftRadius = 8;
+        statsContainer.style.borderTopRightRadius = 8;
+        statsContainer.style.borderBottomLeftRadius = 8;
+        statsContainer.style.borderBottomRightRadius = 8;
+        statsContainer.style.borderLeftWidth = 2;
+        statsContainer.style.borderRightWidth = 2;
+        statsContainer.style.borderTopWidth = 2;
+        statsContainer.style.borderBottomWidth = 2;
+        statsContainer.style.borderLeftColor = new Color(0.3f, 0.7f, 1f, 1f);
+        statsContainer.style.borderRightColor = new Color(0.3f, 0.7f, 1f, 1f);
+        statsContainer.style.borderTopColor = new Color(0.3f, 0.7f, 1f, 1f);
+        statsContainer.style.borderBottomColor = new Color(0.3f, 0.7f, 1f, 1f);
+        
+        // 电塔总数
+        var totalLabel = new Label($"电塔总数: {towers.Count}");
+        totalLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
+        totalLabel.style.fontSize = 16;
+        totalLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+        totalLabel.style.marginBottom = 8;
+        ApplyFont(totalLabel);
+        statsContainer.Add(totalLabel);
+        
+        // 状态统计
+        if (towers.Count > 0)
+        {
+            var normalCount = towers.Count(t => t.status == "正常");
+            var warningCount = towers.Count(t => t.status == "警告");
+            var errorCount = towers.Count(t => t.status == "异常");
+            
+            var statusLabel = new Label($"正常: {normalCount} | 警告: {warningCount} | 异常: {errorCount}");
+            statusLabel.style.color = new Color(0.1f, 0.4f, 0.8f, 1f);
+            statusLabel.style.fontSize = 12;
+            statusLabel.style.marginBottom = 8;
+            ApplyFont(statusLabel);
+            statsContainer.Add(statusLabel);
+            
+            // 高度统计
+            var heights = towers.Select(t => t.height).ToList();
+            var avgHeight = heights.Average();
+            var maxHeight = heights.Max();
+            var minHeight = heights.Min();
+            
+            var heightLabel = new Label($"高度: 平均 {avgHeight:F1}m | 最高 {maxHeight:F1}m | 最低 {minHeight:F1}m");
+            heightLabel.style.color = new Color(0.1f, 0.7f, 0.1f, 1f);
+            heightLabel.style.fontSize = 12;
+            ApplyFont(heightLabel);
+            statsContainer.Add(heightLabel);
+        }
+        
+        panel.Add(statsContainer);
+        
+        // 创建美观的电塔列表滚动视图
+        var scrollView = new ScrollView();
+        scrollView.style.minHeight = 300;
+        scrollView.style.maxHeight = 600;
+        scrollView.style.flexGrow = 1;
+        scrollView.verticalScrollerVisibility = ScrollerVisibility.AlwaysVisible;
+        scrollView.style.overflow = Overflow.Hidden;
+        scrollView.scrollDecelerationRate = 0.9f;
+        
+        scrollView.RegisterCallback<WheelEvent>(evt =>
+        {
+            scrollView.scrollOffset += new Vector2(0, evt.delta.y * 300f);
+            evt.StopPropagation();
+        });
+        
+        var towerListContainer = new VisualElement();
+        towerListContainer.style.flexDirection = FlexDirection.Column;
+        towerListContainer.style.flexShrink = 0;
+        
+        // 分批创建电塔列表项，保持美观的同时提升性能
+        var displayTowers = towers.Take(10).ToList();
+        CreateBeautifulTowerList(towerListContainer, displayTowers, towerManager);
+        
+        // 如果电塔数量超过10个，显示"查看更多"提示
+        if (towers.Count > 10)
+        {
+            var moreLabel = new Label($"... 还有 {towers.Count - 10} 座电塔");
+            moreLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            moreLabel.style.fontSize = 12;
+            moreLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            moreLabel.style.paddingTop = 15;
+            moreLabel.style.paddingBottom = 15;
+            ApplyFont(moreLabel);
+            towerListContainer.Add(moreLabel);
+        }
+        
+        scrollView.Add(towerListContainer);
+        panel.Add(scrollView);
+    }
+    
+    /// <summary>
+    /// 创建美观的电塔列表，保持原有样式的精美度
+    /// </summary>
+    void CreateBeautifulTowerList(VisualElement container, System.Collections.Generic.List<TowerOverviewManager.TowerOverviewInfo> towers, TowerOverviewManager towerManager)
+    {
+        if (towers == null || towers.Count == 0)
+        {
+            var noTowersLabel = new Label("未找到电塔数据");
+            noTowersLabel.style.color = new Color(0.6f, 0.6f, 0.6f, 1f);
+            noTowersLabel.style.fontSize = 12;
+            noTowersLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            noTowersLabel.style.paddingTop = 20;
+            noTowersLabel.style.paddingBottom = 20;
+            ApplyFont(noTowersLabel);
+            container.Add(noTowersLabel);
+            return;
+        }
+        
+        // 为每个电塔创建美观的信息卡片
+        for (int i = 0; i < towers.Count; i++)
+        {
+            var tower = towers[i];
+            
+            var towerContainer = new VisualElement();
+            towerContainer.style.backgroundColor = new Color(1f, 1f, 1f, 0.9f);
+            towerContainer.style.marginBottom = 8;
+            towerContainer.style.paddingTop = 12;
+            towerContainer.style.paddingBottom = 12;
+            towerContainer.style.paddingLeft = 12;
+            towerContainer.style.paddingRight = 12;
+            towerContainer.style.borderTopLeftRadius = 6;
+            towerContainer.style.borderTopRightRadius = 6;
+            towerContainer.style.borderBottomLeftRadius = 6;
+            towerContainer.style.borderBottomRightRadius = 6;
+            towerContainer.style.borderLeftWidth = 2;
+            towerContainer.style.borderRightWidth = 2;
+            towerContainer.style.borderTopWidth = 2;
+            towerContainer.style.borderBottomWidth = 2;
+            
+            // 根据状态设置边框颜色
+            var borderColor = GetTowerStatusColor(tower.status);
+            towerContainer.style.borderLeftColor = borderColor;
+            towerContainer.style.borderRightColor = borderColor;
+            towerContainer.style.borderTopColor = borderColor;
+            towerContainer.style.borderBottomColor = borderColor;
+            
+            // 电塔标题行
+            var titleContainer = new VisualElement();
+            titleContainer.style.flexDirection = FlexDirection.Row;
+            titleContainer.style.justifyContent = Justify.SpaceBetween;
+            titleContainer.style.alignItems = Align.Center;
+            titleContainer.style.marginBottom = 8;
+            
+            var towerTitle = new Label($"电塔 {tower.id}: {tower.name}");
+            towerTitle.style.color = new Color(0.2f, 0.5f, 0.8f, 1f);
+            towerTitle.style.fontSize = 14;
+            towerTitle.style.unityFontStyleAndWeight = FontStyle.Bold;
+            towerTitle.style.flexGrow = 1;
+            ApplyFont(towerTitle);
+            titleContainer.Add(towerTitle);
+            
+            // 状态标签
+            var statusLabel = new Label(tower.status);
+            statusLabel.style.color = Color.white;
+            statusLabel.style.fontSize = 10;
+            statusLabel.style.backgroundColor = borderColor;
+            statusLabel.style.paddingLeft = 6;
+            statusLabel.style.paddingRight = 6;
+            statusLabel.style.paddingTop = 2;
+            statusLabel.style.paddingBottom = 2;
+            statusLabel.style.borderTopLeftRadius = 3;
+            statusLabel.style.borderTopRightRadius = 3;
+            statusLabel.style.borderBottomLeftRadius = 3;
+            statusLabel.style.borderBottomRightRadius = 3;
+            ApplyFont(statusLabel);
+            titleContainer.Add(statusLabel);
+            
+            towerContainer.Add(titleContainer);
+            
+            // 坐标信息行
+            var coordContainer = new VisualElement();
+            coordContainer.style.flexDirection = FlexDirection.Row;
+            coordContainer.style.justifyContent = Justify.SpaceBetween;
+            coordContainer.style.alignItems = Align.Center;
+            coordContainer.style.marginBottom = 6;
+            
+            var coordLabel = new Label($"坐标: ({tower.position.x:F1}, {tower.position.y:F1}, {tower.position.z:F1})");
+            coordLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
+            coordLabel.style.fontSize = 11;
+            coordLabel.style.flexGrow = 1;
+            ApplyFont(coordLabel);
+            coordContainer.Add(coordLabel);
+            
+            // 跳转按钮
+            var jumpButton = new VisualElement();
+            jumpButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+            jumpButton.style.paddingLeft = 8;
+            jumpButton.style.paddingRight = 8;
+            jumpButton.style.paddingTop = 4;
+            jumpButton.style.paddingBottom = 4;
+            jumpButton.style.borderTopLeftRadius = 4;
+            jumpButton.style.borderTopRightRadius = 4;
+            jumpButton.style.borderBottomLeftRadius = 4;
+            jumpButton.style.borderBottomRightRadius = 4;
+            
+            var jumpLabel = new Label("跳转");
+            jumpLabel.style.color = Color.white;
+            jumpLabel.style.fontSize = 10;
+            jumpLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+            ApplyFont(jumpLabel);
+            jumpButton.Add(jumpLabel);
+            
+            // 跳转按钮点击事件
+            jumpButton.RegisterCallback<ClickEvent>(evt => 
+            {
+                towerManager.JumpToTower(tower);
+            });
+            
+            // 悬停效果
+            jumpButton.RegisterCallback<MouseEnterEvent>(evt => 
+            {
+                jumpButton.style.backgroundColor = new Color(0.3f, 0.7f, 0.9f, 1f);
+            });
+            
+            jumpButton.RegisterCallback<MouseLeaveEvent>(evt => 
+            {
+                jumpButton.style.backgroundColor = new Color(0.2f, 0.6f, 0.8f, 1f);
+            });
+            
+            coordContainer.Add(jumpButton);
+            towerContainer.Add(coordContainer);
+            
+            // 高度信息
+            var heightLabel = new Label($"高度: {tower.height:F1}m");
+            heightLabel.style.color = new Color(0.1f, 0.7f, 0.1f, 1f);
+            heightLabel.style.fontSize = 11;
+            heightLabel.style.marginBottom = 4;
+            ApplyFont(heightLabel);
+            towerContainer.Add(heightLabel);
+            
+            // 距离信息（如果有摄像机）
+            if (Camera.main != null)
+            {
+                var distance = Vector3.Distance(Camera.main.transform.position, tower.position);
+                var distanceLabel = new Label($"距离: {distance:F1}m");
+                distanceLabel.style.color = new Color(0.6f, 0.4f, 0.1f, 1f);
+                distanceLabel.style.fontSize = 11;
+                ApplyFont(distanceLabel);
+                towerContainer.Add(distanceLabel);
+            }
+            
+            container.Add(towerContainer);
+        }
     }
 } 
