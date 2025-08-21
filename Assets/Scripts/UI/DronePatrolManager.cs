@@ -13,11 +13,16 @@ namespace UI
     /// </summary>
     public class DronePatrolManager : MonoBehaviour
     {
-        [Header("无人机巡检配置")]
-        public float droneSpeed = 2f; // 无人机移动速度
-        public float droneHeight = 3.8f; // 无人机高度比例（相对于电塔高度，与第三人称跳转一致）
-        public float droneDistance = 25f; // 无人机与电塔的侧边距离（增加距离）
-        public float droneStayTime = 0f; // 在每个电塔停留时间（设为0实现匀速巡检）
+            [Header("无人机巡检配置")]
+    public float droneSpeed = 2f; // 无人机移动速度
+    public float droneHeight = 3.8f; // 无人机高度比例（相对于电塔高度，与第三人称跳转一致）
+    public float droneDistance = 25f; // 无人机与电塔的侧边距离（增加距离）
+    public float droneStayTime = 0f; // 在每个电塔停留时间（设为0实现匀速巡检）
+    
+    [Header("路径规划配置")]
+    public bool useSmartPathPlanning = true; // 是否使用智能路径规划
+    public int preferredGroupId = -1; // 优先巡检的组ID（-1表示自动选择）
+    public bool followPowerlineDirection = true; // 是否沿着电力线方向巡检
         
         // 巡检状态
         private bool isDronePatrolling = false;
@@ -25,6 +30,7 @@ namespace UI
         private Coroutine dronePatrolCoroutine = null;
         private int currentTowerIndex = 0; // 当前巡检的电塔索引
         private List<TowerData> currentTowers = null; // 当前巡检的电塔列表
+        private List<Vector3> optimizedPath = null; // 优化后的巡检路径
         
         // 暂停时的视角控制
         private bool enableCameraControlWhenPaused = true;
@@ -105,8 +111,17 @@ namespace UI
                 return;
             }
             
-            // 按照电塔的X坐标排序，确保从第一个塔到最后一个塔
-            currentTowers = towers.OrderBy(t => t.position.x).ToList();
+            // 使用智能路径规划
+            if (useSmartPathPlanning)
+            {
+                currentTowers = PlanOptimalPatrolPath(towers);
+            }
+            else
+            {
+                // 按照电塔的X坐标排序，确保从第一个塔到最后一个塔
+                currentTowers = towers.OrderBy(t => t.position.x).ToList();
+            }
+            
             currentTowerIndex = 0; // 从第一个塔开始
             
             isDronePatrolling = true;
@@ -122,6 +137,134 @@ namespace UI
             }
             
             Debug.Log($"开始无人机巡检，共{currentTowers.Count}个电塔");
+        }
+        
+        /// <summary>
+        /// 智能路径规划 - 基于电塔分组和顺序
+        /// </summary>
+        private List<TowerData> PlanOptimalPatrolPath(List<TowerData> allTowers)
+        {
+            var optimizedTowers = new List<TowerData>();
+            
+            try
+            {
+                // 尝试从SceneInitializer获取更详细的电塔数据
+                var sceneInitializer = FindObjectOfType<SceneInitializer>();
+                if (sceneInitializer != null)
+                {
+                    var detailedTowerData = sceneInitializer.LoadSimpleTowerData();
+                    if (detailedTowerData != null && detailedTowerData.Count > 0)
+                    {
+                        // 使用反射获取group和order信息
+                        var towerWithGroupInfo = new List<(TowerData tower, int groupId, int order)>();
+                        
+                        for (int i = 0; i < Mathf.Min(allTowers.Count, detailedTowerData.Count); i++)
+                        {
+                            var tower = allTowers[i];
+                            var detailedTower = detailedTowerData[i];
+                            
+                            // 尝试获取group和order信息
+                            int groupId = 0;
+                            int order = i;
+                            
+                            // 使用反射获取私有字段
+                            var groupField = detailedTower.GetType().GetField("groupId", 
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            var orderField = detailedTower.GetType().GetField("order", 
+                                System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                            
+                            if (groupField != null)
+                                groupId = (int)groupField.GetValue(detailedTower);
+                            if (orderField != null)
+                                order = (int)orderField.GetValue(detailedTower);
+                            
+                            towerWithGroupInfo.Add((tower, groupId, order));
+                        }
+                        
+                        // 按组ID和顺序排序
+                        var sortedTowers = towerWithGroupInfo
+                            .OrderBy(t => t.groupId)
+                            .ThenBy(t => t.order)
+                            .Select(t => t.tower)
+                            .ToList();
+                        
+                        if (sortedTowers.Count > 0)
+                        {
+                            optimizedTowers = sortedTowers;
+                            Debug.Log($"使用智能路径规划，按组ID和顺序排序，共{optimizedTowers.Count}个电塔");
+                            return optimizedTowers;
+                        }
+                    }
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"智能路径规划失败，使用默认排序: {e.Message}");
+            }
+            
+            // 如果智能规划失败，使用改进的默认排序
+            // 基于电塔之间的距离和方向进行排序
+            optimizedTowers = SortTowersByProximity(allTowers);
+            
+            return optimizedTowers;
+        }
+        
+        /// <summary>
+        /// 基于电塔距离和方向的排序
+        /// </summary>
+        private List<TowerData> SortTowersByProximity(List<TowerData> towers)
+        {
+            if (towers.Count <= 1) return towers;
+            
+            var sortedTowers = new List<TowerData>();
+            var remainingTowers = new List<TowerData>(towers);
+            
+            // 从第一个电塔开始
+            var currentTower = remainingTowers[0];
+            sortedTowers.Add(currentTower);
+            remainingTowers.RemoveAt(0);
+            
+            // 贪心算法：每次选择距离当前电塔最近的下一个电塔
+            while (remainingTowers.Count > 0)
+            {
+                var nearestTower = FindNearestTower(currentTower, remainingTowers);
+                if (nearestTower.HasValue)
+                {
+                    sortedTowers.Add(nearestTower.Value);
+                    remainingTowers.Remove(nearestTower.Value);
+                    currentTower = nearestTower.Value;
+                }
+                else
+                {
+                    break;
+                }
+            }
+            
+            Debug.Log($"使用距离排序，优化后的巡检路径包含{sortedTowers.Count}个电塔");
+            return sortedTowers;
+        }
+        
+        /// <summary>
+        /// 找到距离指定电塔最近的电塔
+        /// </summary>
+        private TowerData? FindNearestTower(TowerData referenceTower, List<TowerData> candidates)
+        {
+            if (candidates == null || candidates.Count == 0) return null;
+            
+            TowerData nearestTower = candidates[0]; // 使用第一个作为默认值
+            float minDistance = float.MaxValue;
+            
+            foreach (var tower in candidates)
+            {
+                float distance = Vector3.Distance(referenceTower.position, tower.position);
+                if (distance < minDistance)
+                {
+                    minDistance = distance;
+                    nearestTower = tower;
+                }
+            }
+            
+            return nearestTower;
         }
         
         /// <summary>
@@ -182,6 +325,7 @@ namespace UI
             isDronePatrolPaused = false;
             currentTowerIndex = 0;
             currentTowers = null;
+            optimizedPath = null;
             
             if (dronePatrolCoroutine != null)
             {

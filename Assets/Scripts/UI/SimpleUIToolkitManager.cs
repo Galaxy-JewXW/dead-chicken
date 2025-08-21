@@ -1165,6 +1165,8 @@ public class SimpleUIToolkitManager : MonoBehaviour
     void ShowCameraPanel()
     {
         var panel = CreatePanel("相机控制");
+        
+        // 基本视角切换按钮
         CreatePanelButton("第一人称视角", panel, () => {
             var cameraManager = FindObjectOfType<CameraManager>();
             if (cameraManager != null)
@@ -1189,6 +1191,48 @@ public class SimpleUIToolkitManager : MonoBehaviour
                 UpdateStatusBar("已切换到飞行视角");
             }
         });
+        
+        // 添加分隔线
+        var separator = new VisualElement();
+        separator.style.height = 1;
+        separator.style.backgroundColor = new Color(0.8f, 0.8f, 0.8f, 1f);
+        separator.style.marginTop = 10;
+        separator.style.marginBottom = 10;
+        panel.Add(separator);
+        
+        // 高级功能按钮
+        CreatePanelButton("刷新当前位置", panel, () => {
+            var cameraManager = FindObjectOfType<CameraManager>();
+            if (cameraManager != null)
+            {
+                cameraManager.RefreshCurrentViewPosition();
+                UpdateStatusBar("已刷新当前视角位置到最近电塔");
+            }
+        });
+        
+        // 自动寻找电塔开关按钮
+        VisualElement autoFindButton = null;
+        autoFindButton = CreatePanelButton("自动寻找电塔: 开启", panel, () => {
+            var cameraManager = FindObjectOfType<CameraManager>();
+            if (cameraManager != null)
+            {
+                bool currentState = cameraManager.GetAutoFindNearestTower();
+                cameraManager.SetAutoFindNearestTower(!currentState);
+                
+                // 更新按钮文本
+                UpdateButtonText(autoFindButton, $"自动寻找电塔: {(currentState ? "关闭" : "开启")}");
+                UpdateStatusBar($"自动寻找电塔功能已{(currentState ? "禁用" : "启用")}");
+            }
+        });
+        
+        // 设置按钮初始状态
+        var cameraManager = FindObjectOfType<CameraManager>();
+        if (cameraManager != null)
+        {
+            bool currentState = cameraManager.GetAutoFindNearestTower();
+            UpdateButtonText(autoFindButton, $"自动寻找电塔: {(currentState ? "开启" : "关闭")}");
+        }
+        
         sidebar.Add(panel);
     }
     
@@ -3789,7 +3833,7 @@ public class SimpleUIToolkitManager : MonoBehaviour
         }
     }
     
-    void CreatePanelButton(string text, VisualElement parent, System.Action onClick)
+    VisualElement CreatePanelButton(string text, VisualElement parent, System.Action onClick)
     {
         var button = new VisualElement();
         button.style.height = 35;
@@ -3811,6 +3855,23 @@ public class SimpleUIToolkitManager : MonoBehaviour
         
         button.RegisterCallback<ClickEvent>(evt => onClick?.Invoke());
         parent.Add(button);
+        
+        return button;
+    }
+    
+    /// <summary>
+    /// 更新按钮文本
+    /// </summary>
+    void UpdateButtonText(VisualElement button, string newText)
+    {
+        if (button != null && button.childCount > 0)
+        {
+            var label = button.Q<Label>();
+            if (label != null)
+            {
+                label.text = newText;
+            }
+        }
     }
     
     public void UpdateStatusBar(string message)

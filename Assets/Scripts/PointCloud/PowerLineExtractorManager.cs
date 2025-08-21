@@ -26,9 +26,7 @@ namespace PowerlineSystem
         [SerializeField] private string lengthMethod = "path";
         [SerializeField] private string referencePointMethod = "center";
         
-        [Header("数据缩放配置")]
-        [Tooltip("目标电塔平均高度（生成CSV时会自动缩放到此高度）")]
-        [SerializeField] private float targetTowerHeight = 10f;
+
         
         [Header("状态显示")]
         [SerializeField] private string currentStatus = "等待文件选择";

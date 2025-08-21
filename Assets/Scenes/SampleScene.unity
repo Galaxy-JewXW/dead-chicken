@@ -271,7 +271,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ec75e6d3c23dae04583594451d21040f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mainFont: {fileID: 0}
+  mainFont: {fileID: 12800000, guid: 80efa337597961d419995bbd3f296f8f, type: 3}
   fallbackFont: {fileID: 0}
   largeTitleSize: 48
   titleSize: 24
@@ -504,13 +504,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea3d1618f662e4f4b941913ef16ecb26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  infoPanel: {fileID: 0}
-  viewModeText: {fileID: 0}
-  instructionText: {fileID: 0}
-  closeButton: {fileID: 0}
-  markButton: {fileID: 0}
-  distanceText: {fileID: 0}
-  cameraManager: {fileID: 0}
 --- !u!1 &776388763
 GameObject:
   m_ObjectHideFlags: 0
@@ -782,6 +775,7 @@ MonoBehaviour:
   firstPersonView: {fileID: 349655666}
   godView: {fileID: 1146216268}
   flyView: {fileID: 29093850}
+  autoFindNearestTower: 1
 --- !u!114 &963194232
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -794,14 +788,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6243114d6ebf65344a4881494957caa7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enableDebugInfo: 1
-  switchToFirstPerson: 49
-  switchToGodView: 50
-  switchToFlyView: 51
-  autoSetupViews: 1
-  firstPersonStartPos: {x: 0, y: 2, z: -10}
-  godViewStartPos: {x: 0, y: 50, z: 0}
-  flyViewStartPos: {x: 30, y: 20, z: 30}
 --- !u!114 &963194233
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -872,15 +858,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f98a54d206dd4f64082606e8954ea5a9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  autoSetupOnStart: 1
-  createViewObjects: 1
-  addMissingComponents: 1
-  firstPersonPosition: {x: 0, y: 2, z: -10}
-  godViewPosition: {x: 0, y: 50, z: 0}
-  flyViewPosition: {x: 30, y: 20, z: 30}
-  firstPersonRotation: {x: 0, y: 0, z: 0}
-  godViewRotation: {x: 60, y: 0, z: 0}
-  flyViewRotation: {x: 30, y: -45, z: 0}
 --- !u!114 &963194237
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1073,20 +1050,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a00a56ca44a5a7b41a7f28170f9d697c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enablePinConnection: 1
-  pinSystemPrefab: {fileID: 0}
-  towerPrefab: {fileID: 2028581679405725647, guid: 4d0ac73e36e10c941bc9d8fb9d6be002, type: 3}
-  useCustomColors: 0
-  conductorColor:
-    r: 0.8
-    g: 0.7
-    b: 0.5
-    a: 1
-  groundWireColor:
-    r: 0.6
-    g: 0.6
-    b: 0.6
-    a: 1
 --- !u!4 &1359545863
 Transform:
   m_ObjectHideFlags: 0
