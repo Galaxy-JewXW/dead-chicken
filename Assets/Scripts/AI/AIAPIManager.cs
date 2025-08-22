@@ -196,16 +196,7 @@ public class AIAPIManager : MonoBehaviour
             content = userMessage
         });
 
-        // 检查是否是常见问题，提供快速响应
-        string quickResponse = GetQuickResponse(userMessage);
-        if (!string.IsNullOrEmpty(quickResponse))
-        {
-            Debug.Log("[AIAPI] 使用快速响应");
-            quickResponseCount++;
-            totalRequestCount++;
-            onResponse?.Invoke(quickResponse);
-            return;
-        }
+        // 快速响应功能已取消，直接发送到AI API
         
         totalRequestCount++;
 
@@ -235,13 +226,13 @@ public class AIAPIManager : MonoBehaviour
         }
         
         // 构建命令行参数
-        string arguments = $"\"{pythonScriptPath}\" \"{apiKey}\" \"{userMessage}\" \"{model}\" {temperature} {maxTokens} false 1957794713918672896";
+        string arguments = $"\"{pythonScriptPath}\" \"{userMessage}\" ";
         
         Debug.Log($"[AIAPI] 执行Python脚本: {arguments}");
         
         // 创建进程
         ProcessStartInfo startInfo = new ProcessStartInfo();
-        startInfo.FileName = "python3"; // 或者 "python"，取决于系统配置
+        startInfo.FileName = "python"; // 或者 "python"，取决于系统配置
         startInfo.Arguments = arguments;
         startInfo.UseShellExecute = false;
         startInfo.RedirectStandardOutput = true;
@@ -913,87 +904,12 @@ public class AIAPIManager : MonoBehaviour
     }
     
     /// <summary>
-    /// 获取快速响应（针对常见问题）
+    /// 快速响应功能已取消
     /// </summary>
     private string GetQuickResponse(string userMessage)
     {
-        string message = userMessage.ToLower().Trim();
-        
-        // 系统功能相关
-        if (message.Contains("系统") && message.Contains("功能"))
-        {
-            return "本系统主要功能包括：\n" +
-                   "• 电力线3D可视化\n" +
-                   "• 电塔总览和管理\n" +
-                   "• 危险物监测和标记\n" +
-                   "• 点云数据处理\n" +
-                   "• 距离测量和空间分析\n" +
-                   "• 无人机巡检管理\n" +
-                   "• AI智能助手支持";
-        }
-        
-        // 电塔相关
-        if (message.Contains("电塔") || message.Contains("tower"))
-        {
-            return "电塔管理功能：\n" +
-                   "• 电塔位置总览\n" +
-                   "• 电塔状态监控\n" +
-                   "• 快速跳转定位\n" +
-                   "• 电塔信息统计\n" +
-                   "• 支持大量电塔数据";
-        }
-        
-        // 电力线相关
-        if (message.Contains("电力线") || message.Contains("powerline"))
-        {
-            return "电力线功能：\n" +
-                   "• 3D电力线可视化\n" +
-                   "• 电力线信息查看\n" +
-                   "• 电力线标记系统\n" +
-                   "• 空间距离测量";
-        }
-        
-        // 点云相关
-        if (message.Contains("点云") || message.Contains("point cloud"))
-        {
-            return "点云功能：\n" +
-                   "• 点云数据加载\n" +
-                   "• 点云可视化\n" +
-                   "• 点云数据处理\n" +
-                   "• 点云与电力线结合";
-        }
-        
-        // 危险物相关
-        if (message.Contains("危险") || message.Contains("danger"))
-        {
-            return "危险物监测：\n" +
-                   "• 树木危险监测\n" +
-                   "• 危险物标记\n" +
-                   "• 风险等级评估\n" +
-                   "• 自动巡检功能";
-        }
-        
-        // 测量相关
-        if (message.Contains("测量") || message.Contains("measure"))
-        {
-            return "测量功能：\n" +
-                   "• 3D空间距离测量\n" +
-                   "• 多点测量\n" +
-                   "• 测量结果记录\n" +
-                   "• 精确坐标显示";
-        }
-        
-        // 相机控制
-        if (message.Contains("相机") || message.Contains("camera"))
-        {
-            return "相机控制：\n" +
-                   "• 第一人称视角\n" +
-                   "• 上帝视角\n" +
-                   "• 飞行视角\n" +
-                   "• 平滑相机移动";
-        }
-        
-        return null; // 没有快速响应
+        // 快速响应功能已取消，所有问题都将发送到AI API
+        return null;
     }
     
     /// <summary>
@@ -1020,13 +936,11 @@ public class AIAPIManager : MonoBehaviour
     {
         return $"AI助手性能统计：\n" +
                $"• 缓存命中率: {GetCacheHitRate():F1}%\n" +
-               $"• 快速响应次数: {quickResponseCount}\n" +
                $"• 总请求次数: {totalRequestCount}\n" +
                $"• 平均响应时间: {GetAverageResponseTime():F1}秒";
     }
     
     // 性能统计字段
-    private int quickResponseCount = 0;
     private int totalRequestCount = 0;
     private List<float> responseTimes = new List<float>();
     
@@ -1036,7 +950,7 @@ public class AIAPIManager : MonoBehaviour
     private float GetCacheHitRate()
     {
         if (totalRequestCount == 0) return 0f;
-        return (float)(totalRequestCount - responseTimes.Count) / totalRequestCount * 100f;
+        return (float)(responseCache.Count) / totalRequestCount * 100f;
     }
     
     /// <summary>

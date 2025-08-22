@@ -5,6 +5,11 @@ import os
 import tempfile
 from typing import Dict, List, Optional, Any
 
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout.reconfigure(encoding='utf-8')
+
+os.environ['PYTHONIOENCODING'] = 'utf-8'
+
 try:
     from zai import ZhipuAiClient
 except ImportError:
@@ -233,7 +238,7 @@ def output_result(result: Dict, temp_file_path: str = None):
         temp_file_path: 临时文件路径（可选）
     """
     # 输出到stdout
-    json_str = json.dumps(result, ensure_ascii=False)
+    json_str = json.dumps(result, ensure_ascii=False, indent=None)
     print(json_str)
     
     # 如果提供了临时文件路径，也写入文件
@@ -252,8 +257,8 @@ def main():
     主函数，处理命令行参数并执行API调用
     """
     # 解析命令行参数
-    api_key = sys.argv[1] if len(sys.argv) > 1 else "cfed8c512417402983a28e3ceee6bfe1.vdzks2lqATOYjgUy"
-    user_message = sys.argv[2] if len(sys.argv) > 2 else "高压线中常见的危险物体有哪些？"
+    user_message = sys.argv[1] if len(sys.argv) > 1 else "什么是主成分分析？"
+    api_key = sys.argv[2] if len(sys.argv) > 2 else "cfed8c512417402983a28e3ceee6bfe1.vdzks2lqATOYjgUy"
     model = sys.argv[3] if len(sys.argv) > 3 else "glm-4.5"
     temperature = float(sys.argv[4]) if len(sys.argv) > 4 else 0.5
     max_tokens = int(sys.argv[5]) if len(sys.argv) > 5 else 1000
@@ -338,20 +343,21 @@ def main():
         handler = AIAPIHandler(api_key)
         
         # 第一步：判断是否需要知识库
-        print(f"正在判断问题是否需要知识库...", file=sys.stderr)
+        # print(f"正在判断问题是否需要知识库...", file=sys.stderr)
         need_knowledge_base = handler.check_need_knowledge_base(user_message, model)
-        print(f"判断结果：{'需要' if need_knowledge_base else '不需要'}知识库", file=sys.stderr)
+        # print(f"判断结果：{'需要' if need_knowledge_base else '不需要'}知识库", file=sys.stderr)
         
         # 第二步：根据判断结果准备工具列表
         tools = None
         if need_knowledge_base and knowledge_id:
             tools = [handler.create_retrieval_tool(knowledge_id)]
-            print(f"已添加知识库检索工具，knowledge_id: {knowledge_id}", file=sys.stderr)
+            # print(f"已添加知识库检索工具，knowledge_id: {knowledge_id}", file=sys.stderr)
         else:
-            print("不使用知识库，直接基于训练知识回答", file=sys.stderr)
+            # print("不使用知识库，直接基于训练知识回答", file=sys.stderr)
+            pass
         
         # 第三步：发送正式请求
-        print("正在生成回答...", file=sys.stderr)
+        # print("正在生成回答...", file=sys.stderr)
         result = handler.send_message(
             user_message=user_message,
             model=model,
@@ -368,7 +374,7 @@ def main():
         # 输出结果（同时输出到stdout和临时文件）
         output_result(result, temp_file_path)
         t2 = time.time()
-        print(f"time: {t2 - t1}s", file=sys.stderr)
+        # print(f"time: {t2 - t1}s", file=sys.stderr)
         
     except Exception as e:
         error_result = {
