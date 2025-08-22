@@ -445,10 +445,18 @@ pip install --user laspy numpy open3d scikit-learn scipy tqdm
 
 #### Python脚本路径设置总结
 - **文件位置**: `Python脚本路径设置总结.md`
-- **技术要点**:
+- **技术要点**: 
   - StreamingAssets目录的使用
   - 动态路径解析策略
   - Unity构建环境下的路径处理
+
+#### 电力线提取Python脚本路径优化
+- **文件位置**: `电力线提取Python脚本路径优化说明.md`
+- **优化内容**: 电力线提取操作的Python脚本路径处理优化
+- **主要改进**:
+  - 优先使用StreamingAssets路径，确保打包后兼容性
+  - 实现多路径查找策略，与AI助手和点云预览保持一致
+  - 添加输出路径的备用方案和错误处理
 
 ### 系统功能文档
 
@@ -555,3 +563,31 @@ Assets/
 - 更新文档时，确保README.md保持最新状态
 - 删除功能时，同步更新对应的README.md
 - 定期检查文档的完整性和准确性 
+
+## 🔧 电力线提取流程优化
+
+### 修改说明
+- **移除地形提取功能**：删除了`worker.py`和`RawTerrainImporter.cs`，不再生成地形RAW文件
+- **直接使用Extractor4.py**：电力线提取现在直接调用`Extractor4.py`脚本，而不是通过`worker.py`
+- **JSON到CSV转换**：使用`extract_tower_coordinates.py`脚本将`Extractor4.py`生成的JSON文件转换为CSV格式
+
+### 新的工作流程
+1. **第一阶段**：执行`Extractor4.py`进行电力线提取
+   - 输入：LAS点云文件
+   - 输出：`*_powerline_endpoints.json`（电力线端点信息）
+   - 输出：`*_extracted_powerlines.las`（提取的电力线点云）
+
+2. **第二阶段**：使用`extract_tower_coordinates.py`转换格式
+   - 输入：`*_powerline_endpoints.json`
+   - 输出：`*_tower_coordinates.csv`（电力塔坐标，符合B.csv格式）
+
+3. **文件复制**：将生成的CSV文件复制到Unity的Resources目录
+
+### 脚本参数说明
+- **Extractor4.py**：`python Extractor4.py <input_las_file>`
+- **extract_tower_coordinates.py**：`python extract_tower_coordinates.py <input_json> <output_csv> [eps] [min_samples] [target_z_mean]`
+
+### 注意事项
+- 确保`extract/`目录中包含`Extractor4.py`和`extract_tower_coordinates.py`脚本
+- 脚本会在当前工作目录生成输出文件
+- 如果找不到`extract_tower_coordinates.py`脚本，会跳过CSV转换步骤 

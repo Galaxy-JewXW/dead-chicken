@@ -153,9 +153,10 @@ namespace PowerlineSystem
                 pythonOutputViewer.AddOutput("正在准备新的提取脚本");
             }
             
-            // 尝试多个可能的extract目录路径
+            // 尝试多个可能的extract目录路径，参考AI助手和点云预览的实现方式
             string[] possibleExtractDirs = {
-                Path.Combine(Application.dataPath, "extract"),  // 标准路径
+                Path.Combine(Application.streamingAssetsPath, "extract"),  // StreamingAssets路径（打包后，优先）
+                Path.Combine(Application.dataPath, "extract"),  // 标准路径（编辑器模式）
                 Path.Combine(Application.dataPath, "..", "extract"),  // 上级目录
                 Path.Combine(Application.dataPath, "..", "..", "extract"),  // 上上级目录
                 Path.Combine(Application.dataPath, "..", "..", "..", "extract"),  // 上上上级目录
@@ -163,21 +164,21 @@ namespace PowerlineSystem
             };
             
             string extractDir = null;
-            string workerPath = null;
+            string extractor4Path = null;
             string towerCoordsPath = null;
             
             // 查找存在的extract目录
             foreach (string dir in possibleExtractDirs)
             {
                 string fullDir = Path.GetFullPath(dir);
-                string testWorkerPath = Path.Combine(fullDir, "worker.py");
+                string testExtractor4Path = Path.Combine(fullDir, "Extractor4.py");
                 string testTowerCoordsPath = Path.Combine(fullDir, "extract_tower_coordinates.py");
 
-                // 需要 worker.py 和 extract_tower_coordinates.py 可选存在
-                if (File.Exists(testWorkerPath))
+                // 需要 Extractor4.py 和 extract_tower_coordinates.py 可选存在
+                if (File.Exists(testExtractor4Path))
                 {
                     extractDir = fullDir;
-                    workerPath = testWorkerPath;
+                    extractor4Path = testExtractor4Path;
                     // 如果存在 tower coords 脚本，则记录
                     if (File.Exists(testTowerCoordsPath)) towerCoordsPath = testTowerCoordsPath;
                     Debug.Log($"找到extract目录: {extractDir}");
@@ -207,22 +208,22 @@ namespace PowerlineSystem
             {
                 pythonOutputViewer.AddOutput("新的提取脚本准备完成");
                 pythonOutputViewer.AddOutput($"使用extract目录: {extractDir}");
-                pythonOutputViewer.AddOutput($"worker.py路径: {workerPath}");
+                pythonOutputViewer.AddOutput($"Extractor4.py路径: {extractor4Path}");
                 pythonOutputViewer.AddOutput($"extract_tower_coordinates.py路径: {towerCoordsPath}");
             }
             
-            // 3. 第一阶段：执行 worker.py（生成 RAW + metadata + 提取电力线）
-            UpdateStatus("第一阶段：执行 worker.py 以生成地形 RAW 与电力线...");
+            // 3. 第一阶段：执行 Extractor4.py（直接提取电力线）
+            UpdateStatus("第一阶段：执行 Extractor4.py 提取电力线...");
             if (pythonOutputViewer != null)
             {
-                pythonOutputViewer.SetProgress(30f, "第一阶段：执行 worker.py ...");
-                pythonOutputViewer.AddOutput("开始执行 worker.py 以生成 RAW 与提取电力线");
+                pythonOutputViewer.SetProgress(30f, "第一阶段：执行 Extractor4.py ...");
+                pythonOutputViewer.AddOutput("开始执行 Extractor4.py 提取电力线");
             }
             
-            bool workerSuccess = false;
-            yield return StartCoroutine(ExecuteWorkerScript(workerPath, (success) => workerSuccess = success, extractDir));
+            bool extractor4Success = false;
+            yield return StartCoroutine(ExecuteExtractor4Script(extractor4Path, (success) => extractor4Success = success, extractDir));
             
-            if (!workerSuccess)
+            if (!extractor4Success)
             {
                 isProcessing = false;
                 yield break;
@@ -231,9 +232,6 @@ namespace PowerlineSystem
             // 4. 检查第一阶段输出文件
             string fileName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
             string powerlineEndpointsPath = Path.Combine(extractDir, $"{fileName}_powerline_endpoints.json");
-
-            // 如果 worker 生成了 metadata.json（默认），也允许使用该文件
-            string metadataJsonPath = Path.Combine(extractDir, "metadata.json");
             
             if (!File.Exists(powerlineEndpointsPath))
             {
@@ -243,15 +241,14 @@ namespace PowerlineSystem
                 yield break;
             }
             
-            // 5. 第二阶段：提取电力塔坐标（如果存在脚本则执行，否则尝试直接使用 worker 生成的 CSV）
-            string finalCsvPath = Path.Combine(extractDir, $"{fileName}_tower_coordinates.csv");
+            // 5. 第二阶段：使用extract_tower_coordinates.py将JSON转换为CSV
             if (!string.IsNullOrEmpty(towerCoordsPath) && File.Exists(towerCoordsPath))
             {
-                UpdateStatus("第二阶段：提取电力塔坐标...");
+                UpdateStatus("第二阶段：转换JSON为CSV文件...");
                 if (pythonOutputViewer != null)
                 {
-                    pythonOutputViewer.SetProgress(70f, "第二阶段：提取电力塔坐标...");
-                    pythonOutputViewer.AddOutput("开始执行电力塔坐标提取");
+                    pythonOutputViewer.SetProgress(70f, "第二阶段：转换JSON为CSV文件...");
+                    pythonOutputViewer.AddOutput("开始执行JSON到CSV转换");
                 }
 
                 bool towerCoordsSuccess = false;
@@ -262,7 +259,18 @@ namespace PowerlineSystem
                     yield break;
                 }
             }
+            else
+            {
+                UpdateStatus("警告：未找到extract_tower_coordinates.py脚本，跳过CSV转换");
+                if (pythonOutputViewer != null)
+                {
+                    pythonOutputViewer.AddOutput("警告：未找到extract_tower_coordinates.py脚本，跳过CSV转换", true);
+                }
+            }
 
+            // 6. 检查生成的CSV文件
+            string finalCsvPath = Path.Combine(extractDir, $"{fileName}_tower_coordinates.csv");
+            
             // 如果脚本不存在，或脚本执行后，检查是否存在 CSV
             if (!File.Exists(finalCsvPath))
             {
@@ -301,29 +309,8 @@ namespace PowerlineSystem
                 pythonOutputViewer.AddOutput("电力线提取流程全部完成！");
             }
             
-            // 自动化：如果生成了 CSV 和 StreamingAssets 的 RAW/metadata，则自动导入地形并放置塔点
+            // 电力线提取完成，触发完成事件
             OnExtractionCompleted?.Invoke(outputCsvPath);
-            try
-            {
-                // 确保在主线程中执行 Unity API
-                string baseName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
-                string streamingMeta = Path.Combine("extract", baseName + "_metadata.json");
-                string resourcesCsvName = Path.GetFileName(outputCsvPath);
-
-                // 查找或创建 RawTerrainImporter
-                RawTerrainImporter importer = FindObjectOfType<RawTerrainImporter>();
-                if (importer == null)
-                {
-                    GameObject go = new GameObject("RawTerrainImporter");
-                    importer = go.AddComponent<RawTerrainImporter>();
-                }
-
-                importer.ImportAndPlace(baseName, baseName + "_metadata.json", resourcesCsvName);
-            }
-            catch (System.Exception ex)
-            {
-                Debug.LogWarning($"自动导入地形失败: {ex.Message}");
-            }
             isProcessing = false;
         }
         
@@ -763,11 +750,11 @@ namespace PowerlineSystem
         }
         
         /// <summary>
-        /// 执行 worker.py 脚本，生成 RAW/metadata 和电力线提取结果
+        /// 执行 Extractor4.py 脚本，直接提取电力线
         /// </summary>
-        private IEnumerator ExecuteWorkerScript(string scriptPath, System.Action<bool> onComplete, string extractDir)
+        private IEnumerator ExecuteExtractor4Script(string scriptPath, System.Action<bool> onComplete, string extractDir)
         {
-            // 复用 ExecutePythonScript 的流程，但需要传入额外参数 --output_raw 到 StreamingAssets
+            // 尝试多个Python命令
             string[] pythonCommands = { "python", "python3", "py" };
             string workingPythonCmd = null;
             foreach (string cmd in pythonCommands)
@@ -803,18 +790,11 @@ namespace PowerlineSystem
                 yield break;
             }
 
-            // 准备输出路径到 StreamingAssets
-            string streamingDir = Path.Combine(Application.streamingAssetsPath, "extract");
-            if (!Directory.Exists(streamingDir)) Directory.CreateDirectory(streamingDir);
-            string baseName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
-            string rawOutPath = Path.Combine(streamingDir, baseName + ".raw");
-            string jsonOutPath = Path.Combine(streamingDir, baseName + "_metadata.json");
-
-            // 启动进程
+            // 启动进程 - 直接调用Extractor4.py进行电力线提取
             ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 FileName = workingPythonCmd,
-                Arguments = $"-u \"{scriptPath}\" --input \"{selectedLasFilePath}\" --output_raw \"{rawOutPath}\" --output_json \"{jsonOutPath}\"",
+                Arguments = $"-u \"{scriptPath}\" \"{selectedLasFilePath}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -830,7 +810,7 @@ namespace PowerlineSystem
             try { process = Process.Start(startInfo); }
             catch (System.Exception ex)
             {
-                Debug.LogError($"启动 worker.py 失败: {ex.Message}");
+                Debug.LogError($"启动 Extractor4.py 失败: {ex.Message}");
                 onComplete?.Invoke(false);
                 yield break;
             }
@@ -855,9 +835,9 @@ namespace PowerlineSystem
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            Debug.Log($"worker.py: {line}");
+                            Debug.Log($"Extractor4.py: {line}");
                             UpdateStatus(line);
-                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[worker] {line}", false);
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[Extractor4] {line}", false);
                         }
                     }
                     lastOut = outputBuffer;
@@ -870,8 +850,8 @@ namespace PowerlineSystem
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            Debug.LogWarning($"worker.py err: {line}");
-                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[worker err] {line}", true);
+                            Debug.LogWarning($"Extractor4.py err: {line}");
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[Extractor4 err] {line}", true);
                         }
                     }
                     lastErr = errorBuffer;
@@ -882,7 +862,7 @@ namespace PowerlineSystem
             {
                 try { process.Kill(); } catch { }
                 process?.Dispose();
-                Debug.LogError("worker.py 超时");
+                Debug.LogError("Extractor4.py 超时");
                 onComplete?.Invoke(false);
                 yield break;
             }
@@ -890,12 +870,13 @@ namespace PowerlineSystem
             process.WaitForExit(); int exitCode = process.ExitCode; process.Dispose();
             if (exitCode != 0)
             {
-                Debug.LogError($"worker.py 退出码: {exitCode}");
+                Debug.LogError($"Extractor4.py 退出码: {exitCode}");
                 onComplete?.Invoke(false);
                 yield break;
             }
 
             // 成功后：尝试把 powerline 输出（如 *_tower_coordinates.csv）复制到 Resources
+            string baseName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
             string producedCsv = Path.Combine(extractDir, baseName + "_tower_coordinates.csv");
             if (File.Exists(producedCsv))
             {
@@ -904,8 +885,8 @@ namespace PowerlineSystem
                 catch (System.Exception ex) { Debug.LogWarning($"复制CSV失败: {ex.Message}"); }
             }
 
-            // 确保 raw/json 在 StreamingAssets 下
-            if (File.Exists(rawOutPath)) Debug.Log($"RAW输出: {rawOutPath}");
+            // 检查JSON输出文件是否生成
+            string jsonOutPath = Path.Combine(extractDir, baseName + "_powerline_endpoints.json");
             if (File.Exists(jsonOutPath)) Debug.Log($"JSON输出: {jsonOutPath}");
 
             onComplete?.Invoke(true);

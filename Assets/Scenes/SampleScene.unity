@@ -1101,6 +1101,7 @@ MonoBehaviour:
   backgroundColor: {r: 0.08, g: 0.08, b: 0.12, a: 0.95}
   userMessageColor: {r: 0.2, g: 0.6, b: 1, a: 0.9}
   aiMessageColor: {r: 0.25, g: 0.25, b: 0.35, a: 0.9}
+  showGreenBubbleButton: 0
   config: {fileID: 0}
   maxChatHistory: 50
   typingSpeed: 0.05
@@ -1398,6 +1399,7 @@ MonoBehaviour:
   showSidePanel: 1
   currentMode: 0
   showInitialInterfaceOnStart: 1
+  showAIAssistantPanelOnStart: 0
 --- !u!4 &1790012212
 Transform:
   m_ObjectHideFlags: 0
