@@ -214,12 +214,37 @@ public class AIAPIManager : MonoBehaviour
     {
         Debug.Log("[AIAPI] 开始执行Python脚本...");
         
-        // 获取Python脚本路径
-        string pythonScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py");
+        // 尝试多个可能的AI脚本路径，参考电力线提取的实现方式
+        string[] possibleAIScriptPaths = {
+            Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py"),  // 标准路径（编辑器模式）
+            Path.Combine(Application.streamingAssetsPath, "extract", "ai_api_handler.py"),  // StreamingAssets路径（打包后）
+            Path.Combine(Application.dataPath, "..", "Scripts", "AI", "ai_api_handler.py"),  // 上级目录
+            Path.Combine(Application.dataPath, "..", "..", "Scripts", "AI", "ai_api_handler.py"),  // 上上级目录
+            Path.Combine(Application.dataPath, "..", "..", "..", "Scripts", "AI", "ai_api_handler.py"),  // 上上上级目录
+            Path.Combine(Application.dataPath, "..", "..", "..", "..", "Scripts", "AI", "ai_api_handler.py")  // 上上上上级目录
+        };
         
-        if (!File.Exists(pythonScriptPath))
+        string pythonScriptPath = null;
+        
+        // 查找存在的AI脚本文件
+        foreach (string path in possibleAIScriptPaths)
         {
-            string errorMsg = $"Python脚本不存在: {pythonScriptPath}";
+            string fullPath = Path.GetFullPath(path);
+            if (File.Exists(fullPath))
+            {
+                pythonScriptPath = fullPath;
+                Debug.Log($"[AIAPI] 找到AI脚本: {pythonScriptPath}");
+                break;
+            }
+        }
+        
+        if (pythonScriptPath == null)
+        {
+            string errorMsg = "错误：找不到AI脚本文件，尝试的路径:";
+            foreach (string path in possibleAIScriptPaths)
+            {
+                errorMsg += $"\n  {Path.GetFullPath(path)}";
+            }
             Debug.LogError($"[AIAPI] {errorMsg}");
             onError?.Invoke(errorMsg);
             yield break;
@@ -643,15 +668,39 @@ public class AIAPIManager : MonoBehaviour
         Debug.Log($"[AIAPI] 测试URL: {apiUrl}");
         Debug.Log($"[AIAPI] 测试模型: {model}");
         
-        // 检查Python脚本是否存在
-        string pythonScriptPath = Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py");
-        if (!File.Exists(pythonScriptPath))
+        // 检查Python脚本是否存在，使用多种路径查找方式
+        string[] possibleAIScriptPaths = {
+            Path.Combine(Application.dataPath, "Scripts", "AI", "ai_api_handler.py"),  // 标准路径（编辑器模式）
+            Path.Combine(Application.streamingAssetsPath, "extract", "ai_api_handler.py"),  // StreamingAssets路径（打包后）
+            Path.Combine(Application.dataPath, "..", "Scripts", "AI", "ai_api_handler.py"),  // 上级目录
+            Path.Combine(Application.dataPath, "..", "..", "Scripts", "AI", "ai_api_handler.py"),  // 上上级目录
+            Path.Combine(Application.dataPath, "..", "..", "..", "Scripts", "AI", "ai_api_handler.py"),  // 上上上级目录
+            Path.Combine(Application.dataPath, "..", "..", "..", "..", "Scripts", "AI", "ai_api_handler.py")  // 上上上上级目录
+        };
+        
+        string pythonScriptPath = null;
+        
+        // 查找存在的AI脚本文件
+        foreach (string path in possibleAIScriptPaths)
         {
-            Debug.LogError($"[AIAPI] ❌ Python脚本不存在: {pythonScriptPath}");
-            return;
+            string fullPath = Path.GetFullPath(path);
+            if (File.Exists(fullPath))
+            {
+                pythonScriptPath = fullPath;
+                Debug.Log($"[AIAPI] ✅ 找到AI脚本: {pythonScriptPath}");
+                break;
+            }
         }
         
-        Debug.Log($"[AIAPI] ✅ Python脚本存在: {pythonScriptPath}");
+        if (pythonScriptPath == null)
+        {
+            Debug.LogError("[AIAPI] ❌ 找不到AI脚本文件，尝试的路径:");
+            foreach (string path in possibleAIScriptPaths)
+            {
+                Debug.LogError($"[AIAPI]   {Path.GetFullPath(path)}");
+            }
+            return;
+        }
         
         SendMessage("你好，请简单介绍一下自己", 
             (response) => {
