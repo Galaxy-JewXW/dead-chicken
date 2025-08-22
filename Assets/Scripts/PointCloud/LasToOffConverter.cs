@@ -519,33 +519,32 @@ namespace PowerlineSystem
         /// <returns>找到的脚本路径，未找到返回null</returns>
         private static string FindLas2offScript()
         {
-            // 尝试多个可能的las2off目录路径
-            string[] possibleLas2offDirs = {
-                Path.Combine(Application.dataPath, "las2off"),  // 标准路径
-                Path.Combine(Application.dataPath, "..", "las2off"),  // 上级目录
-                Path.Combine(Application.dataPath, "..", "..", "las2off"),  // 上上级目录
-                Path.Combine(Application.dataPath, "..", "..", "..", "las2off"),  // 上上上级目录
-                Path.Combine(Application.dataPath, "..", "..", "..", "..", "las2off")  // 上上上上级目录
+            // 尝试多个可能的las2off脚本路径，参考电力线提取的实现方式
+            string[] possibleLas2offPaths = {
+                Path.Combine(Application.dataPath, "las2off", "las2off.py"),  // 标准路径（编辑器模式）
+                Path.Combine(Application.streamingAssetsPath, "extract", "las2off.py"),  // StreamingAssets路径（打包后）
+                Path.Combine(Application.dataPath, "..", "las2off", "las2off.py"),  // 上级目录
+                Path.Combine(Application.dataPath, "..", "..", "las2off", "las2off.py"),  // 上上级目录
+                Path.Combine(Application.dataPath, "..", "..", "..", "las2off", "las2off.py"),  // 上上上级目录
+                Path.Combine(Application.dataPath, "..", "..", "..", "..", "las2off", "las2off.py")  // 上上上上级目录
             };
             
-            // 查找存在的las2off目录
-            foreach (string dir in possibleLas2offDirs)
+            // 查找存在的las2off脚本文件
+            foreach (string scriptPath in possibleLas2offPaths)
             {
-                string fullDir = Path.GetFullPath(dir);
-                string scriptPath = Path.Combine(fullDir, "las2off.py");
-                
-                if (File.Exists(scriptPath))
+                string fullPath = Path.GetFullPath(scriptPath);
+                if (File.Exists(fullPath))
                 {
-                    UnityEngine.Debug.Log($"找到las2off脚本: {scriptPath}");
-                    return scriptPath;
+                    UnityEngine.Debug.Log($"找到las2off脚本: {fullPath}");
+                    return fullPath;
                 }
             }
             
             // 如果没找到，输出调试信息
             UnityEngine.Debug.LogError("未找到las2off脚本，尝试的路径:");
-            foreach (string dir in possibleLas2offDirs)
+            foreach (string scriptPath in possibleLas2offPaths)
             {
-                UnityEngine.Debug.LogError($"  {Path.GetFullPath(dir)}");
+                UnityEngine.Debug.LogError($"  {Path.GetFullPath(scriptPath)}");
             }
             
             return null;

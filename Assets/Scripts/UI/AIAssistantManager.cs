@@ -19,6 +19,10 @@ public class AIAssistantManager : MonoBehaviour
     public Color userMessageColor = new Color(0.2f, 0.6f, 1f, 0.9f); // 用户消息颜色
     public Color aiMessageColor = new Color(0.25f, 0.25f, 0.35f, 0.9f); // AI消息颜色
     
+    [Header("UI显示控制")]
+    [Tooltip("是否显示绿色气泡UI按钮（如果为false，只保留顶栏AI助手按钮）")]
+    public bool showGreenBubbleButton = false;
+    
     [Header("配置文件")]
     [Tooltip("AI助手配置文件，包含知识库和设置")]
     public AIAssistantConfig config;
@@ -159,13 +163,26 @@ public class AIAssistantManager : MonoBehaviour
             
             CreateUIDocument();
             SetupChatUI();
-            AddWelcomeMessage();
             
-            // 确保切换按钮显示
+            // 根据配置决定是否添加欢迎消息
+            if (config != null && config.showChatPanelOnStart)
+            {
+                AddWelcomeMessage();
+            }
+            
+            // 根据配置决定切换按钮显示状态
             if (toggleButton != null)
             {
-                toggleButton.style.display = DisplayStyle.Flex;
-                Debug.Log("AI助手切换按钮已设置为显示状态");
+                if (showGreenBubbleButton)
+                {
+                    toggleButton.style.display = DisplayStyle.Flex;
+                    Debug.Log("AI助手绿色气泡按钮已设置为显示状态");
+                }
+                else
+                {
+                    toggleButton.style.display = DisplayStyle.None;
+                    Debug.Log("AI助手绿色气泡按钮已隐藏，只保留顶栏AI助手按钮");
+                }
             }
             
             Debug.Log("AI助手初始化完成");
@@ -186,14 +203,38 @@ public class AIAssistantManager : MonoBehaviour
     {
         yield return null; // 等待一帧
         
-        if (toggleButton != null && toggleButton.style.display == DisplayStyle.None)
+        // 根据配置检查按钮状态
+        if (toggleButton != null)
         {
-            Debug.LogWarning("AI助手按钮仍未显示，强制显示");
-            toggleButton.style.display = DisplayStyle.Flex;
-            toggleButton.BringToFront(); // 确保按钮在最上层
+            if (showGreenBubbleButton && toggleButton.style.display == DisplayStyle.None)
+            {
+                Debug.LogWarning("AI助手绿色气泡按钮仍未显示，强制显示");
+                toggleButton.style.display = DisplayStyle.Flex;
+                toggleButton.BringToFront(); // 确保按钮在最上层
+            }
+            else if (!showGreenBubbleButton && toggleButton.style.display == DisplayStyle.Flex)
+            {
+                Debug.Log("AI助手绿色气泡按钮已隐藏，符合配置要求");
+            }
         }
         
         Debug.Log("AI助手状态检查完成");
+    }
+    
+    /// <summary>
+    /// 延迟显示聊天面板（仅在配置要求时调用）
+    /// </summary>
+    private IEnumerator ShowChatPanelOnStartDelayed()
+    {
+        // 等待UI完全初始化
+        yield return new WaitForSeconds(0.5f);
+        
+        // 检查配置是否仍然要求显示
+        if (config != null && config.showChatPanelOnStart)
+        {
+            ToggleChatPanel(true);
+            Debug.Log("根据配置设置，AI助手聊天面板已自动显示");
+        }
     }
     
     /// <summary>
@@ -218,6 +259,13 @@ public class AIAssistantManager : MonoBehaviour
         {
             // 使用默认颜色设置
             SetDefaultColors();
+        }
+        
+        // 应用启动时显示设置
+        if (config != null && config.showChatPanelOnStart)
+        {
+            // 如果配置要求启动时显示聊天面板，则在初始化完成后显示
+            StartCoroutine(ShowChatPanelOnStartDelayed());
         }
     }
     
@@ -368,7 +416,12 @@ public class AIAssistantManager : MonoBehaviour
         
         // 添加到根元素
         rootElement.Add(chatPanel);
-        rootElement.Add(toggleButton);
+        
+        // 根据配置决定是否添加绿色气泡按钮
+        if (showGreenBubbleButton)
+        {
+            rootElement.Add(toggleButton);
+        }
         
         // 设置UIDocument
         if (uiDocument != null && uiDocument.rootVisualElement != null)
@@ -377,13 +430,25 @@ public class AIAssistantManager : MonoBehaviour
             
             // 确保UI元素在最上层
             rootElement.BringToFront();
-            chatPanel.BringToFront();
+            
+            // 根据配置决定是否处理绿色按钮的层级
+            if (showGreenBubbleButton && toggleButton != null)
+            {
+                toggleButton.BringToFront(); // 确保切换按钮在最上层，而不是聊天面板
+                toggleButton.MarkDirtyRepaint();
+            }
             
             // 强制刷新UI
             rootElement.MarkDirtyRepaint();
-            chatPanel.MarkDirtyRepaint();
             
-            Debug.Log("UI结构已创建并添加到UIDocument");
+            if (showGreenBubbleButton)
+            {
+                Debug.Log("UI结构已创建并添加到UIDocument，包含绿色气泡按钮，聊天面板默认隐藏");
+            }
+            else
+            {
+                Debug.Log("UI结构已创建并添加到UIDocument，绿色气泡按钮已隐藏，只保留顶栏AI助手按钮，聊天面板默认隐藏");
+            }
         }
         else
         {
@@ -670,7 +735,17 @@ public class AIAssistantManager : MonoBehaviour
         toggleButton.style.position = Position.Absolute;
         toggleButton.style.bottom = 20;
         toggleButton.style.right = 460;
-        toggleButton.style.display = DisplayStyle.Flex; // 确保按钮显示
+        
+        // 根据配置决定是否显示绿色气泡按钮
+        if (showGreenBubbleButton)
+        {
+            toggleButton.style.display = DisplayStyle.Flex; // 显示绿色气泡按钮
+        }
+        else
+        {
+            toggleButton.style.display = DisplayStyle.None; // 隐藏绿色气泡按钮
+            Debug.Log("绿色气泡UI按钮已隐藏，只保留顶栏AI助手按钮");
+        }
         
         // 现代化按钮样式 - 渐变背景
         toggleButton.style.backgroundImage = new StyleBackground(CreateGradientTexture());

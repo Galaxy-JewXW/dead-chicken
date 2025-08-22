@@ -18,6 +18,8 @@ public class AIAssistantConfig : ScriptableObject
     public float typingSpeed = 0.05f;
     public bool enableTypingEffect = true;
     public bool enableSoundEffects = false;
+    [Tooltip("是否在启动时自动显示聊天面板")]
+    public bool showChatPanelOnStart = false;
     
     [Header("知识库设置")]
     public List<KnowledgeEntry> knowledgeBase = new List<KnowledgeEntry>();

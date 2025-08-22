@@ -77,6 +77,10 @@ public class SimpleUIToolkitManager : MonoBehaviour
     [Tooltip("是否在启动时显示初始界面")]
     public bool showInitialInterfaceOnStart = true;
     
+    [Header("AI助手设置")]
+    [Tooltip("是否在启动时自动显示AI助手面板")]
+    public bool showAIAssistantPanelOnStart = false;
+    
     // 初始界面管理器
     private InitialInterfaceManager initialInterfaceManager;
     
@@ -1046,6 +1050,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
     
     public void SwitchMode(UIMode mode)
     {
+        // 检查是否允许在启动时切换到AI助手模式
+        if (mode == UIMode.AIAssistant && !showAIAssistantPanelOnStart && Time.time < 5f)
+        {
+            Debug.Log("启动后5秒内禁止自动切换到AI助手模式");
+            return;
+        }
+        
         currentMode = mode;
         
         if (showSidePanel)
@@ -1840,6 +1851,13 @@ public class SimpleUIToolkitManager : MonoBehaviour
     
     void ShowAIAssistantPanel()
     {
+        // 检查是否允许在启动时显示AI助手面板
+        if (!showAIAssistantPanelOnStart && Time.time < 5f)
+        {
+            Debug.Log("启动后5秒内禁止自动显示AI助手面板");
+            return;
+        }
+        
         Debug.Log("=== 开始显示AI助手面板 ===");
         
         // 获取或创建AI助手管理器
