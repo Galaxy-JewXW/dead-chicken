@@ -26,6 +26,10 @@ namespace PowerlineSystem
         [Tooltip("是否自动清空场景中现有的电塔")]
         public bool autoClearExistingTowers = true;
         
+        [Header("CSV加载配置")]
+        [Tooltip("启用时，不管读取什么文件都在提取脚本跑完之后加载B.csv")]
+        public bool alwaysLoadBCsvAfterExtraction = true;
+        
         [Header("电塔预制体")]
         [Tooltip("电塔预制体")]
         public GameObject towerPrefab;
@@ -645,14 +649,28 @@ namespace PowerlineSystem
                 Debug.LogWarning($"[PowerlineExtractionSceneBuilder] 尝试继续构建场景，但可能存在问题");
             }
             
-            // 步骤2：检测并配置SceneInitializer使用正确的格式
-            sceneInitializer.SetCsvFileName(fileName);
+            // 步骤2：根据开关配置决定使用哪个CSV文件
+            SceneInitializer.CSVFormat detectedFormat;
             
-            // 自动检测CSV格式
-            SceneInitializer.CSVFormat detectedFormat = DetectCSVFormat(csvPath);
-            sceneInitializer.csvFormat = detectedFormat;
+            if (alwaysLoadBCsvAfterExtraction)
+            {
+                // 强制使用B.csv
+                sceneInitializer.SetCsvFileName("B");
+                sceneInitializer.csvFormat = SceneInitializer.CSVFormat.B;
+                detectedFormat = SceneInitializer.CSVFormat.B;
+                Debug.Log("[PowerlineExtractionSceneBuilder] 开关已启用，强制使用B.csv");
+            }
+            else
+            {
+                // 使用原来的逻辑
+                sceneInitializer.SetCsvFileName(fileName);
+                
+                // 自动检测CSV格式
+                detectedFormat = DetectCSVFormat(csvPath);
+                sceneInitializer.csvFormat = detectedFormat;
+            }
             
-            Debug.Log($"[PowerlineExtractionSceneBuilder] 自动检测到CSV格式: {detectedFormat}");
+            Debug.Log($"[PowerlineExtractionSceneBuilder] 使用的CSV格式: {detectedFormat}");
             Debug.Log($"[PowerlineExtractionSceneBuilder] 设置SceneInitializer.csvFormat = {detectedFormat}");
             
             // 根据格式设置不同的参数

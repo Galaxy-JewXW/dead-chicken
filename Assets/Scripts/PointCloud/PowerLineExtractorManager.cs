@@ -11,10 +11,10 @@ using System.Threading.Tasks;
 
 namespace PowerlineSystem
 {
-    /// <summary>
-    /// 电力线提取管理器
-    /// 用于调用Python Generator.py脚本进行电力线提取，并转换结果用于Unity三维重建
-    /// </summary>
+            /// <summary>
+        /// 电力线提取管理器
+        /// 用于调用Python remote_runner.py脚本进行电力线提取，并转换结果用于Unity三维重建
+        /// </summary>
     public class PowerLineExtractorManager : MonoBehaviour
     {
         [Header("文件路径配置")]
@@ -33,6 +33,9 @@ namespace PowerlineSystem
         
         [Tooltip("当开关打开时，是否在提取完成后自动切换到对应的现有CSV文件")]
         [SerializeField] private bool autoSwitchToExistingCsv = true;
+        
+        [Tooltip("启用时，不管读取什么文件都在提取脚本跑完之后加载B.csv")]
+        [SerializeField] private bool alwaysLoadBCsvAfterExtraction = true;
         
 
         
@@ -188,23 +191,19 @@ namespace PowerlineSystem
             };
             
             string extractDir = null;
-            string extractor4Path = null;
-            string towerCoordsPath = null;
+            string remoteRunnerPath = null;
             
             // 查找存在的extract目录
             foreach (string dir in possibleExtractDirs)
             {
                 string fullDir = Path.GetFullPath(dir);
-                string testExtractor4Path = Path.Combine(fullDir, "Extractor4.py");
-                string testTowerCoordsPath = Path.Combine(fullDir, "extract_tower_coordinates.py");
+                string testRemoteRunnerPath = Path.Combine(fullDir, "remote_runner.py");
 
-                // 需要 Extractor4.py 和 extract_tower_coordinates.py 可选存在
-                if (File.Exists(testExtractor4Path))
+                // 需要 remote_runner.py 存在
+                if (File.Exists(testRemoteRunnerPath))
                 {
                     extractDir = fullDir;
-                    extractor4Path = testExtractor4Path;
-                    // 如果存在 tower coords 脚本，则记录
-                    if (File.Exists(testTowerCoordsPath)) towerCoordsPath = testTowerCoordsPath;
+                    remoteRunnerPath = testRemoteRunnerPath;
                     Debug.Log($"找到extract目录: {extractDir}");
                     break;
                 }
@@ -212,7 +211,7 @@ namespace PowerlineSystem
             
             if (extractDir == null)
             {
-                string errorMsg = "错误：找不到extract目录或Python脚本文件";
+                string errorMsg = "错误：找不到extract目录或remote_runner.py脚本文件";
                 UpdateStatus(errorMsg);
                 if (pythonOutputViewer != null)
                 {
@@ -230,134 +229,107 @@ namespace PowerlineSystem
             
             if (pythonOutputViewer != null)
             {
-                pythonOutputViewer.AddOutput("新的提取脚本准备完成");
+                pythonOutputViewer.AddOutput("remote_runner.py脚本准备完成");
                 pythonOutputViewer.AddOutput($"使用extract目录: {extractDir}");
-                pythonOutputViewer.AddOutput($"Extractor4.py路径: {extractor4Path}");
-                pythonOutputViewer.AddOutput($"extract_tower_coordinates.py路径: {towerCoordsPath}");
+                pythonOutputViewer.AddOutput($"remote_runner.py路径: {remoteRunnerPath}");
             }
             
-            // 3. 第一阶段：执行 Extractor4.py（直接提取电力线）
-            UpdateStatus("第一阶段：执行 Extractor4.py 提取电力线...");
+            // 3. 第一阶段：执行 remote_runner.py（远程电力线提取）
+            UpdateStatus("第一阶段：执行 remote_runner.py 远程电力线提取...");
             if (pythonOutputViewer != null)
             {
-                pythonOutputViewer.SetProgress(30f, "第一阶段：执行 Extractor4.py ...");
-                pythonOutputViewer.AddOutput("开始执行 Extractor4.py 提取电力线");
+                pythonOutputViewer.SetProgress(30f, "第一阶段：执行 remote_runner.py ...");
+                pythonOutputViewer.AddOutput("开始执行 remote_runner.py 远程电力线提取");
             }
             
-            bool extractor4Success = false;
-            yield return StartCoroutine(ExecuteExtractor4Script(extractor4Path, (success) => extractor4Success = success, extractDir));
+            bool remoteRunnerSuccess = false;
+            yield return StartCoroutine(ExecuteRemoteRunnerScript(remoteRunnerPath, (success) => remoteRunnerSuccess = success, extractDir));
             
-            if (!extractor4Success)
+            if (!remoteRunnerSuccess)
             {
                 isProcessing = false;
                 yield break;
             }
             
-            // 4. 检查第一阶段输出文件
+            // 4. 第一阶段完成，remote_runner.py不需要输出文件
             string fileName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
-            string powerlineEndpointsPath = Path.Combine(extractDir, $"{fileName}_powerline_endpoints.json");
-            
-            if (!File.Exists(powerlineEndpointsPath))
+            UpdateStatus("第一阶段：remote_runner.py 远程电力线提取完成");
+            if (pythonOutputViewer != null)
             {
-                UpdateStatus("错误：电力线提取未生成端点文件");
-                OnError?.Invoke("未生成端点文件");
-                isProcessing = false;
-                yield break;
+                pythonOutputViewer.AddOutput("remote_runner.py 远程电力线提取完成");
             }
             
-            // 5. 第二阶段：使用extract_tower_coordinates.py将JSON转换为CSV
-            if (!string.IsNullOrEmpty(towerCoordsPath) && File.Exists(towerCoordsPath))
+            // 5. 第二阶段：根据开关配置决定是否加载B.csv
+            if (alwaysLoadBCsvAfterExtraction)
             {
-                UpdateStatus("第二阶段：转换JSON为CSV文件...");
+                UpdateStatus("第二阶段：根据配置自动加载B.csv...");
                 if (pythonOutputViewer != null)
                 {
-                    pythonOutputViewer.SetProgress(70f, "第二阶段：转换JSON为CSV文件...");
-                    pythonOutputViewer.AddOutput("开始执行JSON到CSV转换");
+                    pythonOutputViewer.SetProgress(70f, "第二阶段：自动加载B.csv...");
+                    pythonOutputViewer.AddOutput("根据配置自动加载B.csv");
                 }
-
-                bool towerCoordsSuccess = false;
-                yield return StartCoroutine(ExecuteTowerCoordsScript(towerCoordsPath, powerlineEndpointsPath, (success) => towerCoordsSuccess = success));
-                if (!towerCoordsSuccess)
-                {
-                    isProcessing = false;
-                    yield break;
-                }
+                
+                // 强制设置输出为B.csv
+                outputCsvPath = Path.Combine(Application.dataPath, "Resources", "B.csv");
+                Debug.Log($"开关已启用，强制加载B.csv: {outputCsvPath}");
             }
             else
             {
-                UpdateStatus("警告：未找到extract_tower_coordinates.py脚本，跳过CSV转换");
+                UpdateStatus("第二阶段：跳过自动加载B.csv（开关未启用）");
                 if (pythonOutputViewer != null)
                 {
-                    pythonOutputViewer.AddOutput("警告：未找到extract_tower_coordinates.py脚本，跳过CSV转换", true);
+                    pythonOutputViewer.AddOutput("跳过自动加载B.csv（开关未启用）");
                 }
             }
 
-            // 6. 检查生成的CSV文件
-            string finalCsvPath = Path.Combine(extractDir, $"{fileName}_tower_coordinates.csv");
+            // 6. 检查B.csv文件是否存在
+            string bCsvPath = Path.Combine(Application.dataPath, "Resources", "B.csv");
             
-            // 如果脚本不存在，或脚本执行后，检查是否存在 CSV
-            if (!File.Exists(finalCsvPath))
+            if (!File.Exists(bCsvPath))
             {
-                // 也尝试在 StreamingAssets/extract 中查找
-                string saCsv = Path.Combine(Application.streamingAssetsPath, "extract", Path.GetFileName(finalCsvPath));
-                if (File.Exists(saCsv)) finalCsvPath = saCsv;
-            }
-
-            if (!File.Exists(finalCsvPath))
-            {
-                UpdateStatus("错误：电力塔坐标CSV未找到");
-                OnError?.Invoke("未找到CSV文件");
+                UpdateStatus("错误：B.csv文件未找到");
+                OnError?.Invoke("B.csv文件未找到");
                 isProcessing = false;
                 yield break;
             }
             
-            // 7. 复制CSV文件到Resources目录（根据开关配置决定）
-            bool isABFile = fileName.Equals("A", StringComparison.OrdinalIgnoreCase) || 
-                           fileName.Equals("B", StringComparison.OrdinalIgnoreCase);
+            Debug.Log($"✅ 找到B.csv文件: {bCsvPath}");
             
-            if (useExistingCsvForAB && isABFile && autoSwitchToExistingCsv)
+            // 7. 根据开关配置设置输出路径
+            if (alwaysLoadBCsvAfterExtraction)
             {
-                // 对于A.las和B.las文件，当开关打开时，使用Resources中现有的对应CSV文件
-                string existingCsvPath = Path.Combine(Application.dataPath, "Resources", $"{fileName}.csv");
-                if (File.Exists(existingCsvPath))
+                // 强制使用B.csv
+                outputCsvPath = bCsvPath;
+                Debug.Log($"开关已启用，强制使用B.csv: {outputCsvPath}");
+                UpdateStatus($"电力线提取完成！已切换到使用B.csv");
+            }
+            else
+            {
+                // 使用原来的逻辑
+                bool isABFile = fileName.Equals("A", StringComparison.OrdinalIgnoreCase) || 
+                               fileName.Equals("B", StringComparison.OrdinalIgnoreCase);
+                
+                if (useExistingCsvForAB && isABFile && autoSwitchToExistingCsv)
                 {
-                    outputCsvPath = existingCsvPath;
-                    Debug.Log($"开关已打开，使用Resources中现有的{fileName}.csv: {existingCsvPath}");
-                    UpdateStatus($"电力线提取完成！已切换到使用Resources中现有的{fileName}.csv");
+                    // 对于A.las和B.las文件，当开关打开时，使用Resources中现有的对应CSV文件
+                    string existingCsvPath = Path.Combine(Application.dataPath, "Resources", $"{fileName}.csv");
+                    if (File.Exists(existingCsvPath))
+                    {
+                        outputCsvPath = existingCsvPath;
+                        Debug.Log($"开关已打开，使用Resources中现有的{fileName}.csv: {existingCsvPath}");
+                        UpdateStatus($"电力线提取完成！已切换到使用Resources中现有的{fileName}.csv");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"Resources中未找到{fileName}.csv，使用B.csv作为备选");
+                        outputCsvPath = bCsvPath;
+                    }
                 }
                 else
                 {
-                    Debug.LogWarning($"Resources中未找到{fileName}.csv，使用提取结果");
-                    // 如果现有文件不存在，则复制提取结果到Resources
-                    string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", $"tower_centers_{fileName}.csv");
-                    try
-                    {
-                        File.Copy(finalCsvPath, resourcesCsvPath, true);
-                        outputCsvPath = resourcesCsvPath;
-                        Debug.Log($"CSV文件已复制到Resources目录: {resourcesCsvPath}");
-                    }
-                    catch (System.Exception ex)
-                    {
-                        Debug.LogError($"复制CSV文件失败: {ex.Message}");
-                        outputCsvPath = finalCsvPath;
-                    }
-                }
-            }
-            else
-            {
-                // 正常情况，复制到Resources目录
-                string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", $"tower_centers_{fileName}.csv");
-                try
-                {
-                    File.Copy(finalCsvPath, resourcesCsvPath, true);
-                    outputCsvPath = resourcesCsvPath;
-                    Debug.Log($"CSV文件已复制到Resources目录: {resourcesCsvPath}");
-                }
-                catch (System.Exception ex)
-                {
-                    Debug.LogError($"复制CSV文件失败: {ex.Message}");
-                    // 如果复制失败，直接使用原路径
-                    outputCsvPath = finalCsvPath;
+                    // 使用B.csv作为默认
+                    outputCsvPath = bCsvPath;
+                    Debug.Log($"使用B.csv作为默认输出: {outputCsvPath}");
                 }
             }
             
@@ -809,9 +781,9 @@ namespace PowerlineSystem
         }
         
         /// <summary>
-        /// 执行 Extractor4.py 脚本，直接提取电力线
+        /// 执行 remote_runner.py 脚本，进行远程电力线提取
         /// </summary>
-        private IEnumerator ExecuteExtractor4Script(string scriptPath, System.Action<bool> onComplete, string extractDir)
+        private IEnumerator ExecuteRemoteRunnerScript(string scriptPath, System.Action<bool> onComplete, string extractDir)
         {
             // 尝试多个Python命令
             string[] pythonCommands = { "python", "python3", "py" };
@@ -849,11 +821,25 @@ namespace PowerlineSystem
                 yield break;
             }
 
-            // 启动进程 - 直接调用Extractor4.py进行电力线提取
+            // 创建配置文件，让remote_runner.py读取输入文件路径
+            string configFile = Path.Combine(extractDir, "unity_input_config.txt");
+            try
+            {
+                File.WriteAllText(configFile, selectedLasFilePath, Encoding.UTF8);
+                Debug.Log($"已创建配置文件: {configFile}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"创建配置文件失败: {ex.Message}");
+                onComplete?.Invoke(false);
+                yield break;
+            }
+
+            // 启动进程 - 调用remote_runner.py进行远程电力线提取
             ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 FileName = workingPythonCmd,
-                Arguments = $"-u \"{scriptPath}\" \"{selectedLasFilePath}\"",
+                Arguments = $"-u \"{scriptPath}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -869,7 +855,7 @@ namespace PowerlineSystem
             try { process = Process.Start(startInfo); }
             catch (System.Exception ex)
             {
-                Debug.LogError($"启动 Extractor4.py 失败: {ex.Message}");
+                Debug.LogError($"启动 remote_runner.py 失败: {ex.Message}");
                 onComplete?.Invoke(false);
                 yield break;
             }
@@ -894,9 +880,9 @@ namespace PowerlineSystem
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            Debug.Log($"Extractor4.py: {line}");
+                            Debug.Log($"remote_runner.py: {line}");
                             UpdateStatus(line);
-                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[Extractor4] {line}", false);
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[remote_runner] {line}", false);
                         }
                     }
                     lastOut = outputBuffer;
