@@ -1,4 +1,5 @@
 using UnityEngine;
+using System;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
@@ -25,6 +26,13 @@ namespace PowerlineSystem
         [SerializeField] private float minLineLength = 200.0f;
         [SerializeField] private string lengthMethod = "path";
         [SerializeField] private string referencePointMethod = "center";
+        
+        [Header("开关配置")]
+        [Tooltip("启用时，对于A.las和B.las文件，提取完成后使用Resources中现有的对应CSV文件")]
+        [SerializeField] private bool useExistingCsvForAB = true;
+        
+        [Tooltip("当开关打开时，是否在提取完成后自动切换到对应的现有CSV文件")]
+        [SerializeField] private bool autoSwitchToExistingCsv = true;
         
 
         
@@ -67,10 +75,26 @@ namespace PowerlineSystem
             
             // 生成输出文件路径
             string fileName = Path.GetFileNameWithoutExtension(lasFilePath);
-            outputCsvPath = Path.Combine(Application.dataPath, "Resources", "tower_centers_" + fileName + ".csv");
             
-            UpdateStatus($"已选择文件：{fileName}.las");
-            Debug.Log($"选择了LAS文件：{lasFilePath}");
+            // 检查是否是A.las或B.las文件
+            bool isABFile = fileName.Equals("A", StringComparison.OrdinalIgnoreCase) || 
+                           fileName.Equals("B", StringComparison.OrdinalIgnoreCase);
+            
+            if (useExistingCsvForAB && isABFile)
+            {
+                // 对于A.las和B.las文件，当开关打开时，使用特殊的输出路径
+                // 这样提取的结果不会覆盖Resources中现有的A.csv和B.csv
+                outputCsvPath = Path.Combine(Application.dataPath, "PyPLineExtractor", "extracted_" + fileName + "_tower_coordinates.csv");
+                UpdateStatus($"已选择文件：{fileName}.las (将使用Resources中现有的{fileName}.csv)");
+                Debug.Log($"选择了{fileName}.las文件，开关已打开，将使用Resources中现有的{fileName}.csv");
+            }
+            else
+            {
+                // 正常情况，生成到Resources目录
+                outputCsvPath = Path.Combine(Application.dataPath, "Resources", "tower_centers_" + fileName + ".csv");
+                UpdateStatus($"已选择文件：{fileName}.las");
+                Debug.Log($"选择了LAS文件：{lasFilePath}");
+            }
         }
         
         /// <summary>
@@ -287,19 +311,54 @@ namespace PowerlineSystem
                 yield break;
             }
             
-            // 7. 复制CSV文件到Resources目录
-            string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", $"tower_centers_{fileName}.csv");
-            try
+            // 7. 复制CSV文件到Resources目录（根据开关配置决定）
+            bool isABFile = fileName.Equals("A", StringComparison.OrdinalIgnoreCase) || 
+                           fileName.Equals("B", StringComparison.OrdinalIgnoreCase);
+            
+            if (useExistingCsvForAB && isABFile && autoSwitchToExistingCsv)
             {
-                File.Copy(finalCsvPath, resourcesCsvPath, true);
-                outputCsvPath = resourcesCsvPath;
-                Debug.Log($"CSV文件已复制到Resources目录: {resourcesCsvPath}");
+                // 对于A.las和B.las文件，当开关打开时，使用Resources中现有的对应CSV文件
+                string existingCsvPath = Path.Combine(Application.dataPath, "Resources", $"{fileName}.csv");
+                if (File.Exists(existingCsvPath))
+                {
+                    outputCsvPath = existingCsvPath;
+                    Debug.Log($"开关已打开，使用Resources中现有的{fileName}.csv: {existingCsvPath}");
+                    UpdateStatus($"电力线提取完成！已切换到使用Resources中现有的{fileName}.csv");
+                }
+                else
+                {
+                    Debug.LogWarning($"Resources中未找到{fileName}.csv，使用提取结果");
+                    // 如果现有文件不存在，则复制提取结果到Resources
+                    string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", $"tower_centers_{fileName}.csv");
+                    try
+                    {
+                        File.Copy(finalCsvPath, resourcesCsvPath, true);
+                        outputCsvPath = resourcesCsvPath;
+                        Debug.Log($"CSV文件已复制到Resources目录: {resourcesCsvPath}");
+                    }
+                    catch (System.Exception ex)
+                    {
+                        Debug.LogError($"复制CSV文件失败: {ex.Message}");
+                        outputCsvPath = finalCsvPath;
+                    }
+                }
             }
-            catch (System.Exception ex)
+            else
             {
-                Debug.LogError($"复制CSV文件失败: {ex.Message}");
-                // 如果复制失败，直接使用原路径
-                outputCsvPath = finalCsvPath;
+                // 正常情况，复制到Resources目录
+                string resourcesCsvPath = Path.Combine(Application.dataPath, "Resources", $"tower_centers_{fileName}.csv");
+                try
+                {
+                    File.Copy(finalCsvPath, resourcesCsvPath, true);
+                    outputCsvPath = resourcesCsvPath;
+                    Debug.Log($"CSV文件已复制到Resources目录: {resourcesCsvPath}");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"复制CSV文件失败: {ex.Message}");
+                    // 如果复制失败，直接使用原路径
+                    outputCsvPath = finalCsvPath;
+                }
             }
             
             UpdateStatus("电力线提取完成！");
@@ -1333,6 +1392,86 @@ namespace PowerlineSystem
         public string GetOutputCsvPath()
         {
             return outputCsvPath;
+        }
+        
+        /// <summary>
+        /// 获取开关状态
+        /// </summary>
+        public bool GetUseExistingCsvForAB()
+        {
+            return useExistingCsvForAB;
+        }
+        
+        /// <summary>
+        /// 设置开关状态
+        /// </summary>
+        /// <param name="enabled">是否启用开关</param>
+        public void SetUseExistingCsvForAB(bool enabled)
+        {
+            useExistingCsvForAB = enabled;
+            Debug.Log($"电力线提取开关已{(enabled ? "启用" : "禁用")}：对于A.las和B.las文件将使用Resources中现有的对应CSV文件");
+        }
+        
+        /// <summary>
+        /// 获取自动切换开关状态
+        /// </summary>
+        public bool GetAutoSwitchToExistingCsv()
+        {
+            return autoSwitchToExistingCsv;
+        }
+        
+        /// <summary>
+        /// 设置自动切换开关状态
+        /// </summary>
+        /// <param name="enabled">是否启用自动切换</param>
+        public void SetAutoSwitchToExistingCsv(bool enabled)
+        {
+            autoSwitchToExistingCsv = enabled;
+            Debug.Log($"自动切换开关已{(enabled ? "启用" : "禁用")}：提取完成后自动切换到现有CSV文件");
+        }
+        
+        /// <summary>
+        /// 获取当前选择的LAS文件名（不含扩展名）
+        /// </summary>
+        public string GetSelectedLasFileName()
+        {
+            if (string.IsNullOrEmpty(selectedLasFilePath))
+                return "";
+            
+            return Path.GetFileNameWithoutExtension(selectedLasFilePath);
+        }
+        
+        /// <summary>
+        /// 检查当前选择的文件是否是A.las或B.las
+        /// </summary>
+        public bool IsCurrentFileAB()
+        {
+            string fileName = GetSelectedLasFileName();
+            return fileName.Equals("A", StringComparison.OrdinalIgnoreCase) || 
+                   fileName.Equals("B", StringComparison.OrdinalIgnoreCase);
+        }
+        
+        /// <summary>
+        /// 获取开关功能的详细描述
+        /// </summary>
+        public string GetSwitchDescription()
+        {
+            if (!useExistingCsvForAB)
+                return "开关已禁用：所有文件都使用提取结果";
+            
+            string fileName = GetSelectedLasFileName();
+            if (string.IsNullOrEmpty(fileName))
+                return "开关已启用：等待选择LAS文件";
+            
+            if (IsCurrentFileAB())
+            {
+                string status = autoSwitchToExistingCsv ? "自动切换" : "手动切换";
+                return $"开关已启用：{fileName}.las 将使用Resources中现有的{fileName}.csv ({status})";
+            }
+            else
+            {
+                return $"开关已启用：{fileName}.las 将使用提取结果";
+            }
         }
     }
     
