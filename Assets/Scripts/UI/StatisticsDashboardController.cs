@@ -32,6 +32,11 @@ namespace UI
         private static string logFilePath;
         private static bool logInitialized = false;
         
+        // 实时更新相关
+        private Coroutine refreshCoroutine;
+        private float refreshInterval = 2f; // 每2秒刷新一次
+        private VisualElement currentContent = null;
+        
         void Start()
         {
             Debug.Log("=== StatisticsDashboardController Start方法开始 ===");
@@ -72,6 +77,83 @@ namespace UI
         }
         
         /// <summary>
+        /// 启动实时刷新协程
+        /// </summary>
+        private void StartRefreshCoroutine()
+        {
+            if (refreshCoroutine != null)
+            {
+                StopCoroutine(refreshCoroutine);
+            }
+            refreshCoroutine = StartCoroutine(RefreshUICoroutine());
+            Debug.Log("实时刷新协程已启动");
+        }
+        
+        /// <summary>
+        /// 停止实时刷新协程
+        /// </summary>
+        private void StopRefreshCoroutine()
+        {
+            if (refreshCoroutine != null)
+            {
+                StopCoroutine(refreshCoroutine);
+                refreshCoroutine = null;
+                Debug.Log("实时刷新协程已停止");
+            }
+        }
+        
+        /// <summary>
+        /// 实时刷新UI协程
+        /// </summary>
+        private System.Collections.IEnumerator RefreshUICoroutine()
+        {
+            while (true)
+            {
+                yield return new WaitForSeconds(refreshInterval);
+                
+                if (isDashboardVisible && currentContent != null)
+                {
+                    RefreshDashboardContent();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 刷新统计大屏内容
+        /// </summary>
+        private void RefreshDashboardContent()
+        {
+            if (currentContent == null) return;
+            
+            Debug.Log("开始刷新统计大屏内容");
+            
+            // 清除旧内容
+            currentContent.Clear();
+            
+            // 重新创建完整的UI结构（包括标题栏和内容）
+            CreateHeader(currentContent);
+            CreateContent(currentContent);
+            
+            Debug.Log("统计大屏内容刷新完成");
+        }
+        
+        /// <summary>
+        /// 手动刷新统计大屏（供外部调用）
+        /// </summary>
+        public void ManualRefresh()
+        {
+            if (isDashboardVisible && currentContent != null)
+            {
+                Debug.Log("手动刷新统计大屏");
+                RefreshDashboardContent();
+            }
+            else
+            {
+                Debug.LogWarning("统计大屏未显示，无法刷新");
+            }
+        }
+        
+        /// <summary>
         /// 显示统计大屏
         /// </summary>
         public void ShowStatisticsDashboard()
@@ -84,6 +166,9 @@ namespace UI
             
             Debug.Log("显示统计大屏");
             ShowStatisticsDashboardPanel();
+            
+            // 启动实时刷新
+            StartRefreshCoroutine();
         }
         
         /// <summary>
@@ -91,6 +176,9 @@ namespace UI
         /// </summary>
         public void HideStatisticsDashboard()
         {
+            // 停止实时刷新
+            StopRefreshCoroutine();
+            
             if (currentOverlay != null && currentOverlay.parent != null)
             {
                 currentOverlay.RemoveFromHierarchy();
@@ -319,6 +407,9 @@ namespace UI
                 CreateContent(container);
                 Debug.Log("内容区域创建完成");
                 
+                // 保存对container的引用，用于实时刷新
+                currentContent = container;
+                
                 overlay.Add(container);
                 Debug.Log("容器添加到覆盖层完成");
                 
@@ -486,8 +577,8 @@ namespace UI
             
             // 巡检数据统计面板
             Debug.Log("开始创建巡检数据统计面板");
-            CreateInspectionPanel(bottomRow);
-            Debug.Log("巡检数据统计面板创建完成");
+            CreateTreeDetectionPanel(bottomRow);
+            Debug.Log("树木检测统计面板创建完成");
             
             // 危险监测统计面板
             Debug.Log("开始创建危险监测统计面板");
@@ -514,10 +605,10 @@ namespace UI
             parent.Add(panel);
             Debug.Log("设备运行统计面板添加到父容器完成");
             
-            // 生成测试数据
-            Debug.Log("开始生成设备运行测试数据");
-            var stats = GenerateTestDeviceStats();
-            Debug.Log($"测试数据生成完成: 总电塔数={stats.totalTowers}, 运行中={stats.operatingTowers}, 维护中={stats.maintenanceTowers}, 警告={stats.warningTowers}, 故障={stats.errorTowers}, 系统健康度={stats.systemHealth:F1}%");
+            // 获取真实电塔数据（参考场景总览的实现）
+            Debug.Log("开始获取真实电塔数据");
+            var stats = GetRealDeviceStats();
+            Debug.Log($"真实数据获取完成: 总电塔数={stats.totalTowers}, 运行中={stats.operatingTowers}, 维护中={stats.maintenanceTowers}, 警告={stats.warningTowers}, 故障={stats.errorTowers}, 系统健康度={stats.systemHealth:F1}%");
             
             // 创建统计项
             Debug.Log("开始创建设备运行统计项");
@@ -569,23 +660,23 @@ namespace UI
             parent.Add(panel);
             Debug.Log("电力线性能统计面板添加到父容器完成");
             
-            // 生成测试数据
-            Debug.Log("开始生成电力线性能测试数据");
-            var stats = GenerateTestPerformanceStats();
-            Debug.Log($"测试数据生成完成: 总线路长度={stats.totalLength:F2}km, 平均电压={stats.averageVoltage:F1}kV, 功率损耗={stats.powerLoss:F1}%, 传输效率={stats.efficiency:F1}%");
+            // 获取真实电力线性能数据
+            Debug.Log("开始获取真实电力线性能数据");
+            var stats = GetRealPerformanceStats();
+            Debug.Log($"真实数据获取完成: 总线路长度={stats.totalLength:F2}km, 平均电压={stats.averageVoltage:F1}kV, 导线总数={stats.totalWires}, 线路数量={stats.lineCount}");
             
-            // 创建统计项（水平紧凑布局）
+            // 创建统计项（根据PowerlineInfo类的实际属性调整）
             Debug.Log("开始创建电力线性能统计项");
             CreateStatsItems(panel, new Dictionary<string, string>
             {
                 { "总线路长度", $"{stats.totalLength:F2} km" },
                 { "平均电压", $"{stats.averageVoltage:F1} kV" },
-                { "功率损耗", $"{stats.powerLoss:F1}%" },
-                { "传输效率", $"{stats.efficiency:F1}%" }
+                { "导线总数", $"{stats.totalWires} 根" },
+                { "线路数量", $"{stats.lineCount} 条" }
             });
             Debug.Log("电力线性能统计项创建完成");
             
-            // 创建仪表图（无背景容器）
+            // 创建仪表图（显示线路覆盖率）
             Debug.Log("开始创建电力线性能仪表图");
             var chartContainer = CreateChartContainerWithoutBackground();
             Debug.Log("图表容器创建完成");
@@ -593,7 +684,8 @@ namespace UI
             if (chartRenderer != null)
             {
                 Debug.Log("ChartRenderer组件存在，开始调用CreateGaugeChart");
-                chartRenderer.CreateGaugeChart(chartContainer, stats.efficiency, 100f, "传输效率");
+                // 使用电力线健康比例作为仪表图数据
+                chartRenderer.CreateGaugeChart(chartContainer, stats.coverageRate, 100f, "电力线健康比例");
                 Debug.Log("ChartRenderer.CreateGaugeChart调用完成");
             }
             else
@@ -602,50 +694,67 @@ namespace UI
             }
             
             panel.Add(chartContainer);
-            Debug.Log("图表容器添加到面板完成");
+            Debug.Log("仪表图容器添加到面板完成");
             Debug.Log("=== 电力线性能统计面板创建完成 ===");
         }
         
         /// <summary>
-        /// 创建巡检数据统计面板
+        /// 创建树木检测统计面板
         /// </summary>
-        void CreateInspectionPanel(VisualElement parent)
+        void CreateTreeDetectionPanel(VisualElement parent)
         {
-            Debug.Log("=== 开始创建巡检数据统计面板 ===");
+            Debug.Log("=== 开始创建树木检测统计面板 ===");
             
-            var panel = CreatePanel("巡检数据统计", new Color(0.2f, 0.6f, 0.4f, 1f));
-            Debug.Log("巡检数据统计面板基础结构创建完成");
+            var panel = CreatePanel("树木检测统计", new Color(0.2f, 0.6f, 0.4f, 1f));
+            Debug.Log("树木检测统计面板基础结构创建完成");
             parent.Add(panel);
-            Debug.Log("巡检数据统计面板添加到父容器完成");
+            Debug.Log("树木检测统计面板添加到父容器完成");
             
-            // 生成测试数据
-            Debug.Log("开始生成巡检数据测试数据");
-            var stats = GenerateTestInspectionStats();
-            Debug.Log($"测试数据生成完成: 巡检次数={stats.totalInspections}, 已完成={stats.completedInspections}, 待巡检={stats.pendingInspections}, 巡检覆盖率={stats.inspectionCoverage:F1}%");
+            // 获取真实树木检测数据
+            Debug.Log("开始获取真实树木检测数据");
+            var stats = GetRealTreeDetectionStats();
+            Debug.Log($"真实数据获取完成: 总树木数={stats.totalTrees}, 安全={stats.safeTrees}, 警告={stats.warningTrees}, 危险={stats.criticalTrees}, 紧急={stats.emergencyTrees}, 危险比例={stats.dangerPercentage:F1}%");
             
             // 创建统计项
-            Debug.Log("开始创建巡检数据统计项");
+            Debug.Log("开始创建树木检测统计项");
             CreateStatsItems(panel, new Dictionary<string, string>
             {
-                { "巡检次数", stats.totalInspections.ToString() },
-                { "已完成", stats.completedInspections.ToString() },
-                { "待巡检", stats.pendingInspections.ToString() },
-                { "巡检覆盖率", $"{stats.inspectionCoverage:F1}%" }
+                { "总树木数", stats.totalTrees.ToString() },
+                { "安全树木", stats.safeTrees.ToString() },
+                { "警告树木", stats.warningTrees.ToString() },
+                { "危险树木", stats.criticalTrees.ToString() },
+                { "紧急树木", stats.emergencyTrees.ToString() }
             });
-            Debug.Log("巡检数据统计项创建完成");
             
-            // 创建进度条（无背景容器）
-            Debug.Log("开始创建巡检进度条");
-            var progressContainer = CreateChartContainerWithoutBackground();
-            Debug.Log("进度条容器创建完成");
+            // 创建仪表图显示危险比例
+            Debug.Log("开始创建树木检测仪表图");
+            var chartContainer = new VisualElement();
+            chartContainer.style.width = 120;
+            chartContainer.style.height = 120;
+            chartContainer.style.alignSelf = Align.Center;
+            chartContainer.style.marginTop = 10;
+            panel.Add(chartContainer);
             
-            var progressBar = CreateProgressBar($"巡检进度: {stats.inspectionCoverage:F1}%", stats.inspectionCoverage / 100f);
-            progressContainer.Add(progressBar);
-            Debug.Log("进度条添加到容器完成");
+            if (chartRenderer != null)
+            {
+                Debug.Log("ChartRenderer组件存在，开始调用CreateGaugeChart");
+                // 使用危险比例作为仪表图数据
+                chartRenderer.CreateGaugeChart(chartContainer, stats.dangerPercentage, 100f, "危险比例");
+                Debug.Log("ChartRenderer.CreateGaugeChart调用完成");
+            }
+            else
+            {
+                Debug.LogWarning("ChartRenderer组件未找到，无法创建仪表图");
+                // 创建文本显示作为备选
+                var textLabel = new Label($"危险比例: {stats.dangerPercentage:F1}%");
+                textLabel.style.color = Color.white;
+                textLabel.style.fontSize = 16;
+                textLabel.style.unityFontStyleAndWeight = FontStyle.Bold;
+                textLabel.style.alignSelf = Align.Center;
+                chartContainer.Add(textLabel);
+            }
             
-            panel.Add(progressContainer);
-            Debug.Log("进度条容器添加到面板完成");
-            Debug.Log("=== 巡检数据统计面板创建完成 ===");
+            Debug.Log("=== 树木检测统计面板创建完成 ===");
         }
         
         /// <summary>
@@ -660,43 +769,31 @@ namespace UI
             parent.Add(panel);
             Debug.Log("危险监测统计面板添加到父容器完成");
             
-            // 生成测试数据
-            Debug.Log("开始生成危险监测测试数据");
-            var stats = GenerateTestDangerStats();
-            Debug.Log($"测试数据生成完成: 总危险点={stats.totalDangers}, 风险评估={stats.riskAssessment:F1}分");
+            // 获取真实危险监测数据
+            Debug.Log("开始获取真实危险监测数据");
+            var stats = GetRealHazardStats();
+            Debug.Log($"真实数据获取完成: 总危险点={stats.totalDangers}, 风险评估={stats.riskAssessment:F1}分");
             
-            // 创建统计项
+            // 创建统计项（重新设计，突出危险等级分布）
             Debug.Log("开始创建危险监测统计项");
             CreateStatsItems(panel, new Dictionary<string, string>
             {
                 { "总危险点", stats.totalDangers.ToString() },
+                { "高风险", stats.highRiskCount.ToString() },
+                { "中风险", stats.mediumRiskCount.ToString() },
+                { "低风险", stats.lowRiskCount.ToString() },
                 { "风险评估", $"{stats.riskAssessment:F1}分" }
             });
             Debug.Log("危险监测统计项创建完成");
             
-            // 创建柱状图（无背景容器）
+            // 创建柱状图（显示危险等级分布）
             Debug.Log("开始创建危险监测柱状图");
             var chartContainer = CreateChartContainerWithoutBackground();
             Debug.Log("图表容器创建完成");
             
-            // 从dangerByType字典中提取数据
-            var data = new List<float>();
-            var labels = new List<string>();
-            
-            if (stats.dangerByType != null && stats.dangerByType.Count > 0)
-            {
-                foreach (var kvp in stats.dangerByType)
-                {
-                    data.Add(kvp.Value);
-                    labels.Add(kvp.Key.ToString());
-                }
-            }
-            else
-            {
-                // 如果没有数据，显示默认值
-                data = new List<float> { 0, 0, 0, 0 };
-                labels = new List<string> { "无数据", "无数据", "无数据", "无数据" };
-            }
+            // 使用危险等级数据创建柱状图
+            var data = new List<float> { stats.highRiskCount, stats.mediumRiskCount, stats.lowRiskCount };
+            var labels = new List<string> { "高风险", "中风险", "低风险" };
             
             Debug.Log($"准备创建柱状图，数据: [{string.Join(", ", data)}], 标签: [{string.Join(", ", labels)}]");
             
@@ -1010,6 +1107,55 @@ namespace UI
         }
         
         /// <summary>
+        /// 获取真实电塔数据（参考场景总览的实现）
+        /// </summary>
+        private DeviceOperationStats GetRealDeviceStats()
+        {
+            var stats = new DeviceOperationStats();
+            
+            // 尝试从StatisticsDashboardManager获取真实数据
+            var dashboardManager = FindObjectOfType<StatisticsDashboardManager>();
+            if (dashboardManager != null)
+            {
+                var realStats = dashboardManager.GetDeviceStats();
+                if (realStats.totalTowers > 0)
+                {
+                    Debug.Log("从StatisticsDashboardManager获取到真实数据");
+                    return realStats;
+                }
+            }
+            
+            // 如果StatisticsDashboardManager没有数据，尝试从SceneOverviewManager获取
+            var sceneOverviewManager = FindObjectOfType<SceneOverviewManager>();
+            if (sceneOverviewManager != null)
+            {
+                var towers = sceneOverviewManager.GetTowerData();
+                if (towers != null && towers.Count > 0)
+                {
+                    Debug.Log($"从SceneOverviewManager获取到{towers.Count}座电塔数据");
+                    
+                    stats.totalTowers = towers.Count;
+                    stats.operatingTowers = towers.Count(t => t.status == "normal");
+                    stats.warningTowers = towers.Count(t => t.status == "warning");
+                    stats.errorTowers = towers.Count(t => t.status == "error");
+                    stats.maintenanceTowers = stats.totalTowers - stats.operatingTowers - stats.warningTowers - stats.errorTowers;
+                    
+                    if (stats.totalTowers > 0)
+                    {
+                        stats.systemHealth = (float)stats.operatingTowers / stats.totalTowers * 100f;
+                    }
+                    
+                    Debug.Log($"真实数据统计完成: 总电塔数={stats.totalTowers}, 运行中={stats.operatingTowers}, 维护中={stats.maintenanceTowers}, 警告={stats.warningTowers}, 故障={stats.errorTowers}, 系统健康度={stats.systemHealth:F1}%");
+                    return stats;
+                }
+            }
+            
+            // 如果都没有真实数据，返回测试数据
+            Debug.Log("未找到真实电塔数据，使用测试数据");
+            return GenerateTestDeviceStats();
+        }
+        
+        /// <summary>
         /// 生成测试数据（当StatisticsDashboardManager不可用时使用）
         /// </summary>
         private DeviceOperationStats GenerateTestDeviceStats()
@@ -1025,28 +1171,127 @@ namespace UI
             };
         }
         
+        private PowerlinePerformanceStats GetRealPerformanceStats()
+        {
+            var stats = new PowerlinePerformanceStats();
+            
+            // 尝试从StatisticsDashboardManager获取真实数据
+            var dashboardManager = FindObjectOfType<StatisticsDashboardManager>();
+            if (dashboardManager != null)
+            {
+                var realStats = dashboardManager.GetPerformanceStats();
+                if (realStats.totalLength > 0)
+                {
+                    Debug.Log("从StatisticsDashboardManager获取到真实电力线性能数据");
+                    return realStats;
+                }
+            }
+            
+            // 如果StatisticsDashboardManager没有数据，尝试从SceneInitializer直接获取
+            var sceneInitializer = FindObjectOfType<SceneInitializer>();
+            if (sceneInitializer != null && sceneInitializer.powerlines != null && sceneInitializer.powerlines.Count > 0)
+            {
+                Debug.Log($"从SceneInitializer获取到{sceneInitializer.powerlines.Count}条电力线数据");
+                
+                // 计算总长度（转换为公里）
+                stats.totalLength = sceneInitializer.powerlines.Sum(p => p.length) / 1000f;
+                
+                // 获取平均电压
+                stats.averageVoltage = sceneInitializer.powerlines.Average(p => p.voltage);
+                
+                // 计算导线总数（基于wireCount属性）
+                stats.totalWires = sceneInitializer.powerlines.Sum(p => p.wireCount);
+                
+                // 线路数量
+                stats.lineCount = sceneInitializer.powerlines.Count;
+                
+                // 计算电力线健康状态比例（优秀与良好线路数量总和/总线路数量）
+                // 从PowerlineInteraction组件获取电力线状态，而不是从电塔数据获取
+                var powerlineInteractions = FindObjectsOfType<PowerlineInteraction>();
+                if (powerlineInteractions != null && powerlineInteractions.Length > 0)
+                {
+                    Debug.Log($"找到{powerlineInteractions.Length}个PowerlineInteraction组件");
+                    
+                    // 统计电力线状态
+                    int excellentPowerlines = 0;
+                    int goodPowerlines = 0;
+                    int maintenancePowerlines = 0;
+                    
+                    foreach (var powerline in powerlineInteractions)
+                    {
+                        string condition = powerline.GetCurrentCondition();
+                        Debug.Log($"电力线 {powerline.name} 状态: {condition}");
+                        
+                        if (condition == "优秀")
+                        {
+                            excellentPowerlines++;
+                        }
+                        else if (condition == "良好")
+                        {
+                            goodPowerlines++;
+                        }
+                        else if (condition == "需要维护")
+                        {
+                            maintenancePowerlines++;
+                        }
+                    }
+                    
+                    // 健康电力线数量（优秀+良好）
+                    int healthyPowerlines = excellentPowerlines + goodPowerlines;
+                    int totalPowerlines = powerlineInteractions.Length;
+                    
+                    // 健康状态比例 = 健康电力线数量 / 总电力线数量 × 100%
+                    if (totalPowerlines > 0)
+                    {
+                        stats.coverageRate = Mathf.Clamp((float)healthyPowerlines / totalPowerlines * 100f, 0f, 100f);
+                    }
+                    else
+                    {
+                        stats.coverageRate = 100f; // 如果没有电力线，比例100%
+                    }
+                    
+                    Debug.Log($"电力线状态统计: 优秀={excellentPowerlines}, 良好={goodPowerlines}, 需要维护={maintenancePowerlines}, 健康比例={stats.coverageRate:F1}%");
+                }
+                else
+                {
+                    Debug.LogWarning("未找到PowerlineInteraction组件，使用默认健康比例");
+                    stats.coverageRate = 85f; // 默认健康比例
+                }
+                
+                Debug.Log($"真实数据统计完成: 总线路长度={stats.totalLength:F2}km, 平均电压={stats.averageVoltage:F1}kV, 导线总数={stats.totalWires}, 线路数量={stats.lineCount}, 电力线健康比例={stats.coverageRate:F1}%");
+                return stats;
+            }
+            
+            // 如果都没有真实数据，返回测试数据
+            Debug.Log("未找到真实电力线性能数据，使用测试数据");
+            return GenerateTestPerformanceStats();
+        }
+        
         private PowerlinePerformanceStats GenerateTestPerformanceStats()
         {
             return new PowerlinePerformanceStats
             {
                 totalLength = 89.5f,
                 averageVoltage = 220.0f,
-                powerLoss = 2.8f,
-                efficiency = 97.2f,
+                totalWires = 216,        // 新增：导线总数
+                lineCount = 72,          // 新增：线路数量
+                coverageRate = 92.5f,    // 新增：线路覆盖率
+                powerLoss = 2.8f,        // 保留原有属性以兼容
+                efficiency = 97.2f,      // 保留原有属性以兼容
                 lineEfficiency = new Dictionary<string, float>()
             };
         }
         
-        private InspectionStats GenerateTestInspectionStats()
+        /// <summary>
+        /// 危险监测统计数据
+        /// </summary>
+        private class HazardMonitoringStats
         {
-            return new InspectionStats
-            {
-                totalInspections = 324,
-                completedInspections = 298,
-                pendingInspections = 26,
-                inspectionCoverage = 92.0f,
-                recentInspections = new List<InspectionRecord>()
-            };
+            public int totalDangers;           // 总危险点数量
+            public int highRiskCount;          // 高风险数量
+            public int mediumRiskCount;        // 中风险数量
+            public int lowRiskCount;           // 低风险数量
+            public float riskAssessment;       // 风险评估分数
         }
         
         private DangerMonitoringStats GenerateTestDangerStats()
@@ -1069,6 +1314,201 @@ namespace UI
                 },
                 riskAssessment = 82.5f,
                 monthlyTrends = new List<DangerTrend>()
+            };
+        }
+
+        /// <summary>
+        /// 获取真实树木检测数据
+        /// </summary>
+        private TreeDetectionStats GetRealTreeDetectionStats()
+        {
+            var stats = new TreeDetectionStats();
+            
+            // 尝试从StatisticsDashboardManager获取真实数据
+            var dashboardManager = FindObjectOfType<StatisticsDashboardManager>();
+            if (dashboardManager != null)
+            {
+                var realStats = dashboardManager.GetTreeDetectionStats();
+                if (realStats.totalTrees > 0)
+                {
+                    Debug.Log("从StatisticsDashboardManager获取到真实树木检测数据");
+                    return realStats;
+                }
+            }
+            
+            // 如果StatisticsDashboardManager没有数据，尝试从TreeDangerMonitor直接获取
+            var treeDangerMonitor = FindObjectOfType<TreeDangerMonitor>();
+            if (treeDangerMonitor != null)
+            {
+                Debug.Log("从TreeDangerMonitor直接获取树木检测数据");
+                
+                // 获取危险统计信息
+                var dangerStats = treeDangerMonitor.GetDangerStatistics();
+                
+                // 统计总树木数
+                stats.totalTrees = 0;
+                foreach (var kvp in dangerStats)
+                {
+                    stats.totalTrees += kvp.Value;
+                }
+                
+                // 设置各状态树木数量
+                stats.safeTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Safe) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Safe] : 0;
+                stats.warningTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Warning) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Warning] : 0;
+                stats.criticalTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Critical) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Critical] : 0;
+                stats.emergencyTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Emergency) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Emergency] : 0;
+                
+                // 计算危险比例
+                int totalDangerousTrees = stats.warningTrees + stats.criticalTrees + stats.emergencyTrees;
+                if (stats.totalTrees > 0)
+                {
+                    stats.dangerPercentage = (float)totalDangerousTrees / stats.totalTrees * 100f;
+                }
+                else
+                {
+                    stats.dangerPercentage = 0f;
+                }
+                
+                Debug.Log($"真实树木检测数据统计完成: 总树木数={stats.totalTrees}, 安全={stats.safeTrees}, 警告={stats.warningTrees}, 危险={stats.criticalTrees}, 紧急={stats.emergencyTrees}, 危险比例={stats.dangerPercentage:F1}%");
+                return stats;
+            }
+            
+            // 如果都没有真实数据，返回测试数据
+            Debug.Log("未找到真实树木检测数据，使用测试数据");
+            return GenerateTestTreeDetectionStats();
+        }
+
+        /// <summary>
+        /// 生成测试树木检测数据
+        /// </summary>
+        private TreeDetectionStats GenerateTestTreeDetectionStats()
+        {
+            return new TreeDetectionStats
+            {
+                totalTrees = 1000,
+                safeTrees = 950,
+                warningTrees = 30,
+                criticalTrees = 15,
+                emergencyTrees = 5,
+                dangerPercentage = 5f
+            };
+        }
+        
+        /// <summary>
+        /// 获取真实危险监测数据
+        /// </summary>
+        private HazardMonitoringStats GetRealHazardStats()
+        {
+            var stats = new HazardMonitoringStats();
+            
+            // 尝试从StatisticsDashboardManager获取真实数据
+            var dashboardManager = FindObjectOfType<StatisticsDashboardManager>();
+            if (dashboardManager != null)
+            {
+                var realStats = dashboardManager.GetDangerStats();
+                if (realStats.totalDangers > 0)
+                {
+                    Debug.Log("从StatisticsDashboardManager获取到真实危险监测数据");
+                    
+                    stats.totalDangers = realStats.totalDangers;
+                    stats.highRiskCount = realStats.dangerByLevel.ContainsKey(DangerLevel.High) ? 
+                        realStats.dangerByLevel[DangerLevel.High] : 0;
+                    stats.mediumRiskCount = realStats.dangerByLevel.ContainsKey(DangerLevel.Medium) ? 
+                        realStats.dangerByLevel[DangerLevel.Medium] : 0;
+                    stats.lowRiskCount = realStats.dangerByLevel.ContainsKey(DangerLevel.Low) ? 
+                        realStats.dangerByLevel[DangerLevel.Low] : 0;
+                    stats.riskAssessment = realStats.riskAssessment;
+                    
+                    Debug.Log($"真实危险监测数据统计完成: 总危险点={stats.totalDangers}, 高风险={stats.highRiskCount}, 中风险={stats.mediumRiskCount}, 低风险={stats.lowRiskCount}, 风险评估={stats.riskAssessment:F1}分");
+                    return stats;
+                }
+            }
+            
+            // 如果StatisticsDashboardManager没有数据，尝试从UIToolkitDangerController获取已创建的危险标记数据
+            var dangerController = FindObjectOfType<UIToolkitDangerController>();
+            if (dangerController != null)
+            {
+                Debug.Log("从UIToolkitDangerController获取已创建的危险标记数据");
+                
+                var dangerMarkers = dangerController.GetDangerMarkers();
+                if (dangerMarkers != null && dangerMarkers.Count > 0)
+                {
+                    Debug.Log($"找到{dangerMarkers.Count}个危险标记");
+                    
+                    // 统计各等级危险数量
+                    int highRisk = 0;
+                    int mediumRisk = 0;
+                    int lowRisk = 0;
+                    
+                    foreach (var marker in dangerMarkers)
+                    {
+                        if (marker != null)
+                        {
+                            switch (marker.dangerLevel)
+                            {
+                                case DangerLevel.High:
+                                    highRisk++;
+                                    break;
+                                case DangerLevel.Medium:
+                                    mediumRisk++;
+                                    break;
+                                case DangerLevel.Low:
+                                    lowRisk++;
+                                    break;
+                            }
+                        }
+                    }
+                    
+                    stats.totalDangers = dangerMarkers.Count;
+                    stats.highRiskCount = highRisk;
+                    stats.mediumRiskCount = mediumRisk;
+                    stats.lowRiskCount = lowRisk;
+                    
+                    // 计算风险评估分数（基于危险等级加权）
+                    if (stats.totalDangers > 0)
+                    {
+                        float riskScore = (stats.highRiskCount * 3f + stats.mediumRiskCount * 2f + stats.lowRiskCount * 1f) / stats.totalDangers;
+                        stats.riskAssessment = Mathf.Max(0f, 100f - riskScore * 20f); // 转换为0-100分制
+                    }
+                    else
+                    {
+                        stats.riskAssessment = 100f; // 没有危险时满分
+                    }
+                    
+                    Debug.Log($"从危险标记数据统计完成: 总危险点={stats.totalDangers}, 高风险={stats.highRiskCount}, 中风险={stats.mediumRiskCount}, 低风险={stats.lowRiskCount}, 风险评估={stats.riskAssessment:F1}分");
+                    return stats;
+                }
+                else
+                {
+                    Debug.Log("UIToolkitDangerController中没有危险标记");
+                }
+            }
+            else
+            {
+                Debug.Log("未找到UIToolkitDangerController");
+            }
+            
+            // 如果没有真实数据，返回不包含树木类型的测试数据
+            Debug.Log("未找到真实危险监测数据，使用不包含树木类型的测试数据");
+            return GenerateTestHazardStats();
+        }
+        
+        /// <summary>
+        /// 生成测试危险监测数据（不包含树木类型）
+        /// </summary>
+        private HazardMonitoringStats GenerateTestHazardStats()
+        {
+            return new HazardMonitoringStats
+            {
+                totalDangers = 0,  // 当前没有非树木类型的危险
+                highRiskCount = 0,
+                mediumRiskCount = 0,
+                lowRiskCount = 0,
+                riskAssessment = 100.0f  // 没有危险时满分
             };
         }
     }

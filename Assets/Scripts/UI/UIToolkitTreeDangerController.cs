@@ -488,14 +488,64 @@ public class UIToolkitTreeDangerController : MonoBehaviour
           statsContainer.style.borderLeftWidth = 2;
           statsContainer.style.borderLeftColor = new Color(1f, 0.6f, 0.2f, 1f);
           
-          // 获取监测统计信息
-          var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
-              obj.name.ToLower().Contains("tree") || 
-              obj.name.ToLower().Contains("植物") || 
-              obj.name.ToLower().Contains("树")).ToArray();
+          // 获取监测统计信息 - 使用与统计大屏相同的数据源
+          var treeDangerMonitor = FindObjectOfType<TreeDangerMonitor>();
+          int totalTrees = 0;
+          int safeTrees = 0;
+          int warningTrees = 0;
+          int criticalTrees = 0;
+          int emergencyTrees = 0;
           
-          // 只显示树木总数
-          var statsLabel = new Label($"树木总数: {allTrees.Length}棵");
+          if (treeDangerMonitor != null)
+          {
+              // 使用与统计大屏相同的方法获取数据
+              var dangerStats = treeDangerMonitor.GetDangerStatistics();
+              
+              // 统计总树木数
+              totalTrees = 0;
+              foreach (var kvp in dangerStats)
+              {
+                  totalTrees += kvp.Value;
+              }
+              
+              // 设置各状态树木数量
+              safeTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Safe) ? 
+                  dangerStats[TreeDangerMonitor.TreeDangerLevel.Safe] : 0;
+              warningTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Warning) ? 
+                  dangerStats[TreeDangerMonitor.TreeDangerLevel.Warning] : 0;
+              criticalTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Critical) ? 
+                  dangerStats[TreeDangerMonitor.TreeDangerLevel.Critical] : 0;
+              emergencyTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Emergency) ? 
+                  dangerStats[TreeDangerMonitor.TreeDangerLevel.Emergency] : 0;
+              
+              Debug.Log($"树木检测界面统计: 总树木数={totalTrees}, 安全={safeTrees}, 警告={warningTrees}, 危险={criticalTrees}, 紧急={emergencyTrees}");
+          }
+                     else
+           {
+               // 如果找不到TreeDangerMonitor，使用原来的方法作为备选
+               var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+                   obj.name.ToLower().Contains("tree") || 
+                   obj.name.ToLower().Contains("植物") || 
+                   obj.name.ToLower().Contains("树")).ToArray();
+               
+                               // 过滤掉系统组件
+                var realTrees = allTrees.Where(obj => 
+                    !obj.name.Contains("TreeDangerMonitor") && 
+                    !obj.name.Contains("TreeDanger") &&
+                    !obj.name.Contains("Monitor") &&
+                    !obj.name.Contains("Controller") &&
+                    !obj.name.Contains("System") &&
+                    !obj.name.Contains("Manager") &&
+                    !obj.name.Contains("UI") &&
+                    !obj.name.Contains("Panel")).ToArray();
+               
+               totalTrees = realTrees.Length;
+               safeTrees = totalTrees; // 默认为安全状态
+               Debug.LogWarning($"未找到TreeDangerMonitor，使用备选统计方法。过滤前: {allTrees.Length}，过滤后: {realTrees.Length}");
+           }
+          
+          // 显示统计信息
+          var statsLabel = new Label($"树木总数: {totalTrees}棵 (安全:{safeTrees} 警告:{warningTrees} 危险:{criticalTrees} 紧急:{emergencyTrees})");
           statsLabel.style.fontSize = 13;
           statsLabel.style.color = new Color(0.4f, 0.4f, 0.4f, 1f);
           statsLabel.style.marginBottom = 8;
@@ -563,7 +613,20 @@ public class UIToolkitTreeDangerController : MonoBehaviour
     {
         var dangerousTrees = new List<GameObject>();
         
-        // 查找所有带有DangerMarker组件的树木
+        // 优先使用TreeDangerMonitor的监测数据
+        var treeDangerMonitor = FindObjectOfType<TreeDangerMonitor>();
+        if (treeDangerMonitor != null)
+        {
+            // 从TreeDangerMonitor获取危险树木列表
+            var monitoredDangerousTrees = treeDangerMonitor.GetDangerousTreesList();
+            if (monitoredDangerousTrees.Count > 0)
+            {
+                dangerousTrees.AddRange(monitoredDangerousTrees);
+                Debug.Log($"从TreeDangerMonitor获取到 {monitoredDangerousTrees.Count} 棵危险树木");
+            }
+        }
+        
+        // 备选方法：查找所有带有DangerMarker组件的树木（用于兼容性）
         var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
             obj.name.ToLower().Contains("tree") || 
             obj.name.ToLower().Contains("植物") || 
@@ -571,14 +634,32 @@ public class UIToolkitTreeDangerController : MonoBehaviour
             
         foreach (var tree in allTrees)
         {
+            // 过滤掉系统组件和监测器组件
+            if (tree.name.Contains("TreeDangerMonitor") || 
+                tree.name.Contains("TreeDanger") ||
+                tree.name.Contains("Monitor") ||
+                tree.name.Contains("Controller") ||
+                tree.name.Contains("System") ||
+                tree.name.Contains("Manager") ||
+                tree.name.Contains("UI") ||
+                tree.name.Contains("Panel"))
+            {
+                continue; // 跳过系统组件
+            }
+            
             // 检查树木本身或其子对象是否有DangerMarker
             if (tree.GetComponent<DangerMarker>() != null || 
                 tree.GetComponentInChildren<DangerMarker>() != null)
             {
-                dangerousTrees.Add(tree);
+                // 避免重复添加
+                if (!dangerousTrees.Contains(tree))
+                {
+                    dangerousTrees.Add(tree);
+                }
             }
         }
         
+        Debug.Log($"总共找到 {dangerousTrees.Count} 棵危险树木");
         return dangerousTrees;
     }
     
@@ -638,10 +719,21 @@ public class UIToolkitTreeDangerController : MonoBehaviour
          }
         
         // 获取场景中的所有树木
-        var sceneTrees = FindObjectsOfType<GameObject>().Where(obj => 
+        var allSceneTrees = FindObjectsOfType<GameObject>().Where(obj => 
             obj.name.ToLower().Contains("tree") || 
             obj.name.ToLower().Contains("植物") || 
             obj.name.ToLower().Contains("树")).ToArray();
+            
+        // 过滤掉系统组件
+        var sceneTrees = allSceneTrees.Where(obj => 
+            !obj.name.Contains("TreeDangerMonitor") && 
+            !obj.name.Contains("TreeDanger") &&
+            !obj.name.Contains("Monitor") &&
+            !obj.name.Contains("Controller") &&
+            !obj.name.Contains("System") &&
+            !obj.name.Contains("Manager") &&
+            !obj.name.Contains("UI") &&
+            !obj.name.Contains("Panel")).ToArray();
             
                  if (sceneTrees.Length == 0)
          {
@@ -866,6 +958,27 @@ public class UIToolkitTreeDangerController : MonoBehaviour
         
                  UpdateStatus($"已智能标记 {markedCount} 棵危险树木（达到电塔30%高度且距离电力线路20米内的树木）");
         UpdateDisplay();
+        
+        // 自动刷新统计大屏
+        var statisticsDashboard = FindObjectOfType<MonoBehaviour>();
+        if (statisticsDashboard != null && statisticsDashboard.GetType().Name == "StatisticsDashboardController")
+        {
+            // 使用反射调用ManualRefresh方法
+            var manualRefreshMethod = statisticsDashboard.GetType().GetMethod("ManualRefresh");
+            if (manualRefreshMethod != null)
+            {
+                manualRefreshMethod.Invoke(statisticsDashboard, null);
+                Debug.Log("已自动刷新统计大屏");
+            }
+            else
+            {
+                Debug.LogWarning("StatisticsDashboardController没有ManualRefresh方法");
+            }
+        }
+        else
+        {
+            Debug.LogWarning("未找到StatisticsDashboardController，无法自动刷新统计大屏");
+        }
     }
     
     void MarkTreeAsDangerous(GameObject tree, TreeDangerMonitor.TreeDangerLevel level)
@@ -1019,16 +1132,27 @@ public class UIToolkitTreeDangerController : MonoBehaviour
     
          void UpdateStatistics()
      {
-         // 获取基本统计信息
-         var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
-             obj.name.ToLower().Contains("tree") || 
-             obj.name.ToLower().Contains("植物") || 
-             obj.name.ToLower().Contains("树")).ToArray();
+                 // 获取基本统计信息
+        var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+            obj.name.ToLower().Contains("tree") || 
+            obj.name.ToLower().Contains("植物") || 
+            obj.name.ToLower().Contains("树")).ToArray();
+            
+        // 过滤掉系统组件
+        var realTrees = allTrees.Where(obj => 
+            !obj.name.Contains("TreeDangerMonitor") && 
+            !obj.name.Contains("TreeDanger") &&
+            !obj.name.Contains("Monitor") &&
+            !obj.name.Contains("Controller") &&
+            !obj.name.Contains("System") &&
+            !obj.name.Contains("Manager") &&
+            !obj.name.Contains("UI") &&
+            !obj.name.Contains("Panel")).ToArray();
          var dangerousTrees = GetAllDangerousTrees();
          
-         // 由于现在使用合并区域，统计信息会在CreateMergedStatisticsDisplay中实时更新
-         // 这里只保留方法以保持兼容性
-         Debug.Log($"统计更新 - 总树木: {allTrees.Length}, 危险树木: {dangerousTrees.Count}");
+                 // 由于现在使用合并区域，统计信息会在CreateMergedStatisticsDisplay中实时更新
+        // 这里只保留方法以保持兼容性
+        Debug.Log($"统计更新 - 过滤前总树木: {allTrees.Length}, 过滤后总树木: {realTrees.Length}, 危险树木: {dangerousTrees.Count}");
      }
     
          void UpdateTreeList()

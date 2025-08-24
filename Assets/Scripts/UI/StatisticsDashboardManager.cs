@@ -28,6 +28,7 @@ namespace UI
         private InspectionStats inspectionStats;
         private DangerMonitoringStats dangerStats;
         private PointCloudProcessingStats pointCloudStats;
+        private TreeDetectionStats treeDetectionStats;
         
         // 更新协程
         private Coroutine updateCoroutine;
@@ -68,6 +69,7 @@ namespace UI
             inspectionStats = new InspectionStats();
             dangerStats = new DangerMonitoringStats();
             pointCloudStats = new PointCloudProcessingStats();
+            treeDetectionStats = new TreeDetectionStats();
         }
         
         private IEnumerator RealTimeDataUpdate()
@@ -79,6 +81,7 @@ namespace UI
                 UpdateInspectionStats();
                 UpdateDangerStats();
                 UpdatePointCloudStats();
+                UpdateTreeDetectionStats(); // 调用新的更新方法
                 yield return new WaitForSeconds(updateInterval);
             }
         }
@@ -180,6 +183,59 @@ namespace UI
             }
         }
         
+        /// <summary>
+        /// 更新树木检测统计数据
+        /// </summary>
+        private void UpdateTreeDetectionStats()
+        {
+            var treeDangerMonitor = FindObjectOfType<TreeDangerMonitor>();
+            if (treeDangerMonitor != null)
+            {
+                var dangerStats = treeDangerMonitor.GetDangerStatistics();
+                
+                // 统计总树木数
+                treeDetectionStats.totalTrees = 0;
+                foreach (var kvp in dangerStats)
+                {
+                    treeDetectionStats.totalTrees += kvp.Value;
+                }
+                
+                // 设置各状态树木数量
+                treeDetectionStats.safeTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Safe) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Safe] : 0;
+                treeDetectionStats.warningTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Warning) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Warning] : 0;
+                treeDetectionStats.criticalTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Critical) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Critical] : 0;
+                treeDetectionStats.emergencyTrees = dangerStats.ContainsKey(TreeDangerMonitor.TreeDangerLevel.Emergency) ? 
+                    dangerStats[TreeDangerMonitor.TreeDangerLevel.Emergency] : 0;
+                
+                // 计算危险比例
+                int totalDangerousTrees = treeDetectionStats.warningTrees + treeDetectionStats.criticalTrees + treeDetectionStats.emergencyTrees;
+                if (treeDetectionStats.totalTrees > 0)
+                {
+                    treeDetectionStats.dangerPercentage = (float)totalDangerousTrees / treeDetectionStats.totalTrees * 100f;
+                }
+                else
+                {
+                    treeDetectionStats.dangerPercentage = 0f;
+                }
+                
+                Debug.Log($"StatisticsDashboardManager更新树木检测数据: 总树木数={treeDetectionStats.totalTrees}, 安全={treeDetectionStats.safeTrees}, 警告={treeDetectionStats.warningTrees}, 危险={treeDetectionStats.criticalTrees}, 紧急={treeDetectionStats.emergencyTrees}, 危险比例={treeDetectionStats.dangerPercentage:F1}%");
+            }
+            else
+            {
+                Debug.LogWarning("未找到TreeDangerMonitor组件，无法更新树木检测数据");
+                // 重置为默认值
+                treeDetectionStats.totalTrees = 0;
+                treeDetectionStats.safeTrees = 0;
+                treeDetectionStats.warningTrees = 0;
+                treeDetectionStats.criticalTrees = 0;
+                treeDetectionStats.emergencyTrees = 0;
+                treeDetectionStats.dangerPercentage = 0f;
+            }
+        }
+        
         private float CalculateRiskAssessment()
         {
             float riskScore = 0f;
@@ -197,7 +253,22 @@ namespace UI
         public DeviceOperationStats GetDeviceStats() => deviceStats;
         public PowerlinePerformanceStats GetPerformanceStats() => performanceStats;
         public InspectionStats GetInspectionStats() => inspectionStats;
-        public DangerMonitoringStats GetDangerStats() => dangerStats;
+        /// <summary>
+        /// 获取危险物统计数据
+        /// </summary>
+        public DangerMonitoringStats GetDangerStats()
+        {
+            return dangerStats;
+        }
+        
+        /// <summary>
+        /// 获取树木检测统计数据
+        /// </summary>
+        public TreeDetectionStats GetTreeDetectionStats()
+        {
+            // 直接返回已更新的统计数据
+            return treeDetectionStats;
+        }
         public PointCloudProcessingStats GetPointCloudStats() => pointCloudStats;
         
         void OnDestroy()
@@ -228,6 +299,22 @@ namespace UI
         public float powerLoss;
         public float efficiency;
         public Dictionary<string, float> lineEfficiency;
+        
+        // 新增属性用于真实电力线数据
+        public int totalWires;      // 导线总数
+        public int lineCount;       // 线路数量
+        public float coverageRate;  // 线路覆盖率
+    }
+    
+    [System.Serializable]
+    public class TreeDetectionStats
+    {
+        public int totalTrees;          // 总树木数
+        public int safeTrees;           // 安全树木数
+        public int warningTrees;        // 警告树木数
+        public int criticalTrees;       // 危险树木数
+        public int emergencyTrees;      // 紧急树木数
+        public float dangerPercentage;  // 危险比例
     }
     
     [System.Serializable]

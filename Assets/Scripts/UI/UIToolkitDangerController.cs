@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using System.Collections.Generic;
+using UI;
 
 /// <summary>
 /// UI Toolkit危险物控制器 - 独立危险物管理系统
@@ -687,10 +688,18 @@ public class UIToolkitDangerController : MonoBehaviour
             Destroy(marker.gameObject);
             dangerMarkers.Remove(marker);
             UpdateMarkerList();
-            if (uiManager != null)
-            {
-                uiManager.UpdateStatusBar("已删除危险标记");
-            }
+                    if (uiManager != null)
+        {
+            uiManager.UpdateStatusBar("已删除危险标记");
+        }
+        
+        // 自动刷新统计大屏
+        var statisticsDashboard = FindObjectOfType<StatisticsDashboardController>();
+        if (statisticsDashboard != null)
+        {
+            statisticsDashboard.ManualRefresh();
+            Debug.Log("已自动刷新统计大屏");
+        }
         }
     }
     
@@ -1020,6 +1029,14 @@ public class UIToolkitDangerController : MonoBehaviour
         }
         
         Debug.Log($"创建危险标记 - 类型:{selectedDangerType}, 等级:{selectedDangerLevel}, 位置:{position}");
+        
+        // 自动刷新统计大屏
+        var statisticsDashboard = FindObjectOfType<StatisticsDashboardController>();
+        if (statisticsDashboard != null)
+        {
+            statisticsDashboard.ManualRefresh();
+            Debug.Log("已自动刷新统计大屏");
+        }
     }
     
     void OnDestroy()

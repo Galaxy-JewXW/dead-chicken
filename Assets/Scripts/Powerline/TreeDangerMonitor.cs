@@ -1129,9 +1129,9 @@ public class TreeDangerMonitor : MonoBehaviour
             stats[level] = 0;
         }
         
+        // 首先统计已监测的树木（来自treeDangerList）
         if (treeDangerList.Count > 0)
         {
-            // 有监测结果，统计各危险等级的数量
             foreach (var dangerInfo in treeDangerList)
             {
                 if (dangerInfo != null)
@@ -1148,15 +1148,107 @@ public class TreeDangerMonitor : MonoBehaviour
                 }
             }
         }
-        else if (trees.Count > 0)
+        
+        // 然后统计场景中所有带有DangerMarker的树木
+        var allTrees = FindObjectsOfType<GameObject>().Where(obj => 
+            obj.name.ToLower().Contains("tree") || 
+            obj.name.ToLower().Contains("植物") || 
+            obj.name.ToLower().Contains("树")).ToArray();
+            
+        // 过滤掉系统组件和监测器组件
+        var realTrees = allTrees.Where(obj => 
+            !obj.name.Contains("TreeDangerMonitor") && 
+            !obj.name.Contains("TreeDanger") &&
+            !obj.name.Contains("Monitor") &&
+            !obj.name.Contains("Controller") &&
+            !obj.name.Contains("System") &&
+            !obj.name.Contains("Manager")).ToArray();
+            
+        int totalTrees = realTrees.Length;
+        int monitoredTrees = 0;
+        
+        foreach (var tree in realTrees)
         {
-            // 找到树木但未执行监测，设置为安全状态
-            int foundTreeCount = trees.Count;
-            stats[TreeDangerLevel.Safe] = foundTreeCount;
-            Debug.Log($"树木已找到但未监测，设置 {foundTreeCount} 棵为安全状态");
+            // 检查是否有DangerMarker组件
+            var dangerMarker = tree.GetComponent<DangerMarker>() ?? tree.GetComponentInChildren<DangerMarker>();
+            if (dangerMarker != null)
+            {
+                monitoredTrees++;
+                // 根据DangerMarker的危险等级转换为TreeDangerLevel
+                TreeDangerLevel treeLevel = ConvertDangerMarkerToTreeLevel(dangerMarker.dangerLevel);
+                if (stats.ContainsKey(treeLevel))
+                {
+                    stats[treeLevel]++;
+                }
+                else
+                {
+                    stats[treeLevel] = 1;
+                }
+            }
         }
         
+        // 如果还有未监测的树木，设置为安全状态
+        int unmonitoredTrees = totalTrees - monitoredTrees;
+        if (unmonitoredTrees > 0)
+        {
+            stats[TreeDangerLevel.Safe] += unmonitoredTrees;
+        }
+        
+        Debug.Log($"危险统计完成: 总树木={totalTrees}, 已监测={monitoredTrees}, 未监测={unmonitoredTrees}, 统计结果={string.Join(", ", stats.Select(kvp => $"{kvp.Key}:{kvp.Value}"))}");
+        
         return stats;
+    }
+    
+    /// <summary>
+    /// 将DangerMarker的DangerLevel转换为TreeDangerLevel
+    /// </summary>
+    private TreeDangerLevel ConvertDangerMarkerToTreeLevel(DangerLevel dangerLevel)
+    {
+        switch (dangerLevel)
+        {
+            case DangerLevel.Low:
+                return TreeDangerLevel.Warning;
+            case DangerLevel.Medium:
+                return TreeDangerLevel.Critical;
+            case DangerLevel.High:
+                return TreeDangerLevel.Emergency;
+            default:
+                return TreeDangerLevel.Safe;
+        }
+    }
+    
+    /// <summary>
+    /// 获取危险树木对象列表
+    /// </summary>
+    public List<GameObject> GetDangerousTreesList()
+    {
+        var dangerousTrees = new List<GameObject>();
+        
+        if (treeDangerList.Count > 0)
+        {
+            // 有监测结果，返回危险等级为Warning、Critical、Emergency的树木
+            foreach (var dangerInfo in treeDangerList)
+            {
+                if (dangerInfo != null && 
+                    dangerInfo.dangerLevel >= TreeDangerLevel.Warning && 
+                    dangerInfo.tree != null)
+                {
+                    // 过滤掉系统组件
+                    if (!dangerInfo.tree.name.Contains("TreeDangerMonitor") && 
+                        !dangerInfo.tree.name.Contains("TreeDanger") &&
+                        !dangerInfo.tree.name.Contains("Monitor") &&
+                        !dangerInfo.tree.name.Contains("Controller") &&
+                        !dangerInfo.tree.name.Contains("System") &&
+                        !dangerInfo.tree.name.Contains("Manager"))
+                    {
+                        dangerousTrees.Add(dangerInfo.tree);
+                    }
+                }
+            }
+        }
+        
+        Debug.Log($"返回 {dangerousTrees.Count} 棵危险树木对象（已过滤系统组件）");
+        return dangerousTrees;
     }
     
     /// <summary>
