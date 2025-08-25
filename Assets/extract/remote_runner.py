@@ -1,6 +1,9 @@
+import argparse
 import os
+import sys
 import paramiko
-from scp import SCPClient
+from tqdm import tqdm
+import laspy
 import open3d as o3d
 import numpy as np
 
@@ -15,145 +18,169 @@ def create_ssh_client():
     )
     return ssh
 
-def visualize_point_cloud(input_file_path):
-    """使用open3d可视化点云"""
+def create_progress_callback(description, file_size):
+    """创建进度条回调函数"""
+    pbar = tqdm(
+        total=file_size,
+        unit='B',
+        unit_scale=True,
+        unit_divisor=1024,
+        desc=description,
+        ncols=80,
+        file=sys.stdout  # 输出到stdout而不是stderr
+    )
+    
+    def progress_callback(transferred, total):
+        pbar.update(transferred - pbar.n)
+        if transferred >= total:
+            pbar.close()
+    
+    return progress_callback
+
+def upload_with_progress(sftp, local_path, remote_path, description):
+    """使用SFTP上传文件并显示进度条"""
+    file_size = os.path.getsize(local_path)
+    callback = create_progress_callback(description, file_size)
+    sftp.put(local_path, remote_path, callback=callback)
+
+def download_with_progress(sftp, remote_path, local_path, description):
+    """使用SFTP下载文件并显示进度条"""
+    # 如果本地文件已存在，删除它
+    if os.path.exists(local_path):
+        print(f"本地文件 {local_path} 已存在，正在删除...")
+        os.remove(local_path)
+        print(f"已删除原文件: {local_path}")
+    
+    # 先获取远程文件大小
+    file_attrs = sftp.stat(remote_path)
+    file_size = file_attrs.st_size
+    callback = create_progress_callback(description, file_size)
+    sftp.get(remote_path, local_path, callback=callback)
+
+def visualize_las_file(las_file_path):
+    """使用laspy读取las文件并用open3d可视化"""
+    print(f"正在读取LAS文件: {las_file_path}")
+    
     try:
-        print(f"🔍 正在加载点云文件: {input_file_path}")
+        # 使用laspy读取las文件
+        las = laspy.read(las_file_path)
         
-        # 检查文件是否存在
-        if not os.path.exists(input_file_path):
-            print(f"❌ 文件不存在: {input_file_path}")
-            return False
-            
-        # 根据文件扩展名选择加载方式
-        file_ext = os.path.splitext(input_file_path)[1].lower()
+        # 提取xyz坐标
+        points = np.vstack((las.x, las.y, las.z)).transpose()
         
-        if file_ext == '.las':
-            # 使用laspy加载LAS文件
-            try:
-                import laspy
-                las = laspy.read(input_file_path)
-                points = np.vstack([las.x, las.y, las.z]).transpose()
-                
-                # 创建open3d点云对象
-                pcd = o3d.geometry.PointCloud()
-                pcd.points = o3d.utility.Vector3dVector(points)
-                
-                # 如果有颜色信息，添加颜色
-                if hasattr(las, 'red') and hasattr(las, 'green') and hasattr(las, 'blue'):
-                    colors = np.vstack([las.red, las.green, las.blue]).transpose() / 65535.0
-                    pcd.colors = o3d.utility.Vector3dVector(colors)
-                else:
-                    # 如果没有颜色信息，使用高度作为颜色
-                    heights = las.z
-                    normalized_heights = (heights - heights.min()) / (heights.max() - heights.min())
-                    colors = np.column_stack([normalized_heights, normalized_heights, normalized_heights])
-                    pcd.colors = o3d.utility.Vector3dVector(colors)
-                
-                print(f"✅ 成功加载LAS文件，点云包含 {len(points)} 个点")
-                
-            except ImportError:
-                print("❌ 未安装laspy库，无法加载LAS文件")
-                return False
-                
-        elif file_ext in ['.ply', '.pcd', '.xyz']:
-            # 使用open3d直接加载
-            pcd = o3d.io.read_point_cloud(input_file_path)
-            if not pcd.has_points():
-                print(f"❌ 无法加载点云文件: {input_file_path}")
-                return False
-            print(f"✅ 成功加载点云文件，包含 {len(pcd.points)} 个点")
-            
-        else:
-            print(f"❌ 不支持的文件格式: {file_ext}")
-            return False
+        print(f"点云包含 {len(points)} 个点")
+        print(f"点云范围:")
+        print(f"  X: {points[:, 0].min():.2f} ~ {points[:, 0].max():.2f}")
+        print(f"  Y: {points[:, 1].min():.2f} ~ {points[:, 1].max():.2f}")
+        print(f"  Z: {points[:, 2].min():.2f} ~ {points[:, 2].max():.2f}")
         
-        # 显示点云
-        print("🎨 正在显示点云可视化...")
-        print("💡 提示：在可视化窗口中，您可以：")
-        print("   - 使用鼠标左键旋转视角")
-        print("   - 使用鼠标右键平移视角")
-        print("   - 使用鼠标滚轮缩放")
-        print("   - 按 'Q' 键退出可视化")
+        # 创建open3d点云对象
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(points)
+        
+        # 尝试提取颜色信息
+        colors = None
+        try:
+            if hasattr(las, 'red') and hasattr(las, 'green') and hasattr(las, 'blue'):
+                # RGB颜色信息存在
+                colors = np.vstack((las.red, las.green, las.blue)).transpose()
+                pcd.colors = o3d.utility.Vector3dVector(colors)
+                print("检测到RGB颜色信息")
+            elif hasattr(las, 'intensity'):
+                # 使用强度信息生成颜色
+                intensity = las.intensity
+                intensity_normalized = (intensity - intensity.min()) / (intensity.max() - intensity.min())
+                colors = np.column_stack([intensity_normalized, intensity_normalized, intensity_normalized])
+                pcd.colors = o3d.utility.Vector3dVector(colors)
+                print("使用强度信息生成灰度颜色")
+            else:
+                print("未找到颜色或强度信息，使用默认颜色")
+                
+        except Exception as e:
+            print(f"处理颜色信息时出错: {e}")
+            print("使用默认颜色")
+        
+        # 计算法向量（可选，用于更好的可视化效果）
+        print("计算法向量...")
+        pcd.estimate_normals(
+            search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+        )
+        
+        # 可视化点云
         
         o3d.visualization.draw_geometries([pcd], 
-                                        window_name=f"点云可视化 - {os.path.basename(input_file_path)}",
+                                        window_name="LAS点云可视化",
                                         width=1200, 
-                                        height=800)
-        
-        return True
+                                        height=800,
+                                        left=50, 
+                                        top=50)
         
     except Exception as e:
-        print(f"❌ 点云可视化失败: {str(e)}")
-        return False
+        print(f"可视化LAS文件时出错: {e}")
+        import traceback
+        traceback.print_exc()
 
 def main():
-    # 从环境变量或配置文件读取输入文件路径
-    # 这里假设Unity会设置环境变量或创建配置文件
-    input_file_path = os.environ.get('UNITY_INPUT_FILE')
-    
-    if not input_file_path:
-        # 尝试从配置文件读取
-        config_file = "unity_input_config.txt"
-        if os.path.exists(config_file):
-            try:
-                with open(config_file, 'r', encoding='utf-8') as f:
-                    input_file_path = f.read().strip()
-                print(f"📖 从配置文件读取输入文件: {input_file_path}")
-            except Exception as e:
-                print(f"❌ 读取配置文件失败: {e}")
-                return
-        else:
-            print("❌ 未找到输入文件路径，请设置环境变量UNITY_INPUT_FILE或创建unity_input_config.txt文件")
-            return
-    
-    if not os.path.exists(input_file_path):
-        print(f"❌ 输入文件不存在: {input_file_path}")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--input", required=True, help="Local input file (.las)")
+    parser.add_argument("--output", required=True, help="Local output file (.las)")
+    parser.add_argument("--visualize", action='store_true', help="Visualize the output file after download")
+    args = parser.parse_args()
+
+    local_input_path = args.input
+    local_output_path = args.output
+
+    if not os.path.exists(local_input_path):
+        print(f"File not found: {local_input_path}")
         return
 
-    print(f"🚀 开始处理文件: {input_file_path}")
-    
-    # 创建SSH连接
+    ssh = create_ssh_client()
+    sftp = ssh.open_sftp()
+
+    filename = os.path.basename(local_input_path)
+    remote_input_path = f"/root/autodl-tmp/input/{filename}"
+    remote_output_path = f"/root/autodl-tmp/output/result_{filename}"
+
+    # 确保远程目录存在
     try:
-        ssh = create_ssh_client()
-        scp = SCPClient(ssh.get_transport())
-        
-        filename = os.path.basename(input_file_path)
-        remote_input_path = f"/root/autodl-tmp/input/{filename}"
-        
-        print(f"📤 正在上传文件到远程服务器...")
-        scp.put(input_file_path, remote_input_path)
-        
-        # 执行远程脚本（不需要输出文件）
-        command = f"/root/miniconda3/bin/python3 /root/autodl-tmp/scripts/work.py {remote_input_path}"
-        print(f"🚀 正在执行远程电力线提取脚本...")
-        
-        stdin, stdout, stderr = ssh.exec_command(command)
-        
-        # 读取输出
-        print("📊 远程脚本输出:")
-        output_lines = stdout.readlines()
-        for line in output_lines:
-            print(f"   {line.strip()}")
-        
-        error_lines = stderr.readlines()
-        if error_lines:
-            print("⚠️  错误信息:")
-            for line in error_lines:
-                print(f"   {line.strip()}")
-        
-        print("✅ 远程电力线提取完成！")
-        
-        # 关闭连接
-        scp.close()
-        ssh.close()
-        
-        # 在本地显示点云可视化
-        print("\n🎨 开始本地点云可视化...")
-        visualize_point_cloud(input_file_path)
-        
-    except Exception as e:
-        print(f"❌ 处理失败: {str(e)}")
+        sftp.makedirs("/root/autodl-tmp/input")
+    except:
+        pass  # 目录可能已存在
+    
+    try:
+        sftp.makedirs("/root/autodl-tmp/output")
+    except:
+        pass
+
+    # 上传文件 - 带进度条
+    print(f"Uploading {local_input_path} → {remote_input_path}")
+    upload_with_progress(sftp, local_input_path, remote_input_path, f"上传 {filename}")
+
+    # 远程脚本只传入输入和输出文件路径
+    command = (
+        f"/root/miniconda3/bin/python3 /root/autodl-tmp/scripts/work.py "
+        f"{remote_input_path} {remote_output_path}"
+    )
+    print(f"Running remote script: {command}")
+    stdin, stdout, stderr = ssh.exec_command(command)
+
+    print("".join(stdout.readlines()))
+    err_msg = "".join(stderr.readlines())
+    if err_msg:
+        print("ERR:", err_msg)
+
+    # 下载文件 - 带进度条
+    result_filename = os.path.basename(local_output_path)
+    print(f"Downloading {remote_output_path} → {local_output_path}")
+    download_with_progress(sftp, remote_output_path, local_output_path, f"下载 {result_filename}")
+
+    sftp.close()
+    ssh.close()
+    print("Done!")
+    
+    # 可视化下载的文件
+    if args.visualize or input("是否要可视化下载的LAS文件? (y/N): ").lower().startswith('y'):
+        visualize_las_file(local_output_path)
 
 if __name__ == "__main__":
     main()

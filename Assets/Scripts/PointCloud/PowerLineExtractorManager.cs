@@ -821,25 +821,25 @@ namespace PowerlineSystem
                 yield break;
             }
 
-            // 创建配置文件，让remote_runner.py读取输入文件路径
-            string configFile = Path.Combine(extractDir, "unity_input_config.txt");
-            try
+            // 生成输出文件路径
+            string inputFileName = Path.GetFileNameWithoutExtension(selectedLasFilePath);
+            string inputFileDir = Path.GetDirectoryName(selectedLasFilePath);
+            string outputLasPath = Path.Combine(inputFileDir, inputFileName + "_final.las");
+
+            Debug.Log($"输入文件: {selectedLasFilePath}");
+            Debug.Log($"输出文件: {outputLasPath}");
+            
+            if (pythonOutputViewer != null)
             {
-                File.WriteAllText(configFile, selectedLasFilePath, Encoding.UTF8);
-                Debug.Log($"已创建配置文件: {configFile}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"创建配置文件失败: {ex.Message}");
-                onComplete?.Invoke(false);
-                yield break;
+                pythonOutputViewer.AddOutput($"输入文件: {selectedLasFilePath}");
+                pythonOutputViewer.AddOutput($"输出文件: {outputLasPath}");
             }
 
             // 启动进程 - 调用remote_runner.py进行远程电力线提取
             ProcessStartInfo startInfo = new ProcessStartInfo()
             {
                 FileName = workingPythonCmd,
-                Arguments = $"-u \"{scriptPath}\"",
+                Arguments = $"-u \"{scriptPath}\" --input \"{selectedLasFilePath}\" --output \"{outputLasPath}\" --visualize",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -895,8 +895,8 @@ namespace PowerlineSystem
                     {
                         if (!string.IsNullOrEmpty(line.Trim()))
                         {
-                            Debug.LogWarning($"Extractor4.py err: {line}");
-                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[Extractor4 err] {line}", true);
+                            Debug.LogWarning($"remote_runner.py err: {line}");
+                            if (pythonOutputViewer != null) pythonOutputViewer.AddOutput($"[remote_runner err] {line}", true);
                         }
                     }
                     lastErr = errorBuffer;
@@ -907,7 +907,7 @@ namespace PowerlineSystem
             {
                 try { process.Kill(); } catch { }
                 process?.Dispose();
-                Debug.LogError("Extractor4.py 超时");
+                Debug.LogError("remote_runner.py 超时");
                 onComplete?.Invoke(false);
                 yield break;
             }
@@ -915,7 +915,7 @@ namespace PowerlineSystem
             process.WaitForExit(); int exitCode = process.ExitCode; process.Dispose();
             if (exitCode != 0)
             {
-                Debug.LogError($"Extractor4.py 退出码: {exitCode}");
+                Debug.LogError($"remote_runner.py 退出码: {exitCode}");
                 onComplete?.Invoke(false);
                 yield break;
             }
@@ -933,6 +933,24 @@ namespace PowerlineSystem
             // 检查JSON输出文件是否生成
             string jsonOutPath = Path.Combine(extractDir, baseName + "_powerline_endpoints.json");
             if (File.Exists(jsonOutPath)) Debug.Log($"JSON输出: {jsonOutPath}");
+
+            // 检查输出的LAS文件是否生成
+            if (File.Exists(outputLasPath))
+            {
+                Debug.Log($"输出LAS文件生成成功: {outputLasPath}");
+                if (pythonOutputViewer != null)
+                {
+                    pythonOutputViewer.AddOutput($"输出LAS文件生成成功: {outputLasPath}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"输出LAS文件未找到: {outputLasPath}");
+                if (pythonOutputViewer != null)
+                {
+                    pythonOutputViewer.AddOutput($"警告：输出LAS文件未找到: {outputLasPath}", true);
+                }
+            }
 
             onComplete?.Invoke(true);
         }
